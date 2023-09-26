@@ -1,0 +1,4 @@
+colorama
+discord.py
+python-dotenv
+asyncio
