@@ -181,7 +181,7 @@ class DiscordScamBot(discord.Client):
         
         # Add to database
         data = [
-            (TargetId, Sender.display_name, Sender.id, datetime.now()),
+            (TargetId, Sender.name, Sender.id, datetime.now()),
         ]
         self.Database.executemany("INSERT INTO banslist VALUES(?, ?, ?, ?)", data)
         self.Database.commit() 
