@@ -56,20 +56,20 @@ class DiscordScamBot(discord.Client):
         self.ApproverRole = self.ControlServer.get_role(ConfigData["ApproverRole"])
         self.NotificationChannel = self.get_channel(ConfigData["AnnouncementChannel"])
         Logger.Log(LogLevel.Notice, "Configs loaded")
-    
+        
+    def CheckIfCommand(self, text:str):
+        for Command in self.CommandList:
+            if (text.startswith(Command)):
+                return True
+        return False
+
     async def on_ready(self):
         Logger.Log(LogLevel.Log, "Bot is ready to start!")
         self.ReloadConfig()
     
     async def on_guild_join(self, server):
         await self.ReprocessBans(server)
-    
-    def CheckIfCommand(self, text:str):
-        for Command in self.CommandList:
-            if (text.startswith(Command)):
-                return True
-        return False
-                
+ 
     async def on_message(self, message):
         MessageContents:str = message.content
         # If not a command, get out of here
@@ -155,6 +155,13 @@ class DiscordScamBot(discord.Client):
             NumBans += 1
             await self.PerformActionOnServer(Server, User, "User banned by ScamBot", True)
         Logger.Log(LogLevel.Notice, f"Processed {NumBans} bans on join!")
+    
+    async def PublishNotification(self, Message:str):
+        try:
+            NewMessage = await self.NotificationChannel.send(Message)
+            await NewMessage.publish()
+        except discord.HTTPException as ex:
+            Logger.Log(LogLevel.Warn, f"Unable to publish message to notification channel {str(ex)}")
         
     def DoesBanExist(self, TargetId:int):
         res = self.Database.execute(f"SELECT * FROM banslist WHERE Id={TargetId}")
@@ -181,7 +188,8 @@ class DiscordScamBot(discord.Client):
         await self.PropegateActionToServers(TargetId, Sender, True)
         
         # Send a message to the notification channel
-        await self.NotificationChannel.send(f"A ban of user {TargetId} was committed by {Sender.display_name}")
+        await self.PublishNotification(f"A ban of user {TargetId} was committed by {Sender.display_name}")
+        
         return BanLookup.Banned
 
     async def PrepareUnban(self, TargetId:int, Sender):
@@ -194,7 +202,7 @@ class DiscordScamBot(discord.Client):
         
         self.Database.execute(f"DELETE FROM banlist where Id={TargetId}")
         await self.PropegateActionToServers(TargetId, Sender, False)
-        await self.NotificationChannel.send(f"An Unban of user {TargetId} has started by {Sender.display_name}")
+        await self.PublishNotification(f"An Unban of user {TargetId} has started by {Sender.display_name}")
         return BanLookup.Unbanned
     
     async def PerformActionOnServer(self, Server, User, Reason, IsBan:bool) -> bool:
