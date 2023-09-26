@@ -30,7 +30,7 @@ class BanLookup(IntEnum):
 # * Async functionality for processing events
 # * Something that cleans up the database in the future based off of if the scam accounts are deleted
 
-class DiscordSpamBot(discord.Client):
+class DiscordScamBot(discord.Client):
     ControlServer = None
     ApproverRole = None
     # Channel to send updates as to when someone is banned/unbanned
@@ -47,7 +47,7 @@ class DiscordSpamBot(discord.Client):
         super().__init__(intents=intents)
         
     def __del__(self):
-        Logger.Log(LogLevel.Notice, "Closing the discord spam bot")
+        Logger.Log(LogLevel.Notice, "Closing the discord scam bot")
         if (self.Database is not None):
             self.Database.close()
 
@@ -123,7 +123,8 @@ class DiscordSpamBot(discord.Client):
                         await message.reply(f"The ban for {TargetId} is in progress...")
                 else:
                     Logger.Log(LogLevel.Warn, "A scam ban message was sent by a non-admin from " + str(Sender))
-                    return
+
+                return
             elif (Command.startswith("?scamunban")):
                 if (IsAdmin):
                     Logger.Log(LogLevel.Log, "Scam unban message detected from " + str(Sender))
@@ -134,7 +135,8 @@ class DiscordSpamBot(discord.Client):
                         await message.reply(f"The unban for {TargetId} is in progress...")
                 else:
                     Logger.Log(LogLevel.Warn, "A scam unban message was sent by a non-admin from " + str(Sender))
-                    return
+
+                return
     
         if (Command.startswith("?scamcheck")):
             if (self.DoesBanExist(TargetId)):
@@ -142,8 +144,7 @@ class DiscordSpamBot(discord.Client):
             else:
                 await message.reply(f"{TargetId} is not currently banned")
 
-        Logger.Log(LogLevel.Verbose, f"Sendering {Sender.id} and owner is {message.guild.owner_id}")
-        if (Command.startswith("?scamimport") and Sender.id == message.guild.owner_id):
+        elif (Command.startswith("?scamimport") and Sender.id == message.guild.owner_id):
             await self.ReprocessBans(message.guild)
 
     async def ReprocessBans(self, Server):
@@ -235,5 +236,5 @@ class DiscordSpamBot(discord.Client):
 
         Logger.Log(LogLevel.Notice, f"Action execution performed in {NumServersPerformed}/{NumServers}")
 
-Bot = DiscordSpamBot()
+Bot = DiscordScamBot()
 Bot.run(ConfigData.GetToken())

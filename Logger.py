@@ -61,7 +61,7 @@ class Logger():
     elif Level == LogLevel.Notice:
       ColorStr = Fore.GREEN + Style.BRIGHT
       
-    print(Logger.PrintDate() + f"Bot:{ColorStr} {Input}" + Style.RESET_ALL)
+    print(Logger.PrintDate() + f"ScamBot:{ColorStr} {Input}" + Style.RESET_ALL)
       
   @staticmethod
   def SetLogLevel(NewLevel: LogLevel):
