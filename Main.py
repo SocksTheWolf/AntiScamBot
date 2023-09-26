@@ -56,7 +56,7 @@ class DiscordScamBot(discord.Client):
         self.ApproverRole = self.ControlServer.get_role(ConfigData["ApproverRole"])
         self.NotificationChannel = self.get_channel(ConfigData["AnnouncementChannel"])
         Logger.Log(LogLevel.Notice, "Configs loaded")
-        
+
     def CheckIfCommand(self, text:str):
         for Command in self.CommandList:
             if (text.startswith(Command)):
