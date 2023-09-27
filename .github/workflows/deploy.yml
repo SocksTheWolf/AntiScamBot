@@ -23,7 +23,7 @@ jobs:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        evns: GITKEYLOC
+        envs: GITKEYLOC
         script: |
           cd ~/project/AntiScamBot
           eval "$(ssh-agent -s)"
