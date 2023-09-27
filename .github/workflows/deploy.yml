@@ -13,7 +13,7 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         passphrase: ${{secrets.SSH_PASSPHRASE}}
         script: |
-          mkdir project
+          mkdir -p project
           cd project
           git clone git@github.com:SocksTheWolf/AntiScamBot.git
           echo "Deploy success"
