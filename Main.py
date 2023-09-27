@@ -258,7 +258,7 @@ class DiscordScamBot(discord.Client):
         if (message.author.id == self.user.id):
             return
         
-        MessageContents:str = message.content
+        MessageContents:str = message.content.lower()
         # If not a command, get out of here
         if (not MessageContents.startswith("?")):
             return
