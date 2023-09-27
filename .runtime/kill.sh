@@ -1,2 +1,2 @@
 #!/bin/sh
-ps -eaf | grep "nohup" | grep "python3"
+pgrep -f "python3 ./Main.py" | xargs kill

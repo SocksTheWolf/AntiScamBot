@@ -524,11 +524,12 @@ class DiscordScamBot(discord.Client):
             ScamStr = "non-scammer"
         
         BanReason=f"Reported {ScamStr} by {Sender.name}"
-        #NumServers = len(self.guilds)
-        NumServers:int = self.Database.execute("SELECT COUNT(*) FROM servers WHERE Activated=1")[0]
-        #for DiscordServer in self.guilds:
+        AllServersQuery = self.Database.execute("SELECT Id FROM servers WHERE Activated=1")
+        AllServers = AllServersQuery.fetchall()
+        #AllServers = self.guilds
+        NumServers:int = len(AllServers)
         # Instead of going through all servers it's added to, choose all servers that are activated.
-        for ServerData in self.Database.execute("SELECT Id FROM servers WHERE Activated=1"):
+        for ServerData in AllServers:
             ServerId:int = ServerData[0]
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
