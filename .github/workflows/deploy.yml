@@ -15,6 +15,6 @@ jobs:
         script: |
           cd project/AntiScamBot
           ssh -T git@github.com
-          ./runtime/kill.sh
+          ./.runtime/kill.sh
           git pull
           echo "Deploy success"
