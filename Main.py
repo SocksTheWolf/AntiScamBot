@@ -92,16 +92,20 @@ class DiscordScamBot(discord.Client):
 
     ### Config Handling ###
     def ReloadConfig(self):
+        # Grab our control server
         if (ConfigData.IsValid("ControlServer", int)):
             self.ControlServer = self.get_guild(ConfigData["ControlServer"])
         else:
             Logger.Log(LogLevel.Error, "Missing the ControlServer configuration!")
             return
+        
+        # Pull the approver role
         if (ConfigData.IsValid("ApproverRole", int)):
             self.ApproverRole = self.ControlServer.get_role(ConfigData["ApproverRole"])
         else:
             Logger.Log(LogLevel.Error, "Missing the ApproverRole configuration!")
             return
+        
         if (ConfigData.IsValid("AnnouncementChannel", int)):
             self.AnnouncementChannel = self.get_channel(ConfigData["AnnouncementChannel"])
         if (ConfigData.IsValid("NotificationChannel", int)):
@@ -110,6 +114,7 @@ class DiscordScamBot(discord.Client):
             self.MaintainerRole = self.ControlServer.get_role(ConfigData["MaintainerRole"])
         if (ConfigData.IsValid("DeveloperRole", int)):
             self.DeveloperRole = self.ControlServer.get_role(ConfigData["DeveloperRole"])
+        
         Logger.Log(LogLevel.Notice, "Configs loaded")
 
     ### Command Processing & Utils ###
@@ -222,8 +227,9 @@ class DiscordScamBot(discord.Client):
         if (ConfigData.IsValid("BotUserName", str)):
             await self.user.edit(username=ConfigData["BotUserName"])
         # Set status
-        activity = discord.CustomActivity(name="Powering Up")
-        await self.change_presence(status=discord.Status.dnd, activity=activity)
+        if (ConfigData.IsValid("BotActivity", str)):
+            activity = discord.CustomActivity(name=ConfigData["BotActivity"])
+            await self.change_presence(status=discord.Status.online, activity=activity)
 
         self.UpdateServerDB()
         # Set logger callbacks for notifications
