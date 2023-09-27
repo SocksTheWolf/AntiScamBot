@@ -135,7 +135,11 @@ class DiscordScamBot(discord.Client):
     
     async def PublishAnnouncement(self, Message):
         try:
-            NewMessage = await self.AnnouncementChannel.send(Message)
+            NewMessage = None
+            if (type(Message) == discord.Embed):
+                NewMessage = await self.AnnouncementChannel.send(embed=Message)
+            else:
+                NewMessage = await self.AnnouncementChannel.send(Message)
             if (NewMessage is not None):
                 await NewMessage.publish()
             elif (type(Message) == str):
