@@ -5,13 +5,21 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Adding the Private key to a Github Actions Workflow
+    - name: Install SSH Key
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.SSH_KEY }}
+    
     - name: Update Python Project
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        passphrase: ${{secrets.SSH_PASSPHRASE}}
         script: |
           cd ~/project/AntiScamBot
           ssh -T git@github.com
