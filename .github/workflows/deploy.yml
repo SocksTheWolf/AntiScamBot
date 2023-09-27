@@ -13,8 +13,8 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         passphrase: ${{secrets.SSH_PASSPHRASE}}
         script: |
-          pwd
           cd project/AntiScamBot
+          ssh -T git@github.com
           ./runtime/kill.sh
           git pull
           echo "Deploy success"

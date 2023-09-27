@@ -15,5 +15,6 @@ jobs:
         script: |
           mkdir -p project
           cd project
+          ssh -T git@github.com
           git clone git@github.com:SocksTheWolf/AntiScamBot.git
           echo "Clone success"
