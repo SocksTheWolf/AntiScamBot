@@ -1,11 +1,13 @@
-from enum import IntEnum, auto
+from enum import auto
 from colorama import Fore, Style, init
+from EnumWrapper import CompareEnum
 import datetime
 import time
+import asyncio
 
 __all__ = ["LogLevel", "Logger"]
 
-class LogLevel(IntEnum):
+class LogLevel(CompareEnum):
   Debug=auto()
   Verbose=auto()
   Log=auto()
@@ -13,17 +15,11 @@ class LogLevel(IntEnum):
   Error=auto()
   Notice=auto()
   Silence=auto()
-  
-  def __lt__(self, other):
-    if self.__class__ is other.__class__:
-      return self.value < other.value
-    return NotImplemented
-      
-  def ToString(self):
-    return self.name
 
-CurrentLoggingLevel = LogLevel.Verbose
+CurrentLoggingLevel = LogLevel.Debug
+CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
+NotificationCallback = None
 
 class Logger():
   @staticmethod
@@ -44,12 +40,17 @@ class Logger():
 
   @staticmethod
   def Log(Level:LogLevel, Input:str):
+    global NotificationCallback
     
     if Level < CurrentLoggingLevel:
       return
     
+    if CurrentLoggingLevel == LogLevel.Silence:
+      return
+    
     # Set up color logging for lightbot
     ColorStr = ""
+    MessageStr = f"ScamBot [{Level.ToString()}]: {Input}"
     if Level == LogLevel.Error:
       ColorStr = Fore.RED + Style.BRIGHT
     elif Level == LogLevel.Warn:
@@ -60,8 +61,18 @@ class Logger():
       ColorStr = Style.BRIGHT + Fore.BLACK
     elif Level == LogLevel.Notice:
       ColorStr = Fore.GREEN + Style.BRIGHT
+
+    print(Logger.PrintDate() + f"{ColorStr} {MessageStr}" + Style.RESET_ALL)
+    
+    if (NotificationCallback is not None and Level >= CurrentNotificationLevel):
+      try:
+        CurrentLoop = asyncio.get_running_loop()
+      except RuntimeError:
+        # If there is no currently running loop, then don't bother sending notification messages
+        return
       
-    print(Logger.PrintDate() + f"ScamBot:{ColorStr} {Input}" + Style.RESET_ALL)
+      # This will automatically get added to the task loop.
+      CurrentLoop.create_task(NotificationCallback(MessageStr))
       
   @staticmethod
   def SetLogLevel(NewLevel: LogLevel):
@@ -76,5 +87,10 @@ class Logger():
   @staticmethod
   def GetLogLevelName():
     return CurrentLoggingLevel.name
+  
+  @staticmethod
+  def SetNotificationCallback(NewCallback):
+    global NotificationCallback
+    NotificationCallback = NewCallback
 
 Logger.Start()

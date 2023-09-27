@@ -27,6 +27,27 @@ class Config():
             
     def __getitem__(self, item):
          return self.__dict__[item]
+         
+    def IsValid(self, Key:str, ExpectType) -> bool:
+        try:
+            EntryValue = self[Key]
+            EntryValueType = type(EntryValue)
+            if (EntryValueType != ExpectType):
+                return False
+            
+            if (EntryValueType == int):
+                if (EntryValue <= 0):
+                    return False
+                else:
+                    return True
+            elif (EntryValueType == str):
+                if (len(EntryValue) == 0):
+                    return False
+                
+                return True
+            return False
+        except(Exception):
+            return False
    
     def GetToken(self):
         return os.getenv("DISCORD_TOKEN")
