@@ -18,19 +18,19 @@ jobs:
     - name: Update Python Project
       uses: appleboy/ssh-action@master
       env:
-        GITKEYLOC: ${{ secrets.AUTH_KEY_LOC }}
+        AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
       with:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        envs: GITKEYLOC
+        envs: AUTHKEYNAME
         script: |
           echo "Moving to project directory"
           cd ~/project/AntiScamBot
           echo "Setting SSH Agent"
           eval "$(ssh-agent -s)"
           echo "Readding SSH Key"
-          ssh-add $GITKEYLOC
+          ssh-add ~/.ssh/$AUTHKEYNAME
           echo "Checking Git Readability"
           ssh -T git@github.com
           echo "Killing bot..."
