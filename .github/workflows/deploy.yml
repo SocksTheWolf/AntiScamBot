@@ -10,10 +10,14 @@ jobs:
 
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
-      uses: webfactory/ssh-agent@v0.7.0
+      uses: shimataro/ssh-key-action@v2
       with:
-        ssh-private-key: ${{ secrets.SSH_KEY }}
-    
+        key: ${{ secrets.SSH_KEY }}
+        known_hosts: unnecessary
+
+    # Adding a correct known_hosts value
+    - name: Adding Known Hosts
+      run: ssh-keyscan -H ${{ secrets.SSH_HOST }}  >> ~/.ssh/known_hosts
     - name: Update Python Project
       uses: appleboy/ssh-action@v1.0.0
       with:
