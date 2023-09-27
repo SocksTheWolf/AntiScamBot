@@ -254,6 +254,10 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} of owner {server.owner.name}")
         
     async def on_message(self, message):
+        # Prevent the bot from processing its own messages
+        if (message.author.id == self.user.id):
+            return
+        
         MessageContents:str = message.content
         # If not a command, get out of here
         if (not MessageContents.startswith("?")):
