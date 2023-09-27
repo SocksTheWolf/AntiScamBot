@@ -8,6 +8,7 @@ from Config import Config
 import discord
 import sqlite3
 import asyncio
+import BotSetup
 
 # Setup functions
 ConfigData=Config()
@@ -233,7 +234,7 @@ class DiscordScamBot(discord.Client):
         # Set status
         if (ConfigData.IsValid("BotActivity", str)):
             activity = discord.CustomActivity(name=ConfigData["BotActivity"])
-            await self.change_presence(status=discord.Status.online, activity=activity)
+            await self.change_presence(status=discord.Status.dnd, activity=activity)
 
         self.UpdateServerDB()
         # Set logger callbacks for notifications
@@ -541,7 +542,7 @@ class DiscordScamBot(discord.Client):
                     # elif (ResultFlag == BanResult.LostPermissions):
                         # TODO: Mark this server as no longer active?
             else:
-                # TODO: Potentially remove this?
+                # TODO: Potentially remove the server from the list?
                 Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
 
         Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} {ScamStr} performed in {NumServersPerformed}/{NumServers}")
