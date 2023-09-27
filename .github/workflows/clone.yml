@@ -1,11 +1,11 @@
-name: Deploy Bot
-on: [push]
+name: Clone Bot
+#on: [push]
 
 jobs:
-  deploy:
+  clone:
     runs-on: ubuntu-latest
     steps:
-    - name: Update Python Project
+    - name: Clone Python Project
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{secrets.SSH_HOST}}
@@ -13,7 +13,7 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         passphrase: ${{secrets.SSH_PASSPHRASE}}
         script: |
-          cd project/AntiScamBot
-          ./runtime/kill.sh
-          git pull
-          echo "Deploy success"
+          mkdir -p project
+          cd project
+          git clone git@github.com:SocksTheWolf/AntiScamBot.git
+          echo "Clone success"
