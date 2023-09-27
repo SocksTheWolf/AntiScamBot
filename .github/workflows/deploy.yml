@@ -13,6 +13,7 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         passphrase: ${{secrets.SSH_PASSPHRASE}}
         script: |
+          pwd
           cd project/AntiScamBot
           ./runtime/kill.sh
           git pull
