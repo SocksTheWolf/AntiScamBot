@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Remember to run this with nohup!
 echo starting bot
 pwd | grep -q .runtime

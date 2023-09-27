@@ -228,13 +228,10 @@ class DiscordScamBot(discord.Client):
     ### Discord Eventing ###
     async def on_ready(self):
         self.ReloadConfig()
-        # Set username
-        if (ConfigData.IsValid("BotUserName", str)):
-            await self.user.edit(username=ConfigData["BotUserName"])
         # Set status
         if (ConfigData.IsValid("BotActivity", str)):
             activity = discord.CustomActivity(name=ConfigData["BotActivity"])
-            await self.change_presence(status=discord.Status.dnd, activity=activity)
+            await self.change_presence(status=discord.Status.online, activity=activity)
 
         self.UpdateServerDB()
         # Set logger callbacks for notifications
