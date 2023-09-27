@@ -1,0 +1,21 @@
+name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: debian-latest
+    steps:
+      name: Deploy Python
+      uses: appleboy/ssh-action
+      with:
+        host: ${{secrets.SSH_HOST}}
+        key: ${{secrets.SSH_KEY}}
+        username: ${{secrets.SSH_USERNAME}}
+
+      script: |
+        mkdir project
+        cd project
+        git clone git@github.com:SocksTheWolf/AntiScamBot.git
+        echo "Deploy success"
