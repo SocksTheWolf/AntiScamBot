@@ -190,7 +190,7 @@ class DiscordScamBot(discord.Client):
         if (len(NewAdditions) > 0):
             self.AddBotGuilds(NewAdditions)
         
-        # TODO: Process removals/deletions
+        # TODO: Process server removals/deletions
         
     def AddBotGuilds(self, ListOwnerAndServerTuples):
         BotAdditionUpdates = []
@@ -524,7 +524,8 @@ class DiscordScamBot(discord.Client):
             ScamStr = "non-scammer"
         
         BanReason=f"Reported {ScamStr} by {Sender.name}"
-        NumServers = len(self.guilds)
+        #NumServers = len(self.guilds)
+        NumServers:int = self.Database.execute("SELECT COUNT(*) FROM servers WHERE Activated=1")[0]
         #for DiscordServer in self.guilds:
         # Instead of going through all servers it's added to, choose all servers that are activated.
         for ServerData in self.Database.execute("SELECT Id FROM servers WHERE Activated=1"):
@@ -533,7 +534,7 @@ class DiscordScamBot(discord.Client):
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, IsBan)
                 if (BanResultTuple[0]):
-                    NumServersPerformed = 1
+                    NumServersPerformed += 1
                 else:
                     ResultFlag = BanResultTuple[1]                
                     if (ResultFlag == BanResult.InvalidUser and IsBan):
