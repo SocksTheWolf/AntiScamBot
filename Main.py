@@ -233,8 +233,8 @@ class DiscordScamBot(discord.Client):
         self.Database.commit()
         ActionStr:str = ""
         if (not IsActive):
-            ActionStr += "not"
-        Logger.Log(LogLevel.Notice, f"Bot has been added into {NumActivationAdditions} and activation {ActionStr} {NumActivationChanges} modified by {owner}")
+            ActionStr += "not "
+        Logger.Log(LogLevel.Notice, f"Bot has been added into {NumActivationAdditions} and activation {NumActivationChanges} {ActionStr}modified by {owner}")
 
     ### Discord Eventing ###
     async def on_ready(self):
@@ -244,11 +244,11 @@ class DiscordScamBot(discord.Client):
             activity = discord.CustomActivity(name=ConfigData["BotActivity"])
             await self.change_presence(status=discord.Status.online, activity=activity)
 
-        self.UpdateServerDB()
         # Set logger callbacks for notifications
         if (self.NotificationChannel is not None):
             Logger.SetNotificationCallback(self.PostNotification)
-        
+
+        self.UpdateServerDB()
         Logger.Log(LogLevel.Notice, "Bot has started!")
     
     async def on_guild_join(self, server):
