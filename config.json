@@ -5,5 +5,6 @@
     "AnnouncementChannel": 1156110286508523570,
     "NotificationChannel": 1156305992829644800,
     "DeveloperRole": 1156322618044055712,
-    "BotActivity": "Powering Up!"
+    "BotActivity": "Powering Up!",
+    "JoinAddsServerToDB": false
 }

@@ -92,7 +92,10 @@ class DiscordScamBot(discord.Client):
             self.Database.close()
 
     ### Config Handling ###
-    def ReloadConfig(self):
+    def ProcessConfig(self, ShouldReload:bool):
+        if (ShouldReload):
+            ConfigData.Load()
+        
         # Grab our control server
         if (ConfigData.IsValid("ControlServer", int)):
             self.ControlServer = self.get_guild(ConfigData["ControlServer"])
@@ -182,6 +185,11 @@ class DiscordScamBot(discord.Client):
     
     # Validates the servers that we are in, making sure that the list is maintained properly
     def UpdateServerDB(self):
+        # If the server database should only be maintained by those that activate it
+        # then we do not need to update the DB
+        if (ConfigData["JoinAddsServerToDB"] == False):
+            return
+        
         NewAdditions = []
         for DiscordServer in self.guilds:
             if (not self.IsInServer(DiscordServer.id)):
@@ -223,11 +231,14 @@ class DiscordScamBot(discord.Client):
             self.Database.executemany("UPDATE servers SET Activated=:Activated WHERE Id=:Id", ActivationChanges)
 
         self.Database.commit()
-        Logger.Log(LogLevel.Notice, f"Bot has been activated in {NumActivationChanges + NumActivationAdditions} new servers by {owner}")
+        ActionStr:str = ""
+        if (not IsActive):
+            ActionStr += "not"
+        Logger.Log(LogLevel.Notice, f"Bot has been added into {NumActivationAdditions} and activation {ActionStr} {NumActivationChanges} modified by {owner}")
 
     ### Discord Eventing ###
     async def on_ready(self):
-        self.ReloadConfig()
+        self.ProcessConfig(False)
         # Set status
         if (ConfigData.IsValid("BotActivity", str)):
             activity = discord.CustomActivity(name=ConfigData["BotActivity"])
@@ -241,7 +252,8 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, "Bot has started!")
     
     async def on_guild_join(self, server):
-        self.SetBotActivationForOwner(server.owner_id, [server.id], False)
+        if (ConfigData["JoinAddsServerToDB"] == True):
+            self.SetBotActivationForOwner(server.owner_id, [server.id], False)
         Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} of owner {server.owner.name}")
         
     async def on_guild_remove(self, server):
@@ -358,7 +370,7 @@ class DiscordScamBot(discord.Client):
                 NumServersActivated:int = len(ServersActivated)
                 if (NumServersActivated >= 1):
                     self.SetBotActivationForOwner(SendersId, ServersActivated, True)
-                    await message.reply(f"Activated {NumServersActivated} servers!")
+                    await message.reply(f"Activated in {NumServersActivated} of your servers!")
                 else:
                     await message.reply("There are no servers that you own that aren't already activated!")
                 return
@@ -371,13 +383,13 @@ class DiscordScamBot(discord.Client):
                 NumServersDeactivated:int = len(ServersToDeactivate)
                 if (NumServersDeactivated >= 1):
                     self.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
-                    await message.reply(f"Deactivated {NumServersDeactivated} servers!")
+                    await message.reply(f"Deactivated in {NumServersDeactivated} of your servers!")
                 else:
                     await message.reply("There are no servers that you own that aren't already activated!")
                 return
             elif (Command.startswith("?reloadconfig")):
                 if (IsMaintainer):
-                    self.ReloadConfig()
+                    self.ProcessConfig(True)
                     await message.reply("Configurations reloaded")
                 else:
                     await message.reply("You are not allowed to use that command!")
