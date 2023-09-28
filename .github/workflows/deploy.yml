@@ -35,6 +35,7 @@ jobs:
           ssh -T git@github.com
           echo "Killing bot..."
           .runtime/kill.sh
+          rm nohup.log
           echo "Updating directory"
           git pull
           echo "Deploy success"
