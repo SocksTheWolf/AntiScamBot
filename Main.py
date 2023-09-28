@@ -184,12 +184,7 @@ class DiscordScamBot(discord.Client):
             return True
     
     # Validates the servers that we are in, making sure that the list is maintained properly
-    def UpdateServerDB(self):
-        # If the server database should only be maintained by those that activate it
-        # then we do not need to update the DB
-        if (ConfigData["JoinAddsServerToDB"] == False):
-            return
-        
+    def UpdateServerDB(self):       
         NewAdditions = []
         for DiscordServer in self.guilds:
             if (not self.IsInServer(DiscordServer.id)):
@@ -252,8 +247,7 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, "Bot has started!")
     
     async def on_guild_join(self, server):
-        if (ConfigData["JoinAddsServerToDB"] == True):
-            self.SetBotActivationForOwner(server.owner_id, [server.id], False)
+        self.SetBotActivationForOwner(server.owner_id, [server.id], False)
         Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} of owner {server.owner.name}")
         
     async def on_guild_remove(self, server):
