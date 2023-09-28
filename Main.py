@@ -222,14 +222,9 @@ class DiscordScamBot(discord.Client):
             Logger.Log(LogLevel.Debug, f"We have {NumActivationAdditions} additions")
             self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?)", ActivationAdditions)
         if (NumActivationChanges > 0):
-            Logger.Log(LogLevel.Debug, f"We have {NumActivationChanges} changes")
             self.Database.executemany("UPDATE servers SET Activated=:Activated WHERE Id=:Id", ActivationChanges)
-
+            Logger.Log(LogLevel.Notice, f"Bot activation changed in {NumActivationChanges} servers to {str(IsActive)} by {owner}")
         self.Database.commit()
-        ActionStr:str = ""
-        if (not IsActive):
-            ActionStr += "not "
-        Logger.Log(LogLevel.Notice, f"Bot has been added into {NumActivationAdditions} and activation {NumActivationChanges} {ActionStr}modified by {owner}")
 
     ### Discord Eventing ###
     async def on_ready(self):
