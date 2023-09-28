@@ -347,7 +347,9 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?activate")):
                 ServersActivated = []
-                for OwnerServers in self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}"):
+                ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}")
+                ServersOwnedResult = ServersOwnedQuery.fetchall()
+                for OwnerServers in ServersOwnedResult:
                     ServerId:int = OwnerServers[1]
                     # Check if activated
                     if (OwnerServers[0] == 0):
@@ -365,7 +367,9 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?deactivate")):
                 ServersToDeactivate = []
-                for OwnerServers in self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}"):
+                ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}")
+                ServersOwnedResult = ServersOwnedQuery.fetchall()
+                for OwnerServers in ServersOwnedResult:
                     if (OwnerServers[0] == 1):
                         ServersToDeactivate.append(OwnerServers[1])
                 
@@ -412,10 +416,12 @@ class DiscordScamBot(discord.Client):
                 if (IsMaintainer):
                     ReplyStr:str = "I am in the following servers:\n"
                     RowNum:int = 1
-                    for BotServers in self.Database.execute(f"SELECT Id, OwnerId, Activated FROM servers"):
+                    Query = self.Database.execute(f"SELECT Id, OwnerId, Activated FROM servers")
+                    QueryResults = Query.fetchall()
+                    for BotServers in QueryResults:
                         ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(bool(BotServers[2]))}\n"
                         RowNum += 1
-                    await message.reply(f"{ReplyStr}")
+                    await message.reply(f"{ReplyStr}\nNumServers DB: {len(QueryResults)} Discord: {len(self.guilds)}")
                 return
             elif (Command.startswith("?testnotif")):
                 if (IsDeveloper):
@@ -448,7 +454,9 @@ class DiscordScamBot(discord.Client):
     async def ReprocessBansForServer(self, Server):
         Logger.Log(LogLevel.Log, f"Attempting to reimport ban data to {Server.name}")
         NumBans:int = 0
-        for Ban in self.Database.execute(f"SELECT Id FROM banslist"):
+        BanQuery = self.Database.execute(f"SELECT Id FROM banslist")
+        BanResult = BanQuery.fetchall()
+        for Ban in BanResult:
             User = discord.Object(int(Ban[0]))
             NumBans += 1
             await self.PerformActionOnServer(Server, User, "User banned by ScamBot", True)
