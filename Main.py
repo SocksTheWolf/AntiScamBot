@@ -553,7 +553,7 @@ class DiscordScamBot(discord.Client):
                 # TODO: Potentially remove the server from the list?
                 Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
 
-        Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} {ScamStr} performed in {NumServersPerformed}/{NumServers}")
+        Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} as a {ScamStr} performed in {NumServersPerformed}/{NumServers}")
 
 Bot = DiscordScamBot()
 Bot.run(ConfigData.GetToken())
