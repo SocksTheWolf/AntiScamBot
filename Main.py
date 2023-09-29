@@ -76,14 +76,12 @@ class DiscordScamBot(discord.Client):
                    ("?forceactivate", True, CommandPermission.Maintainer, "Force reprocesses a server for activation `?forceactivate serverid`"),
                    ("?print", False, CommandPermission.Maintainer, "Prints the servers that the bot is currently in"), 
                    ("?reloadservers", False, CommandPermission.Maintainer, "Regenerates the server database"), 
-                   ("?testnotif", False, CommandPermission.Developer, "Runs a test notification"),
                    ("?commands", False, CommandPermission.Anyone, "Prints this list")]
     
     def __init__(self, *args, **kwargs):
         self.Database = sqlite3.connect("bans.db")
         intents = discord.Intents.default()
         intents.message_content = True
-        intents.members = True
         super().__init__(intents=intents)
         
     def __del__(self):
@@ -243,14 +241,14 @@ class DiscordScamBot(discord.Client):
     
     async def on_guild_join(self, server):
         self.SetBotActivationForOwner(server.owner_id, [server.id], False)
-        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} of owner {server.owner.name}")
+        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {server.owner.name} [{server.owner.id}]")
         
     async def on_guild_remove(self, server):
         if (self.IsInServer(server.id)):  
             self.Database.execute(f"DELETE FROM servers where Id={server.id}")
             self.Database.commit()
         
-        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} of owner {server.owner.name}")
+        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {server.owner.name} [{server.owner.id}]")
         
     async def on_message(self, message):
         # Prevent the bot from processing its own messages
@@ -275,7 +273,7 @@ class DiscordScamBot(discord.Client):
         if (RequiresArguments):
             # Not enough arguments were provided!
             if (len(ArgList) < 1):
-                await message.reply(f"The command you have specified requires arguments!")
+                await message.reply(f"The command you have specified, {Command}, requires arguments!")
                 Logger.Log(LogLevel.Debug, f"Command {Command} requires arguments but none were provided")
                 return
             
@@ -286,6 +284,10 @@ class DiscordScamBot(discord.Client):
             
             # Set the target id properly
             TargetId = int(TargetIdStr)
+            
+            # Prevent any targets on the bot
+            if (TargetId == self.user.id):
+                return
         
         # Do not accept DMs, only channel messages
         if (message.guild is None):
@@ -326,7 +328,7 @@ class DiscordScamBot(discord.Client):
                             await message.reply(f"{TargetId} already exists in the ban database")
                         else:
                             await message.reply(f"The given id {TargetId} had an error while banning!")
-                            Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {TargetId} with error {str(Result.ToString())}")
+                            Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {TargetId} with error {str(Result)}")
                     else:
                         await message.reply(f"The ban for {TargetId} is in progress...")
                 else:
@@ -338,7 +340,7 @@ class DiscordScamBot(discord.Client):
                     Result = await self.PrepareUnban(TargetId, Sender)
                     if (Result is not BanLookup.Unbanned):
                         await message.reply(f"The given id {TargetId} had an error while unbanning!")
-                        Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result.ToString())}")
+                        Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result)}")
                     else:
                         await message.reply(f"The unban for {TargetId} is in progress...")
                 else:
@@ -378,7 +380,7 @@ class DiscordScamBot(discord.Client):
                     self.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
                     await message.reply(f"Deactivated in {NumServersDeactivated} of your servers!")
                 else:
-                    await message.reply("There are no servers that you own that aren't already activated!")
+                    await message.reply("There are no servers that you own that are activated!")
                 return
             elif (Command.startswith("?reloadconfig")):
                 if (IsMaintainer):
@@ -423,10 +425,6 @@ class DiscordScamBot(discord.Client):
                         RowNum += 1
                     await message.reply(f"{ReplyStr}\nNumServers DB: {len(QueryResults)} Discord: {len(self.guilds)}")
                 return
-            elif (Command.startswith("?testnotif")):
-                if (IsDeveloper):
-                    Logger.Log(LogLevel.Warn, "This is a test notification!")
-                return
     
         if (Command.startswith("?scamcheck")):
             if (self.DoesBanExist(TargetId)):
@@ -439,7 +437,7 @@ class DiscordScamBot(discord.Client):
                 CommandLevel = CommandData[2]
                 Usable:bool = CommandPermission.CanUse(CommandLevel, InControlServer, IsApprover, IsMaintainer, IsDeveloper)
                 if (Usable):
-                    CommandResponse += f"* `{CommandData[0]}`: Access[**{CommandData[2].ToString()}**] - {CommandData[3]}\n"
+                    CommandResponse += f"* `{CommandData[0]}`: Access[**{CommandData[2]}**] - {CommandData[3]}\n"
                 
             await message.reply(f"{CommandResponse}")
     

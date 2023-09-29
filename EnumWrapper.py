@@ -6,5 +6,5 @@ class CompareEnum(IntEnum):
       return self.value < other.value
     return NotImplemented
       
-  def ToString(self) -> str:
+  def __str__(self) -> str:
     return self.name
