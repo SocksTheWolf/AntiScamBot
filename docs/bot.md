@@ -11,7 +11,8 @@ A discord bot that shares commission scammer ban lists. These things are current
 To stop this from happening, we share bans, so that the scammers are unable to contact anyone.
 
 ## What is this in a nutshell?
-Think of this as a glorified shared ban list with auditing and public logging. This is the source code of said project. It requires a discord server to run. Socks currently hosts an instance for free that you can use, by joining the project discord.
+
+Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project discord](/discord).
 
 ## FAQ:
 ---
