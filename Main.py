@@ -452,12 +452,16 @@ class DiscordScamBot(discord.Client):
                 if (IsMaintainer):
                     ReplyStr:str = "I am in the following servers:\n"
                     RowNum:int = 1
+                    ActivatedServers:int = 0
                     Query = self.Database.execute(f"SELECT Id, OwnerId, Activated FROM servers")
                     QueryResults = Query.fetchall()
                     for BotServers in QueryResults:
-                        ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(bool(BotServers[2]))}\n"
+                        IsActivated:bool = bool(BotServers[2])
+                        ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(IsActivated)}\n"
                         RowNum += 1
-                    await message.reply(f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)}")
+                        if (IsActivated):
+                            ActivatedServers += 1
+                    await message.reply(f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers}")
                 return
             
         if (Command.startswith("?scamcheck")):
