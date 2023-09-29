@@ -48,9 +48,9 @@ class Logger():
     if CurrentLoggingLevel == LogLevel.Silence:
       return
     
-    # Set up color logging for lightbot
+    # Set up color logging
     ColorStr = ""
-    MessageStr = f"ScamBot [{Level.ToString()}]: {Input}"
+    MessageStr = f"ScamBot [{str(Level)}]: {Input}"
     if Level == LogLevel.Error:
       ColorStr = Fore.RED + Style.BRIGHT
     elif Level == LogLevel.Warn:
