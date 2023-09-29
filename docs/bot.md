@@ -1,6 +1,7 @@
 ---
 title: Commission Scammer Bot
 description: Information about a discord bot that can be used to ban commission scammers
+previous: /
 ---
 
 ## The Commission Banning Bot
