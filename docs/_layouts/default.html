@@ -29,12 +29,13 @@
     </header>
 
     <main id="content" class="main-content" role="main">
-      {% if page.previous %}
+      {{ content }}
+      <!-- {% if page.previous %}
         {% include toc.html html=content %}
       {% else %}
         {{ content }}
       {% endif %}
-
+      -->
       {% if page.previous %}
         <a href="{{ page.previous }}">&lt; Go Back</a>
       {% endif %}

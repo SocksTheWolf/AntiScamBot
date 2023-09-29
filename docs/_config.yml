@@ -4,6 +4,9 @@ url: "https://theantiscamgroup.com"
 show_downloads: false
 github_username: socksthewolf
 remote_theme: pages-themes/cayman@master
+header_pages:
+  - bot.md
+  - discord.md
 plugins:
   - jekyll-redirect-from
   - jekyll-remote-theme
