@@ -29,7 +29,7 @@
     </header>
 
     <main id="content" class="main-content" role="main">
-      {% if page.toc %}
+      {% if page.previous %}
         {% include toc.html html=content %}
       {% else %}
         {{ content }}
