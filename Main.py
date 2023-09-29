@@ -51,8 +51,6 @@ class CommandPermission(CompareEnum):
 
 # TODO:
 # * Something that cleans up the database in the future based off of if the scam accounts are deleted
-# * Rich text update (discord.Embed)
-# * Reply functionality
 # * Cleanup servers of those that are removed while bot was offline
 
 class DiscordScamBot(discord.Client):
