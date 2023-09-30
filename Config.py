@@ -49,16 +49,21 @@ class Config():
             return False
 
     @staticmethod
-    def GetToken():
+    def GetToken() -> str:
         return os.getenv("DISCORD_TOKEN")
 
     @staticmethod    
-    def GetDBFile():
+    def GetDBFile() -> str:
         return os.getenv("DATABASE_FILE")
     
     @staticmethod
-    def GetConfigFile():
+    def GetConfigFile() -> str:
         return os.getenv("CONFIG_FILE")
+    
+    # In this mode, bans do not actually process, nor do they send out to any users.
+    @staticmethod
+    def IsDevelopment() -> bool:
+        return bool(os.getenv("DEVELOPMENT_MODE"))
     
     def Dump(self):
         print(self.__dict__)

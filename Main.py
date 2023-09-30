@@ -141,6 +141,9 @@ class DiscordScamBot(discord.Client):
             Logger.Log(LogLevel.Log, f"WARN: Unable to send message to notification channel {str(ex)}")
     
     async def PublishAnnouncement(self, Message:str|discord.Embed):
+        if (ConfigData.IsDevelopment()):
+            Logger.Log(LogLevel.Notice, "Announcement message was dropped because this instance is in development mode")
+            return
         try:
             NewMessage = None
             if (type(Message) == discord.Embed):
@@ -270,7 +273,11 @@ class DiscordScamBot(discord.Client):
         self.ProcessConfig(False)
         # Set status
         if (ConfigData.IsValid("BotActivity", str)):
-            activity = discord.CustomActivity(name=ConfigData["BotActivity"])
+            activity = None
+            if (ConfigData.IsDevelopment()):
+                activity = discord.CustomActivity(name="Running in development mode")
+            else:
+                activity = discord.CustomActivity(name=ConfigData["BotActivity"])
             await self.change_presence(status=discord.Status.online, activity=activity)
 
         # Set logger callbacks for notifications
@@ -278,7 +285,7 @@ class DiscordScamBot(discord.Client):
             Logger.SetNotificationCallback(self.PostNotification)
 
         self.UpdateServerDB()
-        Logger.Log(LogLevel.Notice, "Bot has started!")
+        Logger.Log(LogLevel.Notice, f"Bot has started! Is Development? {ConfigData.IsDevelopment()}")
     
     async def on_guild_join(self, server:discord.Guild):
         self.SetBotActivationForOwner(server.owner_id, [server.id], False)
@@ -575,16 +582,21 @@ class DiscordScamBot(discord.Client):
         return BanLookup.Unbanned
 
     async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> (bool, BanResult):
+        IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         try:
             BanStr:str = "ban"
             if (not IsBan):
                 BanStr = "unban"
             
             Logger.Log(LogLevel.Log, f"Performing {BanStr} action in {Server.name} owned by {Server.owner_id}")
-            if (IsBan):
-                await Server.ban(User, reason=Reason)
+            # if we are in development mode, we don't do any actions to any other servers.
+            if (IsDevelopmentMode == False):
+                if (IsBan):
+                    await Server.ban(User, reason=Reason)
+                else:
+                    await Server.unban(User, reason=Reason)
             else:
-                await Server.unban(User, reason=Reason)
+                Logger.Log(LogLevel.Debug, "Action was dropped as we are currently in development mode")
             return (True, BanResult.Processed)
         except(discord.NotFound):
             if (not IsBan):
