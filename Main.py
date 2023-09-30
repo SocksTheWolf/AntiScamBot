@@ -275,7 +275,7 @@ class DiscordScamBot(discord.Client):
         if (ConfigData.IsValid("BotActivity", str)):
             activity = None
             if (ConfigData.IsDevelopment()):
-                activity = discord.CustomActivity(name="Running in development mode")
+                activity = discord.CustomActivity(name=ConfigData["BotActivityDevelopment"])
             else:
                 activity = discord.CustomActivity(name=ConfigData["BotActivity"])
             await self.change_presence(status=discord.Status.online, activity=activity)

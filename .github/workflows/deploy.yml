@@ -2,7 +2,7 @@ name: Deploy Bot
 on:
   push:
     branches:
-      - production
+      - prod
 
 jobs:
   deploy:
