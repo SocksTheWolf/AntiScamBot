@@ -373,8 +373,11 @@ class DiscordScamBot(discord.Client):
                     Logger.Log(LogLevel.Log, f"Scam unban message detected from {Sender}")
                     Result = await self.PrepareUnban(TargetId, Sender)
                     if (Result is not BanLookup.Unbanned):
-                        await message.reply(f"The given id {TargetId} had an error while unbanning!")
-                        Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result)}")
+                        if (Result is BanLookup.NotExist):
+                            await message.reply(f"The given id {TargetId} is not an user we have in our database when unbanning!")
+                        else:
+                            await message.reply(f"The given id {TargetId} had an error while unbanning!")
+                            Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result)}")
                     else:
                         await message.reply(f"The unban for {TargetId} is in progress...")
                 else:
@@ -498,16 +501,29 @@ class DiscordScamBot(discord.Client):
     def GetBanInfo(self, TargetId:int):
         return self.Database.execute(f"SELECT BannerName, BannerId, Date FROM banslist WHERE Id={TargetId}").fetchone()
 
-    async def ReprocessBansForServer(self, Server:discord.Guild):
-        Logger.Log(LogLevel.Log, f"Attempting to import ban data to {Server.name}")
+    async def ReprocessBansForServer(self, Server:discord.Guild) -> BanResult:
+        ServerInfoStr:str = f"{Server.name}[{Server.id}]"
+        BanReturn:BanResult = BanResult.Processed
+        Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
         BanQuery = self.Database.execute(f"SELECT Id FROM banslist")
-        BanResult = BanQuery.fetchall()
-        for Ban in BanResult:
-            User = discord.Object(int(Ban[0]))
-            NumBans += 1
-            await self.PerformActionOnServer(Server, User, "User banned by ScamBot", True)
-        Logger.Log(LogLevel.Notice, f"Processed {NumBans} bans for {Server.name}[{Server.id}]!")
+        BanQueryResult = BanQuery.fetchall()
+        TotalBans:int = len(BanQueryResult)
+        for Ban in BanQueryResult:
+            UserId:int = int(Ban[0])
+            UserToBan = discord.Object(UserId)
+            BanResponse = await self.PerformActionOnServer(Server, UserToBan, "User banned by ScamBot", True)
+            # See if the ban did go through.
+            if (BanResponse[0] == False):
+                BanResponseFlag:BanResult = BanResponse[1]
+                if (BanResponseFlag == BanResult.LostPermissions):
+                    Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr}")
+                    BanReturn = BanResult.LostPermissions
+                    break
+            else:
+                NumBans += 1
+        Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
+        return BanReturn
              
     async def PrepareBan(self, TargetId:int, Sender:discord.Member) -> BanLookup:
         try:
