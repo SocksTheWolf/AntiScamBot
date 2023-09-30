@@ -1,10 +1,10 @@
 ---
 title: Commission Scammer Bot
-description: Information about a discord bot that can be used to ban commission scammers
+description: Information about the discord bot that bans scammers
 previous: /
 ---
 
-## The Commission Banning Bot
+# The Commission Banning Bot
 
 A discord bot that shares commission scammer ban lists. These things are currently a scourge on our Discord communities. Unfortunately, unless they are banned in all relative servers, they'll hop onto the next server and then attempt to scam people from there next.
 
@@ -14,7 +14,7 @@ To stop this from happening, we share bans, so that the scammers are unable to c
 
 Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project discord](/discord).
 
-## FAQ:
+# FAQ:
 ---
 
 ### How do I enable it in my server?

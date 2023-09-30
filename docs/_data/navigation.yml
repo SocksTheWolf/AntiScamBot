@@ -1,0 +1,13 @@
+# Belongs at: /_data/navigation.yml
+
+- title: Home
+  url: /
+
+- title: Bot Project
+  url: /bot
+
+- title: Discord
+  url: /discord
+
+- title: Github
+  url: https://github.com/SocksTheWolf/AntiScamBot

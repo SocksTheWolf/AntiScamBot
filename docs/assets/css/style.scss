@@ -1,0 +1,39 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+.anchor-tag {
+    color: rgba(254, 153, 74, 0.8);
+    font-size: 20px;
+}
+
+.go-back-link {
+    color: lightgray;
+    font-size: 15px;
+}
+
+nav ul {
+    list-style-type: none;
+    margin: 0;
+    overflow: hidden;
+    display: inline-block;
+    padding: 5px 0 0 0;
+    margin-bottom: -25px;
+}
+  
+nav li {
+    float: left;
+    padding: 0 15px;
+} 
+
+nav li a {
+    display: block;
+    color: white;
+    text-align: center;
+    padding: 16px;
+    text-decoration: none;
+    border-bottom-style: none !important;
+}
+
+.page-header { padding-bottom: 0rem !important; } 
