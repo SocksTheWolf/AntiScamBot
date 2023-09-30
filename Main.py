@@ -387,7 +387,7 @@ class DiscordScamBot(discord.Client):
                 ServersOwnedResult = ServersOwnedQuery.fetchall()
                 for OwnerServers in ServersOwnedResult:
                     ServerId:int = OwnerServers[1]
-                    # Check if activated
+                    # Check if not activated
                     if (OwnerServers[0] == 0):
                         server = self.get_guild(ServerId)
                         if (server is not None):
@@ -398,6 +398,9 @@ class DiscordScamBot(discord.Client):
                 if (NumServersActivated >= 1):
                     self.SetBotActivationForOwner(SendersId, ServersActivated, True)
                     await message.reply(f"Activated in {NumServersActivated} of your servers!")
+                elif (len(ServersOwnedResult) == 0):
+                    # make sure that people have added the bot into the server first
+                    await message.reply("I am not in any servers that you own! You must add me to your server before activating.")
                 else:
                     await message.reply("There are no servers that you own that aren't already activated!")
                 return
@@ -413,6 +416,9 @@ class DiscordScamBot(discord.Client):
                 if (NumServersDeactivated >= 1):
                     self.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
                     await message.reply(f"Deactivated in {NumServersDeactivated} of your servers!")
+                elif (len(ServersOwnedResult) == 0):
+                    # make sure that people have added the bot into the server first
+                    await message.reply("I am not in any servers that you own!")
                 else:
                     await message.reply("There are no servers that you own that are activated!")
                 return
