@@ -1,13 +1,14 @@
 import os
 import sqlite3
+from Config import Config
 from Logger import LogLevel, Logger
 
 DATABASE_VERSION=1
 
 def SetupDatabases():
-    DatabaseExists:bool = os.path.exists("bans.db")
+    DatabaseExists:bool = os.path.exists(Config.GetDBFile())
     Logger.Log(LogLevel.Notice, "Creating database for scam bot setup")
-    con = sqlite3.connect("bans.db")
+    con = sqlite3.connect(Config.GetDBFile())
     cursor = con.cursor()
     CurrentVersion:int = cursor.execute("PRAGMA user_version").fetchone()[0]
     if (CurrentVersion != 0):

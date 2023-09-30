@@ -70,14 +70,15 @@ class DiscordScamBot(discord.Client):
                    ("?scamcheck", True, CommandPermission.Anyone, "Checks to see if a discord id is banned `?scamcheck targetid`"), 
                    ("?activate", False, CommandPermission.ControlServerUser, "Activates a server and brings in previous bans if caller has any known servers owned"),
                    ("?deactivate", False, CommandPermission.ControlServerUser, "Deactivates a server and prevents any future ban information from being shared"),
-                   ("?reloadconfig", False, CommandPermission.Maintainer, "Reloads the active bot's configuration data"), 
+                   ("?reloadconfig", False, CommandPermission.Maintainer, "Reloads the active bot's configuration data"),
                    ("?forceactivate", True, CommandPermission.Maintainer, "Force reprocesses a server for activation `?forceactivate serverid`"),
                    ("?print", False, CommandPermission.Maintainer, "Prints the servers that the bot is currently in"), 
                    ("?reloadservers", False, CommandPermission.Maintainer, "Regenerates the server database"), 
                    ("?commands", False, CommandPermission.Anyone, "Prints this list")]
-    
+
+    ### Initialization ###
     def __init__(self, *args, **kwargs):
-        self.Database = sqlite3.connect("bans.db")
+        self.OpenDatabase()
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
@@ -86,6 +87,12 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, "Closing the discord scam bot")
         if (self.Database is not None):
             self.Database.close()
+            
+    def OpenDatabase(self):
+        if (self.Database is not None):
+            self.Database.close()
+            
+        self.Database = sqlite3.connect(ConfigData.GetDBFile())
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
@@ -435,6 +442,7 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?reloadservers")):
                 if (IsMaintainer):
+                    self.OpenDatabase()
                     self.UpdateServerDB()
                     await message.reply("Server list reloaded")
                 else:
@@ -583,7 +591,7 @@ class DiscordScamBot(discord.Client):
                 Logger.Log(LogLevel.Verbose, f"User {User.id} is not banned in server")
                 return (True, BanResult.NotBanned)
             else:
-                Logger.Log(LogLevel.Error, f"User {User.id} is not a valid user while processing the ban")
+                Logger.Log(LogLevel.Warn, f"User {User.id} is not a valid user while processing the ban")
                 return (False, BanResult.InvalidUser)
         except(discord.Forbidden):
             Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name} owned by {Server.owner_id}!")
