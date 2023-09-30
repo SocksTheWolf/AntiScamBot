@@ -63,7 +63,14 @@ class Config():
     # In this mode, bans do not actually process, nor do they send out to any users.
     @staticmethod
     def IsDevelopment() -> bool:
-        return bool(os.getenv("DEVELOPMENT_MODE"))
+        DevOption = os.getenv("DEVELOPMENT_MODE")
+        if (DevOption is None):
+            return False
+        
+        if (DevOption.lower() == "false"):
+            return False
+        else:
+            return True
     
     def Dump(self):
         print(self.__dict__)
