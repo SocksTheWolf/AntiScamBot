@@ -3,8 +3,11 @@
 - title: Home
   url: /
 
-- title: Bot Project
+- title: About
   url: /bot
+
+- title: FAQ
+  url: /faq
 
 - title: Discord
   url: /discord
