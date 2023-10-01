@@ -500,11 +500,11 @@ class DiscordScamBot(discord.Client):
                 if (IsMaintainer):
                     ServerToProcess = self.get_guild(TargetId)
                     if (ServerToProcess is not None):
-                        await message.reply(f"Reprocessing bans for {server.name}")
+                        Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {ServerToProcess.name} from {SendersId}")
                         self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess))
                         ServersActivated = [TargetId]
                         self.SetBotActivationForOwner(ServerToProcess.owner_id, ServersActivated, True)
-                        Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {server.name} from {SendersId}")
+                        await message.reply(f"Reprocessing bans for {ServerToProcess.name}")
                     else:
                         await message.reply(f"I am unable to resolve that server id!")
                         Logger.Log(LogLevel.Warn, f"Unable to resolve server {TargetId} for reprocess")
