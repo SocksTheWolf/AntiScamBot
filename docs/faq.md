@@ -1,33 +1,20 @@
 ---
-title: Bot FAQ
-description: Answers regarding the bot, what it does and other questions
+title: FAQ
+description: Answers regarding the bot, what it does and other things!
 previous: /
 ---
 
-### What is this in a nutshell?
+## The Bot
+
+### What is this project in a nutshell?
 
 Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project discord](/discord).
-
 
 ### How do I enable it in my server?
 
 1. Join the [TAG server here](/discord) 
 2. Invite the bot account to a server you own
 3. Activate the bot
-
-### What is a commission scammer?
-
-A commission scammer is someone who plays a confidence game in order to sell you on either AI art, traced/stolen artwork or just takes your money and runs.
-
-They will always solicit you first. Do not give them money.
-
-### Why is the icon of the bot "hey^^"?
-
-When these scammers first ran rampant, they would always open their dms with the message "hey^^". It was really easy to tell if someone was fake because of it.
-
-### How does it know who is a commission scammer?
-
-User reports. Vetters go through the user report and then trigger a ban on the user in question if they are a scammer.
 
 ### Why does the bot need the permissions it has?
 
@@ -41,6 +28,32 @@ Because of how Discord handles permissions it needs the following permissions
 
 * `Add Reactions`: Right now this permission is unused by the bot, but this is to add reactions to command messages in the future.
 
+### Is the bot open source?
+
+Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
+
+### What information do you store?
+
+You can [view our privacy policy right here](/privacy-policy)!
+
+## Commission Scammers
+
+### What is a commission scammer?
+
+Commission scammers are users/bots on Discord who send unsolicited direct messages demanding that you commission the scammer that you do not know to buy their traced/AI/stolen artwork. In some instances, they charge your payment account (Paypal, Boosty, etc) and never deliver anything.
+
+They will always solicit you first. Do not give these scammers your money.
+
+### Why is the icon of the bot "hey^^"?
+
+When these scammers first ran rampant, they would always open their dms with the message "hey^^". It was really easy to tell if someone was fake because of it.
+
+## The Process
+
+### How does the bot know who is a commission scammer?
+
+User reports. Vetters go through the user report and then trigger a ban on the user in question if they are a scammer.
+
 ### What about abuse?
 
 So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to the bot. 
@@ -51,12 +64,24 @@ The name of the person that initiated this action as well as the user that it ha
 
 ![Bot Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
-All bans will be logged into your server's audit log. You can revert any ban if you wish and the bot will not attempt to re-add it unless you manually ask the bot to reimport bans.
+All bans will be logged into your server's audit log. You can revert any ban if you wish and the bot will not attempt to re-add it unless you explicitly ask the bot to reimport bans for your server.
 
 ### What about mistakes?
 
-The bot can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, the bot can only unban users marked that it banned originally). You can also just simply unban the user. 
+The bot can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, the bot can only unban users marked that it banned originally). 
 
-### Is the bot open source?
+You can also just simply unban the user. 
 
-Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
+## The Group
+
+### What is "The Antiscam Group"?
+
+It's just a silly little name for the Discord server.
+
+### How do I join the group?
+
+This isn't a formal collective or anything of the sort. It's literally a bunch of people who keep getting commission scams and those that have community servers that use the bot.
+
+### I don't have a discord server, can I join the bot server?
+
+Yes! If you're getting commission scams, feel free to join and report them. However, realize that the TAG server isn't a social community. Streamer communities are much better suited for that.
