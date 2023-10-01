@@ -87,12 +87,6 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, "Closing the discord scam bot")
         if (self.Database is not None):
             self.Database.close()
-            
-    def OpenDatabase(self):
-        if (self.Database is not None):
-            self.Database.close()
-            
-        self.Database = sqlite3.connect(ConfigData.GetDBFile())
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
@@ -207,6 +201,58 @@ class DiscordScamBot(discord.Client):
         NewTask.add_done_callback(self.AsyncTasks.discard)
 
     ### Handling Server Database functionality ###
+    def OpenDatabase(self):
+        if (self.Database is not None):
+            self.Database.close()
+            
+        self.Database = sqlite3.connect(ConfigData.GetDBFile())
+    
+    # Validates the servers that we are in, making sure that the list is maintained properly
+    def UpdateServerDB(self):       
+        NewAdditions = []
+        ServersIn = []
+        for DiscordServer in self.guilds:
+            if (not self.IsInServer(DiscordServer.id)):
+                NewAdditions.append((DiscordServer.id, DiscordServer.owner_id))
+            ServersIn.append(DiscordServer.id)
+            
+        if (len(NewAdditions) > 0):
+            self.AddBotGuilds(NewAdditions)
+            
+        # Check the current list of servers vs what the database has
+        # to see if there are any servers we need to remove
+        res = self.Database.execute(f"SELECT Id FROM servers")
+        AllServerIDList = res.fetchall()
+        Logger.Log(LogLevel.Debug, f"Server count: {len(AllServerIDList)} with discord in {len(ServersIn)}")
+        for InServerId in AllServerIDList:
+            ServerId = InServerId[0]
+            try:
+                # Remove the servers that we see
+                ServersIn.remove(ServerId)
+            except ValueError:
+                # and add those that we don't have
+                ServersIn.append(ServerId)
+                continue
+        
+        if (len(ServersIn) > 0):
+            Logger.Log(LogLevel.Notice, f"Bot needs to reconcile {len(ServersIn)} servers from the list")
+        else:
+            Logger.Log(LogLevel.Debug, "Bot does not need to remove any servers from last run.")
+            return
+
+        for ServerToRemove in ServersIn:
+            self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
+            Logger.Log(LogLevel.Notice, f"Bot has been removed from server {ServerToRemove}")
+
+        self.Database.commit()
+        
+    def RemoveServerEntry(self, ServerId:int):
+        if (self.IsInServer(ServerId)):  
+            self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
+            self.Database.commit()
+        else:
+            Logger.Log(LogLevel.Log, f"Attempted to remove server {ServerId} but we are not in that list!")
+
     def IsInServer(self, ServerId:int) -> bool:
         res = self.Database.execute(f"SELECT * FROM servers WHERE Id={ServerId}")
         if (res.fetchone() is None):
@@ -224,18 +270,6 @@ class DiscordScamBot(discord.Client):
             return False
         else:
             return True
-    
-    # Validates the servers that we are in, making sure that the list is maintained properly
-    def UpdateServerDB(self):       
-        NewAdditions = []
-        for DiscordServer in self.guilds:
-            if (not self.IsInServer(DiscordServer.id)):
-                NewAdditions.append((DiscordServer.id, DiscordServer.owner_id))
-            
-        if (len(NewAdditions) > 0):
-            self.AddBotGuilds(NewAdditions)
-        
-        # TODO: Process server removals/deletions
         
     def AddBotGuilds(self, ListOwnerAndServerTuples):
         BotAdditionUpdates = []
@@ -289,14 +323,18 @@ class DiscordScamBot(discord.Client):
     
     async def on_guild_join(self, server:discord.Guild):
         self.SetBotActivationForOwner(server.owner_id, [server.id], False)
-        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {server.owner.name} [{server.owner.id}]")
+        OwnerName:str = "Admin"
+        if (server.owner is not None):
+            OwnerName = server.owner.global_name
+
+        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_remove(self, server:discord.Guild):
-        if (self.IsInServer(server.id)):  
-            self.Database.execute(f"DELETE FROM servers where Id={server.id}")
-            self.Database.commit()
-        
-        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {server.owner.name} [{server.owner.id}]")
+        self.RemoveServerEntry(server.id)
+        OwnerName:str = "Admin"
+        if (server.owner is not None):
+            OwnerName = server.owner.global_name
+        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_message(self, message):
         # Prevent the bot from processing its own messages
@@ -369,11 +407,12 @@ class DiscordScamBot(discord.Client):
             # If the first bit of the message is the command to ban
             if (Command.startswith("?scamban")):
                 if (IsApprover):
-                    Logger.Log(LogLevel.Log, f"Scam ban message detected from {Sender}")
+                    Logger.Log(LogLevel.Log, f"Scam ban message detected from {Sender} for {TargetId}")
                     Result = await self.PrepareBan(TargetId, Sender)
                     if (Result is not BanLookup.Banned):
                         if (Result == BanLookup.Duplicate):
                             await message.reply(f"{TargetId} already exists in the ban database")
+                            Logger.Log(LogLevel.Log, f"The given id {TargetId} is already banned.")
                         else:
                             await message.reply(f"The given id {TargetId} had an error while banning!")
                             Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {TargetId} with error {str(Result)}")
@@ -384,11 +423,12 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?scamunban")):
                 if (IsApprover):
-                    Logger.Log(LogLevel.Log, f"Scam unban message detected from {Sender}")
+                    Logger.Log(LogLevel.Log, f"Scam unban message detected from {Sender} for {TargetId}")
                     Result = await self.PrepareUnban(TargetId, Sender)
                     if (Result is not BanLookup.Unbanned):
                         if (Result is BanLookup.NotExist):
                             await message.reply(f"The given id {TargetId} is not an user we have in our database when unbanning!")
+                            Logger.Log(LogLevel.Log, f"The given id {TargetId} is not in the ban database.")
                         else:
                             await message.reply(f"The given id {TargetId} had an error while unbanning!")
                             Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result)}")
