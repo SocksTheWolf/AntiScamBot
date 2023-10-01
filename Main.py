@@ -156,8 +156,8 @@ class DiscordScamBot(discord.Client):
     async def LookupUser(self, UserID:int) -> discord.User|None:
         try:
             return await self.fetch_user(UserID)
-        except (discord.NotFound):
-            Logger.Log(LogLevel.Warn, f"UserID {UserID} was not found with error")
+        except discord.NotFound as ex:
+            Logger.Log(LogLevel.Warn, f"UserID {UserID} was not found with error {str(ex)}")
         except discord.HTTPException as httpEx:
             Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
         return None
@@ -251,7 +251,7 @@ class DiscordScamBot(discord.Client):
             self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
             self.Database.commit()
         else:
-            Logger.Log(LogLevel.Log, f"Attempted to remove server {ServerId} but we are not in that list!")
+            Logger.Log(LogLevel.Warn, f"Attempted to remove server {ServerId} but we are not in that list!")
 
     def IsInServer(self, ServerId:int) -> bool:
         res = self.Database.execute(f"SELECT * FROM servers WHERE Id={ServerId}")
@@ -407,7 +407,7 @@ class DiscordScamBot(discord.Client):
             # If the first bit of the message is the command to ban
             if (Command.startswith("?scamban")):
                 if (IsApprover):
-                    Logger.Log(LogLevel.Log, f"Scam ban message detected from {Sender} for {TargetId}")
+                    Logger.Log(LogLevel.Verbose, f"Scam ban message detected from {Sender} for {TargetId}")
                     Result = await self.PrepareBan(TargetId, Sender)
                     if (Result is not BanLookup.Banned):
                         if (Result == BanLookup.Duplicate):
@@ -423,7 +423,7 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?scamunban")):
                 if (IsApprover):
-                    Logger.Log(LogLevel.Log, f"Scam unban message detected from {Sender} for {TargetId}")
+                    Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {TargetId}")
                     Result = await self.PrepareUnban(TargetId, Sender)
                     if (Result is not BanLookup.Unbanned):
                         if (Result is BanLookup.NotExist):
@@ -636,7 +636,7 @@ class DiscordScamBot(discord.Client):
             if (not IsBan):
                 BanStr = "unban"
             
-            Logger.Log(LogLevel.Log, f"Performing {BanStr} action in {Server.name} owned by {ServerOwnerId}")
+            Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action in {Server.name} owned by {ServerOwnerId}")
             if (BanId == ServerOwnerId):
                 Logger.Log(LogLevel.Warn, f"Ban of {BanId} dropped for {Server.name} as it is the owner!")
                 return (False, BanResult.ServerOwner)
@@ -661,7 +661,7 @@ class DiscordScamBot(discord.Client):
             Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name} owned by {ServerOwnerId}!")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Log, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name} owned by {ServerOwnerId}!")
+            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):

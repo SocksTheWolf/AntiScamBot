@@ -16,7 +16,7 @@ class LogLevel(CompareEnum):
   Notice=auto()
   Silence=auto()
 
-CurrentLoggingLevel = LogLevel.Debug
+CurrentLoggingLevel = LogLevel.Verbose
 CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
 NotificationCallback = None
