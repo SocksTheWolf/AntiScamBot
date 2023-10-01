@@ -525,7 +525,13 @@ class DiscordScamBot(discord.Client):
                         RowNum += 1
                         if (IsActivated):
                             ActivatedServers += 1
-                    await message.reply(f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers}")
+                    # Final formatting
+                    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers}"
+                    # Split the string so that it fits properly into discord messaging
+                    MessageChunkLen:int = 2000
+                    MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
+                    for MessageChunk in MessageChunks:
+                        await message.channel.send(MessageChunk)
                 return
             
         if (Command.startswith("?scamcheck")):
