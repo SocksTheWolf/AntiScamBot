@@ -12,9 +12,7 @@ Think of this as a glorified shared ban list with auditing and public logging. S
 
 ### How do I enable it in my server?
 
-1. Join the [TAG server here](/discord) 
-2. Invite the bot account to a server you own
-3. Activate the bot
+{% include install_info.html %}
 
 ### Why does the bot need the permissions it has?
 
