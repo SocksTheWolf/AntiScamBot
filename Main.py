@@ -25,6 +25,7 @@ class BanResult(CompareEnum):
   NotBanned=auto()
   InvalidUser=auto()
   LostPermissions=auto()
+  ServerOwner=auto()
   Error=auto()
 
 class CommandPermission(CompareEnum):
@@ -622,12 +623,18 @@ class DiscordScamBot(discord.Client):
 
     async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> (bool, BanResult):
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
+        BanId:int = User.id
+        ServerOwnerId:int = Server.owner_id
         try:
             BanStr:str = "ban"
             if (not IsBan):
                 BanStr = "unban"
             
-            Logger.Log(LogLevel.Log, f"Performing {BanStr} action in {Server.name} owned by {Server.owner_id}")
+            Logger.Log(LogLevel.Log, f"Performing {BanStr} action in {Server.name} owned by {ServerOwnerId}")
+            if (BanId == ServerOwnerId):
+                Logger.Log(LogLevel.Warn, f"Ban of {BanId} dropped for {Server.name} as it is the owner!")
+                return (False, BanResult.ServerOwner)
+            
             # if we are in development mode, we don't do any actions to any other servers.
             if (IsDevelopmentMode == False):
                 if (IsBan):
@@ -639,16 +646,16 @@ class DiscordScamBot(discord.Client):
             return (True, BanResult.Processed)
         except(discord.NotFound):
             if (not IsBan):
-                Logger.Log(LogLevel.Verbose, f"User {User.id} is not banned in server")
+                Logger.Log(LogLevel.Verbose, f"User {BanId} is not banned in server")
                 return (True, BanResult.NotBanned)
             else:
-                Logger.Log(LogLevel.Warn, f"User {User.id} is not a valid user while processing the ban")
+                Logger.Log(LogLevel.Warn, f"User {BanId} is not a valid user while processing the ban")
                 return (False, BanResult.InvalidUser)
         except(discord.Forbidden):
-            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name} owned by {Server.owner_id}!")
+            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name} owned by {ServerOwnerId}!")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Log, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name} owned by {Server.owner_id}!")
+            Logger.Log(LogLevel.Log, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
