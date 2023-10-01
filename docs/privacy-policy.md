@@ -30,8 +30,6 @@ Users in the control server that have the "maintenance" role may view the curren
 
 While external access is protected, this is not guarenteed and the bot owners assume no liability for the unintentional or malicious breach of any data. In the event of unauthorized data access, users in [the control server](/discord) will be alerted.
 
-As a footnote, realize that is held is completely publicly accessible via any Discord client, and this information alone is not enough to perform any significant malicious action on someone.
-
 ## Where is the data stored?
 
 It is currently stored in a sqlite database that the bot has access to.
