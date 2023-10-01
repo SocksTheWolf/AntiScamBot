@@ -50,3 +50,9 @@ nav li a {
     margin-left: auto;
     margin-right: auto;
 }
+
+@media screen and (min-width: 64em) {
+    .site-footer {
+      font-size: 0.8rem !important;
+    }
+  }
