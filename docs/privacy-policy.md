@@ -16,11 +16,17 @@ The usage of the bot requires the following data collected:
 * A numeric value The Discord Owner ID of the Server ("Owner ID")
 * A value that represents if the bot is "activated" in a server with the "Server ID" ("Activated").
 
-This collection of data may expand in the future, but will usually stay within the scope of minimal collection as per the recommendations of Discord and their Terms of Service.
+If you are a trusted approver, the following information is stored when you ban an user in the TAG server:
+
+* Your global discord username
+* Your discord user id
+* The time the ban was executed
+
+This collection of data may expand or modify in the future, but will usually stay within the scope of minimal collection as per the recommendations of Discord and their Terms of Service.
 
 ## Who has access to that data?
 
-Users in the control server that have the maintenance role may view the current list of activated servers, and some of the server ids may be visible in the logging notifications that the bot sends periodically to those.
+Users in the control server that have the "maintenance" role may view the current list of activated servers, and some of the server ids may be visible in the logs/logging notifications that the bot sends periodically.
 
 While external access is protected, this is not guarenteed and the bot owners assume no liability for the unintentional or malicious breach of any data. In the event of unauthorized data access, users in [the control server](/discord) will be alerted.
 
