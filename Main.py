@@ -548,10 +548,10 @@ class DiscordScamBot(discord.Client):
                 Logger.Log(LogLevel.Warn, f"User {BanId} is not a valid user while processing the ban")
                 return (False, BanResult.InvalidUser)
         except(discord.Forbidden):
-            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name} owned by {ServerOwnerId}!")
+            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name}[{Server.id}] owned by {ServerOwnerId}!")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name} owned by {ServerOwnerId}!")
+            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name}[{Server.id}] owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
@@ -597,7 +597,7 @@ class DiscordScamBot(discord.Client):
                 # TODO: Potentially remove the server from the list?
                 Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
 
-        Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} as a {ScamStr} performed in {NumServersPerformed}/{NumServers}")
+        Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} as a {ScamStr} performed in {NumServersPerformed}/{NumServers} servers")
 
 Bot = DiscordScamBot()
 Bot.run(ConfigData.GetToken())
