@@ -36,7 +36,7 @@ It is currently stored in a sqlite database that the bot has access to.
 
 ## How do I remove the data the bot has on me/my servers?
 
-Kick/remove the bot from your server while the bot is online.
+Kick/remove the bot from your server. Data will be removed the next time the bot is either online or is processing events.
 
 ## Everything else
 
