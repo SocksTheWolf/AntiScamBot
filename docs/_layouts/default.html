@@ -13,7 +13,11 @@
     {% include head-custom.html %}
   </head>
   <body>
-    
+    {% if page.previous %}
+      <script src="/assets/vanilla-back-to-top.min.js"></script>
+      <script>addBackToTop()</script>
+    {% endif %}
+
     <a id="skip-to-content" href="#content">Skip to the content.</a>
 
     <header class="page-header" role="banner">
@@ -28,14 +32,13 @@
 
     <main id="content" class="main-content" role="main">
       {% if page.previous %}
+        <div class="toc">
+        <h1>Table of Contents</h1>
         {% include toc.html html=content %}
+        </div>
         {% include anchor_headings.html html=content anchorBody="#" anchorClass="anchor-tag" %}
       {% else %}
         {{ content }}
-      {% endif %}
-
-      {% if page.previous %}
-        <a class="go-back-link" href="{{ page.previous }}">&lt; Go Back</a>
       {% endif %}
 
       <footer class="site-footer">
