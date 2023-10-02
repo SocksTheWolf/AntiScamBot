@@ -99,7 +99,7 @@ class ScamBotDatabase():
             
         if (len(NewAdditions) > 0):
             self.AddBotGuilds(NewAdditions)
-            
+
         # Check the current list of servers vs what the database has
         # to see if there are any servers we need to remove
         res = self.Database.execute(f"SELECT Id FROM servers")
@@ -122,11 +122,10 @@ class ScamBotDatabase():
             return
 
         for ServerToRemove in ServersIn:
-            self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
+            self.Database.execute(f"DELETE FROM servers where Id={ServerToRemove}")
+            self.Database.commit()
             Logger.Log(LogLevel.Notice, f"Bot has been removed from server {ServerToRemove}")
 
-        self.Database.commit()
-        
     ### Query Status ###
     def IsInServer(self, ServerId:int) -> bool:
         res = self.Database.execute(f"SELECT * FROM servers WHERE Id={ServerId}")
