@@ -1,54 +1,16 @@
 from datetime import datetime
 # Logging functionality
 from Logger import Logger, LogLevel
-from EnumWrapper import CompareEnum
-from enum import auto
+from BotEnums import CommandPermission, BanResult, BanLookup
 from Config import Config
 # Discord library
 import discord
-import sqlite3
 import asyncio
 import BotSetup
+from BotDatabase import ScamBotDatabase
 
 # Setup functions
 ConfigData=Config()
-
-class BanLookup(CompareEnum):
-  Banned=auto()
-  Unbanned=auto()
-  Duplicate=auto()
-  NotExist=auto()
-  DBError=auto()
-  
-class BanResult(CompareEnum):
-  Processed=auto()
-  NotBanned=auto()
-  InvalidUser=auto()
-  LostPermissions=auto()
-  ServerOwner=auto()
-  Error=auto()
-
-class CommandPermission(CompareEnum):
-  Anyone=auto()
-  ControlServerUser=auto()
-  Approver=auto()
-  Maintainer=auto()
-  Developer=auto()
-  
-  @staticmethod
-  def CanUse(Level, InServer:bool, Approver:bool, Maintainer:bool, Developer:bool):
-      if (Level == CommandPermission.Approver):
-          return Approver
-      elif (Level == CommandPermission.Maintainer):
-          return Maintainer
-      elif (Level == CommandPermission.ControlServerUser):
-          return InServer
-      elif (Level == CommandPermission.Developer):
-          return Developer
-      elif (Level == CommandPermission.Anyone):
-          return True
-      else:
-          return False
 
 # TODO:
 # * Something that cleans up the database in the future based off of if the scam accounts are deleted
@@ -63,7 +25,7 @@ class DiscordScamBot(discord.Client):
     AnnouncementChannel = None
     # Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
-    Database = None
+    Database:ScamBotDatabase = None
     AsyncTasks = set()
     CommandList = [("?scamban", True, CommandPermission.Approver, "Bans a scammer using `?scamban targetid`"), 
                    ("?scamunban", True, CommandPermission.Approver, "Unbans a scammer using `?scamunban targetid`"), 
@@ -78,15 +40,14 @@ class DiscordScamBot(discord.Client):
 
     ### Initialization ###
     def __init__(self, *args, **kwargs):
-        self.OpenDatabase()
+        self.Database = ScamBotDatabase()
         intents = discord.Intents.default()
         intents.message_content = True
         super().__init__(intents=intents)
         
     def __del__(self):
         Logger.Log(LogLevel.Notice, "Closing the discord scam bot")
-        if (self.Database is not None):
-            self.Database.close()
+        self.Database.Close()
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
@@ -116,7 +77,7 @@ class DiscordScamBot(discord.Client):
         if (ConfigData.IsValid("DeveloperRole", int)):
             self.DeveloperRole = self.ControlServer.get_role(ConfigData["DeveloperRole"])
         
-        Logger.Log(LogLevel.Notice, "Configs loaded")
+        Logger.Log(LogLevel.Notice, "Bot configs applied")
 
     ### Command Processing & Utils ###
     def ParseCommand(self, text:str):
@@ -163,7 +124,7 @@ class DiscordScamBot(discord.Client):
         return None
     
     async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
-        BanData = self.GetBanInfo(TargetId)
+        BanData = self.Database.GetBanInfo(TargetId)
         UserBanned:bool = (BanData is not None)
         User:discord.User = await self.LookupUser(TargetId)
         HasUserData:bool = (User is not None)
@@ -200,108 +161,6 @@ class DiscordScamBot(discord.Client):
         self.AsyncTasks.add(NewTask)
         NewTask.add_done_callback(self.AsyncTasks.discard)
 
-    ### Handling Server Database functionality ###
-    def OpenDatabase(self):
-        if (self.Database is not None):
-            self.Database.close()
-            
-        self.Database = sqlite3.connect(ConfigData.GetDBFile())
-    
-    # Validates the servers that we are in, making sure that the list is maintained properly
-    def UpdateServerDB(self):       
-        NewAdditions = []
-        ServersIn = []
-        for DiscordServer in self.guilds:
-            if (not self.IsInServer(DiscordServer.id)):
-                NewAdditions.append((DiscordServer.id, DiscordServer.owner_id))
-            ServersIn.append(DiscordServer.id)
-            
-        if (len(NewAdditions) > 0):
-            self.AddBotGuilds(NewAdditions)
-            
-        # Check the current list of servers vs what the database has
-        # to see if there are any servers we need to remove
-        res = self.Database.execute(f"SELECT Id FROM servers")
-        AllServerIDList = res.fetchall()
-        Logger.Log(LogLevel.Debug, f"Server count: {len(AllServerIDList)} with discord in {len(ServersIn)}")
-        for InServerId in AllServerIDList:
-            ServerId = InServerId[0]
-            try:
-                # Remove the servers that we see
-                ServersIn.remove(ServerId)
-            except ValueError:
-                # and add those that we don't have
-                ServersIn.append(ServerId)
-                continue
-        
-        if (len(ServersIn) > 0):
-            Logger.Log(LogLevel.Notice, f"Bot needs to reconcile {len(ServersIn)} servers from the list")
-        else:
-            Logger.Log(LogLevel.Debug, "Bot does not need to remove any servers from last run.")
-            return
-
-        for ServerToRemove in ServersIn:
-            self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
-            Logger.Log(LogLevel.Notice, f"Bot has been removed from server {ServerToRemove}")
-
-        self.Database.commit()
-        
-    def RemoveServerEntry(self, ServerId:int):
-        if (self.IsInServer(ServerId)):  
-            self.Database.execute(f"DELETE FROM servers where Id={ServerId}")
-            self.Database.commit()
-        else:
-            Logger.Log(LogLevel.Warn, f"Attempted to remove server {ServerId} but we are not in that list!")
-
-    def IsInServer(self, ServerId:int) -> bool:
-        res = self.Database.execute(f"SELECT * FROM servers WHERE Id={ServerId}")
-        if (res.fetchone() is None):
-            return False
-        else:
-            return True
-    
-    def IsActivatedInServer(self, ServerId:int) -> bool:
-        if (not self.IsInServer(ServerId)):
-            return False
-        
-        res = self.Database.execute(f"SELECT Activated FROM servers WHERE Id={ServerId}")
-        FetchResult = res.fetchone()
-        if (FetchResult[0] == 0):
-            return False
-        else:
-            return True
-        
-    def AddBotGuilds(self, ListOwnerAndServerTuples):
-        BotAdditionUpdates = []
-        for Entry in ListOwnerAndServerTuples:
-            BotAdditionUpdates.append(Entry + (0,))
-        
-        self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?)", BotAdditionUpdates)
-        self.Database.commit()
-        Logger.Log(LogLevel.Notice, f"Bot had {len(BotAdditionUpdates)} new server updates")
-
-    def SetBotActivationForOwner(self, owner:id, servers, IsActive:bool):
-        ActivationChanges = []
-        ActivationAdditions = []
-        ActiveVal = int(IsActive)
-        ActiveTuple = (ActiveVal,)
-        
-        for ServerId in servers:
-            if (not self.IsInServer(ServerId)):
-                ActivationAdditions.append((ServerId, owner) + ActiveTuple)
-            else:
-                ActivationChanges.append({"Id": ServerId, "Activated": ActiveVal})
-        
-        NumActivationAdditions:int = len(ActivationAdditions)
-        NumActivationChanges:int = len(ActivationChanges)
-        if (NumActivationAdditions > 0):
-            Logger.Log(LogLevel.Debug, f"We have {NumActivationAdditions} additions")
-            self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?)", ActivationAdditions)
-        if (NumActivationChanges > 0):
-            self.Database.executemany("UPDATE servers SET Activated=:Activated WHERE Id=:Id", ActivationChanges)
-            Logger.Log(LogLevel.Notice, f"Bot activation changed in {NumActivationChanges} servers to {str(IsActive)} by {owner}")
-        self.Database.commit()
-
     ### Discord Eventing ###
     async def on_ready(self):
         self.ProcessConfig(False)
@@ -318,11 +177,11 @@ class DiscordScamBot(discord.Client):
         if (self.NotificationChannel is not None):
             Logger.SetNotificationCallback(self.PostNotification)
 
-        self.UpdateServerDB()
+        self.Database.ReconcileServers(self.guilds)
         Logger.Log(LogLevel.Notice, f"Bot has started! Is Development? {ConfigData.IsDevelopment()}")
     
     async def on_guild_join(self, server:discord.Guild):
-        self.SetBotActivationForOwner(server.owner_id, [server.id], False)
+        self.Database.SetBotActivationForOwner(server.owner_id, [server.id], False)
         OwnerName:str = "Admin"
         if (server.owner is not None):
             OwnerName = server.owner.global_name
@@ -330,7 +189,7 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_remove(self, server:discord.Guild):
-        self.RemoveServerEntry(server.id)
+        self.Database.RemoveServerEntry(server.id)
         OwnerName:str = "Admin"
         if (server.owner is not None):
             OwnerName = server.owner.global_name
@@ -440,8 +299,7 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?activate")):
                 ServersActivated = []
-                ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}")
-                ServersOwnedResult = ServersOwnedQuery.fetchall()
+                ServersOwnedResult = self.Database.GetAllServersOfOwner(SendersId)
                 for OwnerServers in ServersOwnedResult:
                     ServerId:int = OwnerServers[1]
                     # Check if not activated
@@ -453,7 +311,7 @@ class DiscordScamBot(discord.Client):
                 
                 NumServersActivated:int = len(ServersActivated)
                 if (NumServersActivated >= 1):
-                    self.SetBotActivationForOwner(SendersId, ServersActivated, True)
+                    self.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
                     await message.reply(f"Activated in {NumServersActivated} of your servers!")
                 elif (len(ServersOwnedResult) == 0):
                     # make sure that people have added the bot into the server first
@@ -463,15 +321,14 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?deactivate")):
                 ServersToDeactivate = []
-                ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={SendersId}")
-                ServersOwnedResult = ServersOwnedQuery.fetchall()
+                ServersOwnedResult = self.Database.GetAllServersOfOwner(SendersId)
                 for OwnerServers in ServersOwnedResult:
                     if (OwnerServers[0] == 1):
                         ServersToDeactivate.append(OwnerServers[1])
                 
                 NumServersDeactivated:int = len(ServersToDeactivate)
                 if (NumServersDeactivated >= 1):
-                    self.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
+                    self.Database.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
                     await message.reply(f"Deactivated in {NumServersDeactivated} of your servers!")
                 elif (len(ServersOwnedResult) == 0):
                     # make sure that people have added the bot into the server first
@@ -489,8 +346,8 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?reloadservers")):
                 if (IsMaintainer):
-                    self.OpenDatabase()
-                    self.UpdateServerDB()
+                    self.Database.Open()
+                    self.Database.ReconcileServers(self.guilds)
                     await message.reply("Server list reloaded")
                 else:
                     await message.reply("You are not allowed to use that command!")
@@ -503,7 +360,7 @@ class DiscordScamBot(discord.Client):
                         Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {ServerToProcess.name} from {SendersId}")
                         self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess))
                         ServersActivated = [TargetId]
-                        self.SetBotActivationForOwner(ServerToProcess.owner_id, ServersActivated, True)
+                        self.Database.SetBotActivationForOwner(ServerToProcess.owner_id, ServersActivated, True)
                         await message.reply(f"Reprocessing bans for {ServerToProcess.name}")
                     else:
                         await message.reply(f"I am unable to resolve that server id!")
@@ -517,8 +374,7 @@ class DiscordScamBot(discord.Client):
                     ReplyStr:str = "I am in the following servers:\n"
                     RowNum:int = 1
                     ActivatedServers:int = 0
-                    Query = self.Database.execute(f"SELECT Id, OwnerId, Activated FROM servers")
-                    QueryResults = Query.fetchall()
+                    QueryResults = self.Database.GetAllServers(False)
                     for BotServers in QueryResults:
                         IsActivated:bool = bool(BotServers[2])
                         ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(IsActivated)}\n"
@@ -535,7 +391,7 @@ class DiscordScamBot(discord.Client):
                 return
             
         if (Command.startswith("?scamcheck")):
-            if (self.IsActivatedInServer(message.guild.id)):
+            if (self.Database.IsActivatedInServer(message.guild.id)):
                 ResponseEmbed:discord.Embed = await self.CreateBanEmbed(TargetId)
                 await message.reply(embed = ResponseEmbed)
             else:
@@ -551,24 +407,12 @@ class DiscordScamBot(discord.Client):
             await message.reply(f"{CommandResponse}")
     
     ### Ban Handling ###
-    def DoesBanExist(self, TargetId:int) -> bool:
-        res = self.Database.execute(f"SELECT * FROM banslist WHERE Id={TargetId}")
-        if (res.fetchone() is None):
-            return False
-        else:
-            return True
-    
-    # Returns the banner's name, the id and the date
-    def GetBanInfo(self, TargetId:int):
-        return self.Database.execute(f"SELECT BannerName, BannerId, Date FROM banslist WHERE Id={TargetId}").fetchone()
-
     async def ReprocessBansForServer(self, Server:discord.Guild) -> BanResult:
         ServerInfoStr:str = f"{Server.name}[{Server.id}]"
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
-        BanQuery = self.Database.execute(f"SELECT Id FROM banslist")
-        BanQueryResult = BanQuery.fetchall()
+        BanQueryResult = self.Database.GetAllBans()
         TotalBans:int = len(BanQueryResult)
         for Ban in BanQueryResult:
             UserId:int = int(Ban[0])
@@ -586,19 +430,11 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
         return BanReturn
              
-    async def PrepareBan(self, TargetId:int, Sender:discord.Member) -> BanLookup:
-        try:
-            if (self.DoesBanExist(TargetId)):
-                return BanLookup.Duplicate
-        except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Got error {str(ex)}")
-            return BanLookup.DBError
-        SenderId = Sender.id
+    async def PrepareBan(self, TargetId:int, Sender:discord.Member) -> BanLookup:        
+        DatabaseAction:BanLookup = self.Database.AddBan(TargetId, Sender.name, Sender.id)
+        if (DatabaseAction != BanLookup.Good):
+            return DatabaseAction
         
-        # Add to scammer database
-        data = [(TargetId, Sender.name, Sender.id, datetime.now())]
-        self.Database.executemany("INSERT INTO banslist VALUES(?, ?, ?, ?)", data)
-        self.Database.commit()
         self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, True))
         
         # Send a message to the announcement channel
@@ -609,15 +445,10 @@ class DiscordScamBot(discord.Client):
         return BanLookup.Banned
 
     async def PrepareUnban(self, TargetId:int, Sender:discord.Member) -> BanLookup:
-        try:
-            if (not self.DoesBanExist(TargetId)):
-                return BanLookup.NotExist
-        except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Got error {str(ex)}")
-            return BanLookup.DBError
+        DatabaseAction:BanLookup = self.Database.RemoveBan(TargetId)
+        if (DatabaseAction != BanLookup.Good):
+            return DatabaseAction
         
-        self.Database.execute(f"DELETE FROM banslist where Id={TargetId}")
-        self.Database.commit()
         self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, False))
         
         # Send a message to the announcement channel
@@ -638,7 +469,7 @@ class DiscordScamBot(discord.Client):
             
             Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action in {Server.name} owned by {ServerOwnerId}")
             if (BanId == ServerOwnerId):
-                Logger.Log(LogLevel.Warn, f"Ban of {BanId} dropped for {Server.name} as it is the owner!")
+                Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {Server.name} as it is the owner!")
                 return (False, BanResult.ServerOwner)
             
             # if we are in development mode, we don't do any actions to any other servers.
@@ -672,8 +503,7 @@ class DiscordScamBot(discord.Client):
             ScamStr = "non-scammer"
         
         BanReason=f"Reported {ScamStr} by {Sender.name}"
-        AllServersQuery = self.Database.execute("SELECT Id FROM servers WHERE Activated=1")
-        AllServers = AllServersQuery.fetchall()
+        AllServers = self.Database.GetAllActivatedServers()
         #AllServers = self.guilds
         NumServers:int = len(AllServers)
         # Instead of going through all servers it's added to, choose all servers that are activated.
@@ -685,10 +515,14 @@ class DiscordScamBot(discord.Client):
                 if (BanResultTuple[0]):
                     NumServersPerformed += 1
                 else:
-                    ResultFlag = BanResultTuple[1]                
-                    if (ResultFlag == BanResult.InvalidUser and IsBan):
-                        # TODO: This might be a potential fluke
-                        break
+                    ResultFlag = BanResultTuple[1]         
+                    if (IsBan):
+                        if (ResultFlag == BanResult.InvalidUser):
+                            # TODO: This might be a potential fluke
+                            break
+                        elif (ResultFlag == BanResult.ServerOwner):
+                            # TODO: More logging
+                            continue
                     # elif (ResultFlag == BanResult.LostPermissions):
                         # TODO: Mark this server as no longer active?
             else:

@@ -7,7 +7,7 @@ DATABASE_VERSION=1
 
 def SetupDatabases():
     DatabaseExists:bool = os.path.exists(Config.GetDBFile())
-    Logger.Log(LogLevel.Notice, "Creating database for scam bot setup")
+    Logger.Log(LogLevel.Notice, "Loading database for scam bot setup")
     con = sqlite3.connect(Config.GetDBFile())
     cursor = con.cursor()
     CurrentVersion:int = cursor.execute("PRAGMA user_version").fetchone()[0]
@@ -17,6 +17,8 @@ def SetupDatabases():
             Logger.Log(LogLevel.Error, f"Please run the database update script from version {CurrentVersion} to {DATABASE_VERSION}")
         else:
             Logger.Log(LogLevel.Debug, f"Database version is currently {CurrentVersion}")
+            con.close()
+            return
 
     cursor.execute(f"PRAGMA user_version = {DATABASE_VERSION}")
     cursor.execute("CREATE TABLE if not EXISTS banslist(Id, BannerName, BannerId, Date)")
