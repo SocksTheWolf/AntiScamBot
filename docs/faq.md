@@ -5,6 +5,7 @@ previous: /
 ---
 
 ## The Bot
+---
 
 ### What is this project in a nutshell?
 
@@ -35,6 +36,7 @@ Yes! You can see the [project source code here](https://github.com/SocksTheWolf/
 You can [view our privacy policy right here](/privacy-policy)!
 
 ## Commission Scammers
+---
 
 ### What is a commission scammer?
 
@@ -47,6 +49,7 @@ They will always solicit you first. Do not give these scammers your money.
 When these scammers first ran rampant, they would always open their dms with the message "hey^^". It was really easy to tell if someone was fake because of it.
 
 ## The Process
+---
 
 ### How does the bot know who is a commission scammer?
 
@@ -71,6 +74,7 @@ The bot can revert any mistakes and unban someone if this needs to happen, appro
 You can also just simply unban the user. 
 
 ## The Group
+---
 
 ### What is "The Antiscam Group"?
 
