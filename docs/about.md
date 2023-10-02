@@ -1,7 +1,7 @@
 ---
 title: Commission Scammer Bot
 description: About the discord bot that bans scammers
-redirect_from: /about
+redirect_from: /bot
 ---
 
 # The Commission Banning Bot
@@ -18,4 +18,4 @@ Information will always be posted to the bot ban channel, as seen below:
 
 ![Bot Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
-If you have additional questions, you can [check out the FAQ here](/faq).{:.centered}
+<span>If you have additional questions, you can [check out the FAQ here](/faq).</span>{:.centered}
