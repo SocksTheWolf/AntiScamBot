@@ -72,5 +72,8 @@ class Config():
         else:
             return True
     
+    def __str__(self):
+        return f"{str(self.__dict__)}"
+    
     def Dump(self):
-        print(self.__dict__)
+        print(self)
