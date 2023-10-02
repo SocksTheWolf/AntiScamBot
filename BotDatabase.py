@@ -66,7 +66,7 @@ class ScamBotDatabase():
         else:
             Logger.Log(LogLevel.Warn, f"Attempted to remove server {ServerId} but we are not in that list!")
     
-    def SetBotActivationForOwner(self, OwnerId:id, Servers, IsActive:bool):
+    def SetBotActivationForOwner(self, OwnerId:int, Servers, IsActive:bool):
         ActivationChanges = []
         ActivationAdditions = []
         ActiveVal = int(IsActive)
