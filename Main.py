@@ -414,10 +414,20 @@ class DiscordScamBot(discord.Client):
         NumBans:int = 0
         BanQueryResult = self.Database.GetAllBans()
         TotalBans:int = len(BanQueryResult)
+        ActionsAppliedThisLoop:int = 0
+        DoesSleep:bool = ConfigData["UseSleep"]
         for Ban in BanQueryResult:
+            if (DoesSleep):
+                # Put in sleep functionality on this loop, as it could be heavy
+                if (ActionsAppliedThisLoop >= ConfigData["ActionsPerTick"]):
+                    await asyncio.sleep(ConfigData["SleepAmount"])
+                    ActionsAppliedThisLoop = 0
+                else:
+                    ActionsAppliedThisLoop += 1
+
             UserId:int = int(Ban[0])
             UserToBan = discord.Object(UserId)
-            BanResponse = await self.PerformActionOnServer(Server, UserToBan, "User banned by ScamBot", True)
+            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban[1]}", True)
             # See if the ban did go through.
             if (BanResponse[0] == False):
                 BanResponseFlag:BanResult = BanResponse[1]
@@ -504,10 +514,19 @@ class DiscordScamBot(discord.Client):
         
         BanReason=f"Reported {ScamStr} by {Sender.name}"
         AllServers = self.Database.GetAllActivatedServers()
-        #AllServers = self.guilds
         NumServers:int = len(AllServers)
+        ActionsAppliedThisLoop:int = 0
+        DoesSleep:bool = ConfigData["UseSleep"]
         # Instead of going through all servers it's added to, choose all servers that are activated.
         for ServerData in AllServers:
+            if (DoesSleep):
+                # Put in sleep functionality on this loop, as it could be heavy
+                if (ActionsAppliedThisLoop >= ConfigData["ActionsPerTick"]):
+                    await asyncio.sleep(ConfigData["SleepAmount"])
+                    ActionsAppliedThisLoop = 0
+                else:
+                    ActionsAppliedThisLoop += 1
+                
             ServerId:int = ServerData[0]
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
