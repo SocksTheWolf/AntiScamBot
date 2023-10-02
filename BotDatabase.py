@@ -167,7 +167,7 @@ class ScamBotDatabase():
         return ServersOwnedQuery.fetchall()
     
     def GetAllBans(self):
-        BansListQuery = self.Database.execute(f"SELECT Id FROM banslist")
+        BansListQuery = self.Database.execute(f"SELECT Id, BannerName FROM banslist")
         return BansListQuery.fetchall()
     
     def GetAllServers(self, ActivatedOnly:bool=False):
