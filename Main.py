@@ -198,8 +198,9 @@ class DiscordScamBot(discord.Client):
         Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_message(self, message):
+        Sender:discord.Member = message.author   
         # Prevent the bot from processing its own messages
-        if (message.author.id == self.user.id):
+        if (Sender.id == self.user.id):
             return
         
         MessageContents:str = message.content.lower()
@@ -240,8 +241,7 @@ class DiscordScamBot(discord.Client):
         if (message.guild is None):
             Logger.Log(LogLevel.Debug, f"There is no guild for this server instance!")
             return
-        
-        Sender:discord.Member = message.author      
+           
         # Senders must also be discord server members, not random users
         if (type(Sender) is not discord.Member):
             Logger.Log(LogLevel.Debug, f"User is not a discord member, this must be a DM")
@@ -301,21 +301,36 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?activate")):
                 ServersActivated = []
-                ServersOwnedResult = self.Database.GetAllServersOfOwner(SendersId)
-                for OwnerServers in ServersOwnedResult:
-                    ServerId:int = OwnerServers[1]
-                    # Check if not activated
-                    if (OwnerServers[0] == 0):
-                        OwnedServer:discord.Guild = self.get_guild(ServerId)
-                        if (OwnedServer is not None):
-                            self.AddAsyncTask(self.ReprocessBansForServer(OwnedServer))
-                            ServersActivated.append(ServerId)
+                ServersToActivate = []
+                for MutualServer in Sender.mutual_guilds:
+                    ServerId:int = MutualServer.id
+                    ServerInfo:str = f"{MutualServer.name}[{MutualServer.id}]"
+                    if (not self.Database.IsActivatedInServer(ServerId)):
+                        Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
+                        if (MutualServer.owner_id == SendersId):
+                            Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
+                            ServersToActivate.append(MutualServer)
+                        else:
+                            GuildMember = MutualServer.get_member(SendersId)
+                            if (GuildMember is not None):
+                                UserPermissions:discord.Permissions = GuildMember.guild_permissions
+                                if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
+                                    Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
+                                    ServersToActivate.append(MutualServer)
+                                else:
+                                    Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
+
+                # Take all the servers that we found and process them
+                for WorkServer in ServersToActivate:
+                    if (WorkServer is not None):
+                        self.AddAsyncTask(self.ReprocessBansForServer(WorkServer))
+                        ServersActivated.append(WorkServer.id)
                 
                 NumServersActivated:int = len(ServersActivated)
                 if (NumServersActivated >= 1):
                     self.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
                     await message.reply(f"Activated in {NumServersActivated} of your servers!")
-                elif (len(ServersOwnedResult) == 0):
+                elif (len(self.Database.GetAllServersOfOwner(SendersId)) == 0):
                     # make sure that people have added the bot into the server first
                     await message.reply("I am not in any servers that you own! You must add me to your server before activating.")
                 else:
