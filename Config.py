@@ -60,6 +60,10 @@ class Config():
     def GetConfigFile() -> str:
         return os.getenv("CONFIG_FILE")
     
+    @staticmethod
+    def GetBackupLocation() -> str:
+        return os.getenv("BACKUP_LOCATION")
+    
     # In this mode, bans do not actually process, nor do they send out to any users.
     @staticmethod
     def IsDevelopment() -> bool:

@@ -36,6 +36,8 @@ class DiscordScamBot(discord.Client):
                    ("?forceactivate", True, CommandPermission.Maintainer, "Force reprocesses a server for activation `?forceactivate serverid`"),
                    ("?print", False, CommandPermission.Maintainer, "Prints the servers that the bot is currently in"), 
                    ("?reloadservers", False, CommandPermission.Maintainer, "Regenerates the server database"), 
+                   ("?backup", False, CommandPermission.Maintainer, "Backs up the current database"),
+                   ("?forceleave", True, CommandPermission.Maintainer, "Makes the bot leave the target server `?forceleave serverid`"),
                    ("?commands", False, CommandPermission.Anyone, "Prints this list")]
 
     ### Initialization ###
@@ -304,9 +306,9 @@ class DiscordScamBot(discord.Client):
                     ServerId:int = OwnerServers[1]
                     # Check if not activated
                     if (OwnerServers[0] == 0):
-                        server = self.get_guild(ServerId)
-                        if (server is not None):
-                            self.AddAsyncTask(self.ReprocessBansForServer(server))
+                        OwnedServer:discord.Guild = self.get_guild(ServerId)
+                        if (OwnedServer is not None):
+                            self.AddAsyncTask(self.ReprocessBansForServer(OwnedServer))
                             ServersActivated.append(ServerId)
                 
                 NumServersActivated:int = len(ServersActivated)
@@ -355,7 +357,7 @@ class DiscordScamBot(discord.Client):
                 return
             elif (Command.startswith("?forceactivate")):
                 if (IsMaintainer):
-                    ServerToProcess = self.get_guild(TargetId)
+                    ServerToProcess:discord.Guild = self.get_guild(TargetId)
                     if (ServerToProcess is not None):
                         Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {ServerToProcess.name} from {SendersId}")
                         self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess))
@@ -368,6 +370,18 @@ class DiscordScamBot(discord.Client):
                 else:
                     await message.reply("You are not allowed to use that command!")
                     Logger.Log(LogLevel.Error, f"User {Sender} attempted to reload server bans for {TargetId} without permissions!")
+                return
+            elif (Command.startswith("?forceleave")):
+                if (IsMaintainer):
+                    ServerToLeave:discord.Guild = self.get_guild(TargetId)
+                    if (ServerToLeave is not None):
+                        Logger.Log(LogLevel.Notice, f"We have left the server {ServerToLeave.name}[{TargetId}]")
+                        await ServerToLeave.leave()
+                return
+            elif (Command.startswith("?backup")):
+                if (IsMaintainer):
+                    self.Database.Backup()
+                    await message.reply("Backed up current database")
                 return
             elif (Command.startswith("?print")):
                 if (IsMaintainer):

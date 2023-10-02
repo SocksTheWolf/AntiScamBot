@@ -3,6 +3,9 @@ from BotEnums import BanLookup
 from Logger import Logger, LogLevel
 from Config import Config
 import sqlite3
+import shutil
+import time
+import os
 
 class ScamBotDatabase():
     Database = None
@@ -15,15 +18,36 @@ class ScamBotDatabase():
         self.Close()
 
     def Open(self):
-        if (self.Database is not None):
-            self.Database.close()
-            
+        self.Close()
         self.Database = sqlite3.connect(Config.GetDBFile())
         
     def Close(self):
-        if (self.Database is not None):
+        if (self.IsConnected()):
             self.Database.close()
             self.Database = None
+            
+    def IsConnected(self) -> bool:
+        if (self.Database is not None):
+            return True
+        return False
+            
+    def Backup(self):
+        if (self.IsConnected()):
+            self.Database.commit()
+            self.Close()
+        
+        # Destination Location
+        DestinationLocation = os.path.abspath(Config.GetBackupLocation())
+        # Copy the database file over there
+        shutil.copy(os.path.relpath(Config.GetDBFile()), DestinationLocation)
+        
+        # Rename the file
+        NewFileName:str = time.strftime("%Y%m%d-%H%M%S.db")
+        NewFile = os.path.join(DestinationLocation, NewFileName)
+        OriginalFile = os.path.join(DestinationLocation, Config.GetDBFile())
+        os.rename(OriginalFile, NewFile)
+        Logger.Log(LogLevel.Notice, f"Current database has been backed up to new file {NewFileName}")
+        self.Open()
     
     ### Adding/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples):
