@@ -125,6 +125,18 @@ class DiscordScamBot(discord.Client):
             Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
         return None
     
+    async def LookupUserInServer(self, Server:discord.Guild, UserId:int) -> discord.Member:
+        try:
+            MemberResult:discord.Member = await Server.fetch_member(UserId)
+            return MemberResult
+        except discord.Forbidden:
+            Logger.Log(LogLevel.Error, f"Bot does not have access to {Server.name}")
+        except discord.HTTPException as ex:
+            Logger.Log(LogLevel.Debug, f"Encountered http exception while looking up user {str(ex)}")
+        except discord.NotFound:
+            Logger.Log(LogLevel.Debug, f"Could not find user {UserId} in {Server.name}")
+        return None
+    
     async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
         BanData = self.Database.GetBanInfo(TargetId)
         UserBanned:bool = (BanData is not None)
@@ -302,23 +314,31 @@ class DiscordScamBot(discord.Client):
             elif (Command.startswith("?activate")):
                 ServersActivated = []
                 ServersToActivate = []
-                for MutualServer in Sender.mutual_guilds:
-                    ServerId:int = MutualServer.id
-                    ServerInfo:str = f"{MutualServer.name}[{MutualServer.id}]"
+                for ServerIn in self.guilds:
+                    ServerId:int = ServerIn.id
+                    ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
+                    # Look for anything that is currently not activated
                     if (not self.Database.IsActivatedInServer(ServerId)):
                         Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
-                        if (MutualServer.owner_id == SendersId):
+                        # Any owners = easy activation :)
+                        if (ServerIn.owner_id == SendersId):
                             Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
-                            ServersToActivate.append(MutualServer)
+                            ServersToActivate.append(ServerIn)
                         else:
-                            GuildMember = MutualServer.get_member(SendersId)
+                            # Otherwise we have to look up the user's membership/permissions in the server
+                            GuildMember:discord.Member = await self.LookupUserInServer(ServerIn, SendersId)
                             if (GuildMember is not None):
+                                Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
                                 UserPermissions:discord.Permissions = GuildMember.guild_permissions
                                 if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
                                     Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
-                                    ServersToActivate.append(MutualServer)
+                                    ServersToActivate.append(ServerIn)
                                 else:
                                     Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
+                            else:
+                                Logger.Log(LogLevel.Debug, f"Did not get user information for {ServerInfo}, likely not in there")
+                    else:
+                        Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
 
                 # Take all the servers that we found and process them
                 for WorkServer in ServersToActivate:
