@@ -165,6 +165,12 @@ class DiscordScamBot(discord.Client):
         UserData.set_footer(text=f"User ID: {TargetId}")
         return UserData
     
+    def UserHasElevatedPermissions(self, User:discord.Member) -> bool:   
+        UserPermissions:discord.Permissions = User.guild_permissions 
+        if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
+            return True
+        return False
+    
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
         try:
@@ -330,8 +336,7 @@ class DiscordScamBot(discord.Client):
                             GuildMember:discord.Member = await self.LookupUserInServer(ServerIn, SendersId)
                             if (GuildMember is not None):
                                 Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
-                                UserPermissions:discord.Permissions = GuildMember.guild_permissions
-                                if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
+                                if (self.UserHasElevatedPermissions(GuildMember)):
                                     Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
                                     ServersToActivate.append(ServerIn)
                                 else:
@@ -462,7 +467,7 @@ class DiscordScamBot(discord.Client):
                     for MessageChunk in MessageChunks:
                         await message.channel.send(MessageChunk)
                 return
-            
+
         if (Command.startswith("?scamcheck")):
             if (self.Database.IsActivatedInServer(message.guild.id)):
                 ResponseEmbed:discord.Embed = await self.CreateBanEmbed(TargetId)
@@ -470,6 +475,11 @@ class DiscordScamBot(discord.Client):
             else:
                 await message.reply("You must activate your server to use commands!")
         elif (Command.startswith("?commands")):
+            # If the caller of this command is executing it outside of the control server and they don't have elevated permissions
+            # then do not process the rest of this execution
+            if (not self.UserHasElevatedPermissions(Sender) and not InControlServer):
+                return
+            
             CommandResponse:str = "The list of commands are: \n"
             for CommandData in self.CommandList:
                 CommandLevel = CommandData[2]
