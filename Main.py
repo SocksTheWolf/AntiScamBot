@@ -451,6 +451,7 @@ class DiscordScamBot(discord.Client):
                 if (IsMaintainer):
                     ReplyStr:str = "I am in the following servers:\n"
                     RowNum:int = 1
+                    NumBans:int = len(self.Database.GetAllBans())
                     ActivatedServers:int = 0
                     QueryResults = self.Database.GetAllServers(False)
                     for BotServers in QueryResults:
@@ -460,7 +461,7 @@ class DiscordScamBot(discord.Client):
                         if (IsActivated):
                             ActivatedServers += 1
                     # Final formatting
-                    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers}"
+                    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
                     # Split the string so that it fits properly into discord messaging
                     MessageChunkLen:int = 2000
                     MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]

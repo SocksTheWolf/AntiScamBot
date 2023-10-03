@@ -189,7 +189,7 @@ class ScamBotDatabase():
         ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={OwnerId}")
         return ServersOwnedQuery.fetchall()
     
-    def GetAllBans(self, NumLastActions:int):
+    def GetAllBans(self, NumLastActions:int=0):
         LimitStr:str = ""
         if (NumLastActions > 0):
             LimitStr = f" LIMIT {NumLastActions}"
