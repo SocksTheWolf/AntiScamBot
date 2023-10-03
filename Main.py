@@ -38,6 +38,7 @@ class DiscordScamBot(discord.Client):
                    ("?reloadservers", False, CommandPermission.Maintainer, "Regenerates the server database"), 
                    ("?backup", False, CommandPermission.Maintainer, "Backs up the current database"),
                    ("?forceleave", True, CommandPermission.Maintainer, "Makes the bot leave the target server `?forceleave serverid`"),
+                   ("?retryactions", True, CommandPermission.Maintainer, "Makes the bot redo it's last N actions `?retryactions serverid number`"),
                    ("?commands", False, CommandPermission.Anyone, "Prints this list")]
 
     ### Initialization ###
@@ -390,6 +391,29 @@ class DiscordScamBot(discord.Client):
                     await message.reply("You are not allowed to use that command!")
                     Logger.Log(LogLevel.Error, f"User {Sender} attempted to reload servers without proper permissions!")
                 return
+            elif (Command.startswith("?retryactions")):
+                if (not IsMaintainer):
+                    return
+                
+                NumActions:int = 0
+                ServerToProcess:discord.Guild = self.get_guild(TargetId)
+                if (ServerToProcess is None):
+                    await message.reply(f"Could not look up {TargetId} for retrying actions")
+                    return
+                
+                if (len(CommandParse[3]) > 1):
+                    NumActionsStr:str = CommandParse[3][1]
+                    if (not NumActionsStr.isnumeric()):
+                        await message.reply("The format of this command is incorrect, the number of actions should be the third value")
+                        return
+                    else:
+                        NumActions = int(NumActionsStr)
+
+                self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess, LastActions=NumActions))
+                ReturnStr:str = f"Reprocessing the last {NumActions} actions in {ServerToProcess.name}..."
+                Logger.Log(LogLevel.Notice, ReturnStr)
+                await message.reply(ReturnStr)
+                return
             elif (Command.startswith("?forceactivate")):
                 if (IsMaintainer):
                     ServerToProcess:discord.Guild = self.get_guild(TargetId)
@@ -456,12 +480,12 @@ class DiscordScamBot(discord.Client):
             await message.reply(f"{CommandResponse}")
     
     ### Ban Handling ###
-    async def ReprocessBansForServer(self, Server:discord.Guild) -> BanResult:
+    async def ReprocessBansForServer(self, Server:discord.Guild, LastActions:int=0) -> BanResult:
         ServerInfoStr:str = f"{Server.name}[{Server.id}]"
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
-        BanQueryResult = self.Database.GetAllBans()
+        BanQueryResult = self.Database.GetAllBans(LastActions)
         TotalBans:int = len(BanQueryResult)
         ActionsAppliedThisLoop:int = 0
         DoesSleep:bool = ConfigData["UseSleep"]
@@ -521,14 +545,15 @@ class DiscordScamBot(discord.Client):
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id
         ServerOwnerId:int = Server.owner_id
+        ServerInfo:str = f"{Server.name}[{Server.id}]"
         try:
             BanStr:str = "ban"
             if (not IsBan):
                 BanStr = "unban"
             
-            Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action in {Server.name} owned by {ServerOwnerId}")
+            Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action in {ServerInfo} owned by {ServerOwnerId}")
             if (BanId == ServerOwnerId):
-                Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {Server.name} as it is the owner!")
+                Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {ServerInfo} as it is the owner!")
                 return (False, BanResult.ServerOwner)
             
             # if we are in development mode, we don't do any actions to any other servers.
@@ -548,10 +573,10 @@ class DiscordScamBot(discord.Client):
                 Logger.Log(LogLevel.Warn, f"User {BanId} is not a valid user while processing the ban")
                 return (False, BanResult.InvalidUser)
         except(discord.Forbidden):
-            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {Server.name}[{Server.id}] owned by {ServerOwnerId}!")
+            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {ServerInfo} owned by {ServerOwnerId}!")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {Server.name}[{Server.id}] owned by {ServerOwnerId}!")
+            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
