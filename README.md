@@ -10,36 +10,35 @@ This bot is powered via community reporting, trusted verification, and complete 
 
 You can read more on [the website here](https://theantiscamgroup.com)!
 
-## Configurations to Run
+## Configurations to Run the Bot
 
 ### Environment Vars
 
-To start the bot locally, create a .env file in the directory with the following: 
+To start the bot locally, create a .env file in the current directory with the following environment variables: 
 
 ```
-DISCORD_TOKEN="your discord token"  
+DISCORD_TOKEN="your discord bot token"  
 DATABASE_FILE="a path to your sql file"  
 CONFIG_FILE="a path to your config file"  
-BACKUP_LOCATION="a path to your sql backup file"  
-DEVELOPMENT_MODE="TRUE or FALSE"  
+BACKUP_LOCATION="a path to a directory to store your backup sql file"  
+DEVELOPMENT_MODE="true if you want to test without banning, false to ban people"  
 ```
 
-here is an example of a .env file
+Here is an example of a .env file.
 
 ```
 DISCORD_TOKEN="OTk1MTU1NzcyMzFYxMTQ2NFM.489fy9.WSF8YHE87F98efye79wsLSKDF0s"  
 DATABASE_FILE="database.db"  
 CONFIG_FILE="config.json"  
 BACKUP_LOCATION="backup/"  
-DEVELOPMENT_MODE="TRUE"  
+DEVELOPMENT_MODE="true"  
 ```
 
 You can also have these environment variables set directly
 
 ### Config.json
 
-With the provided config.json as a base, you will need to update the IDs with your server/roles/channels. Here's how you get those IDs  
+You will need to update config.json with your server/roles/channels ID in order for the bot to work. Here's how you get those IDs  
 - Server ID: Right click your server icon and click on Copy Server ID
 - Role ID: Go to your Server Settings -> Roles -> "..." button for the role -> Copy Role ID
 - Channel ID: Right click the channel and click on Copy Channel ID
-
