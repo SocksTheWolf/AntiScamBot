@@ -27,6 +27,8 @@ Because of how Discord handles permissions it needs the following permissions
 
 * `Add Reactions`: Right now this permission is unused by the bot, but this is to add reactions to command messages in the future.
 
+* `Embed Links`: To give you information when you run `?scamcheck`
+
 ### Is the bot open source?
 
 Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
