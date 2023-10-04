@@ -49,7 +49,7 @@ class ScamBotDatabase():
         Logger.Log(LogLevel.Notice, f"Current database has been backed up to new file {NewFileName}")
         self.Open()
     
-    ### Adding/Removing Server Entries ###
+    ### Adding/Updating/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples):
         BotAdditionUpdates = []
         for Entry in ListOwnerAndServerTuples:
@@ -58,6 +58,12 @@ class ScamBotDatabase():
         self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?)", BotAdditionUpdates)
         self.Database.commit()
         Logger.Log(LogLevel.Notice, f"Bot had {len(BotAdditionUpdates)} new server updates")
+        
+    def SetNewServerOwner(self, ServerId:int, NewOwnerId:int):
+        ActivationChanges = []
+        ActivationChanges.append({"Id": ServerId, "OwnerId": NewOwnerId})
+        self.Database.executemany("UPDATE servers SET OwnerId=:OwnerId WHERE Id=:Id", ActivationChanges)
+        self.Database.commit()
         
     def RemoveServerEntry(self, ServerId:int):
         if (self.IsInServer(ServerId)):  
@@ -188,6 +194,10 @@ class ScamBotDatabase():
     def GetAllServersOfOwner(self, OwnerId:int):
         ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={OwnerId}")
         return ServersOwnedQuery.fetchall()
+    
+    def GetOwnerOfServer(self, ServerId:int) -> int:
+        ServersOwnedQuery = self.Database.execute(f"SELECT OwnerId FROM servers WHERE Id={ServerId}")
+        return ServersOwnedQuery.fetchone()[0]
     
     def GetAllBans(self, NumLastActions:int=0):
         LimitStr:str = ""
