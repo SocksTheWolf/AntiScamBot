@@ -583,8 +583,8 @@ class DiscordScamBot(discord.Client):
             else:
                 Logger.Log(LogLevel.Warn, f"User {BanId} is not a valid user while processing the ban")
                 return (False, BanResult.InvalidUser)
-        except(discord.Forbidden):
-            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {ServerInfo} owned by {ServerOwnerId}!")
+        except discord.Forbidden as forbiddenEx:
+            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {ServerInfo} owned by {ServerOwnerId}! Err: {str(forbiddenEx)}")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
