@@ -10,6 +10,8 @@ This bot is powered via community reporting, trusted verification, and complete 
 
 You can read more on [the website here](https://theantiscamgroup.com)!
 
+---
+
 ## Configurations to Run the Bot
 
 ### Environment Vars
@@ -27,7 +29,7 @@ DEVELOPMENT_MODE="true if you want to test without banning, false to ban people"
 Here is an example of a .env file.
 
 ```
-DISCORD_TOKEN="OTk1MTU1NzcyMzFYxMTQ2NFM.489fy9.WSF8YHE87F98efye79wsLSKDF0s"  
+DISCORD_TOKEN="0"  
 DATABASE_FILE="database.db"  
 CONFIG_FILE="config.json"  
 BACKUP_LOCATION="backup/"  
@@ -37,8 +39,9 @@ DEVELOPMENT_MODE="true"
 You can also have these environment variables set directly
 
 ### Config.json
+By default, the config.json file is preconfigured with IDs specifically for the TAG server.
 
-You will need to update config.json with your server/roles/channels ID in order for the bot to work. Here's how you get those IDs  
+To test the bot on your own Discord server for debugging purposes, here's how you can get the IDs for the server, roles, and channels
 - Server ID: Right click your server icon and click on Copy Server ID
 - Role ID: Go to your Server Settings -> Roles -> "..." button for the role -> Copy Role ID
 - Channel ID: Right click the channel and click on Copy Channel ID
