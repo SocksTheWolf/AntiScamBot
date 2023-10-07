@@ -1,25 +1,19 @@
-from datetime import datetime
 # Logging functionality
 from Logger import Logger, LogLevel
-from BotEnums import CommandPermission, BanResult, BanLookup
+from BotEnums import BanResult, BanLookup
 from Config import Config
 # Discord library
 import discord
+from discord import app_commands
 import asyncio
 import BotSetup
 from BotDatabase import ScamBotDatabase
 
 # Setup functions
 ConfigData=Config()
-
-# TODO:
-# * Something that cleans up the database in the future based off of if the scam accounts are deleted
+CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
 
 class DiscordScamBot(discord.Client):
-    ControlServer = None
-    ApproverRole = None
-    MaintainerRole = None
-    DeveloperRole = None
     # Channel to send updates as to when someone is banned/unbanned
     # this is an announcement channel
     AnnouncementChannel = None
@@ -27,70 +21,39 @@ class DiscordScamBot(discord.Client):
     NotificationChannel = None
     Database:ScamBotDatabase = None
     AsyncTasks = set()
-    CommandList = [("?scamban", True, CommandPermission.Approver, "Bans a scammer using `?scamban targetid`"), 
-                   ("?scamunban", True, CommandPermission.Approver, "Unbans a scammer using `?scamunban targetid`"), 
-                   ("?scamcheck", True, CommandPermission.Anyone, "Checks to see if a discord id is banned `?scamcheck targetid`"), 
-                   ("?activate", False, CommandPermission.ControlServerUser, "Activates a server and brings in previous bans if caller has any known servers owned"),
-                   ("?deactivate", False, CommandPermission.ControlServerUser, "Deactivates a server and prevents any future ban information from being shared"),
-                   ("?reloadconfig", False, CommandPermission.Maintainer, "Reloads the active bot's configuration data"),
-                   ("?forceactivate", True, CommandPermission.Maintainer, "Force reprocesses a server for activation `?forceactivate serverid`"),
-                   ("?print", False, CommandPermission.Maintainer, "Prints the servers that the bot is currently in"), 
-                   ("?reloadservers", False, CommandPermission.Maintainer, "Regenerates the server database"), 
-                   ("?backup", False, CommandPermission.Maintainer, "Backs up the current database"),
-                   ("?forceleave", True, CommandPermission.Maintainer, "Makes the bot leave the target server `?forceleave serverid`"),
-                   ("?retryactions", True, CommandPermission.Maintainer, "Makes the bot redo it's last N actions `?retryactions serverid number`"),
-                   ("?commands", False, CommandPermission.Anyone, "Prints this list")]
 
     ### Initialization ###
     def __init__(self, *args, **kwargs):
         self.Database = ScamBotDatabase()
         intents = discord.Intents.default()
-        intents.message_content = True
         super().__init__(intents=intents)
+        self.Commands = app_commands.CommandTree(self)
         
     def __del__(self):
         Logger.Log(LogLevel.Notice, "Closing the discord scam bot")
         self.Database.Close()
+        
+    async def setup_hook(self):
+        if (ConfigData.IsDevelopment()):
+            # This copies the global commands over to your guild.
+            self.Commands.copy_global_to(guild=CommandControlServer)
+        else:
+            await self.Commands.sync(guild=CommandControlServer)
+            await self.Commands.sync()
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
         if (ShouldReload):
             ConfigData.Load()
-        
-        # Grab our control server
-        if (ConfigData.IsValid("ControlServer", int)):
-            self.ControlServer = self.get_guild(ConfigData["ControlServer"])
-        else:
-            Logger.Log(LogLevel.Error, "Missing the ControlServer configuration!")
-            return
-        
-        # Pull the approver role
-        if (ConfigData.IsValid("ApproverRole", int)):
-            self.ApproverRole = self.ControlServer.get_role(ConfigData["ApproverRole"])
-        else:
-            Logger.Log(LogLevel.Error, "Missing the ApproverRole configuration!")
-            return
-        
+                
         if (ConfigData.IsValid("AnnouncementChannel", int)):
             self.AnnouncementChannel = self.get_channel(ConfigData["AnnouncementChannel"])
         if (ConfigData.IsValid("NotificationChannel", int)):
             self.NotificationChannel = self.get_channel(ConfigData["NotificationChannel"])
-        if (ConfigData.IsValid("MaintainerRole", int)):
-            self.MaintainerRole = self.ControlServer.get_role(ConfigData["MaintainerRole"])
-        if (ConfigData.IsValid("DeveloperRole", int)):
-            self.DeveloperRole = self.ControlServer.get_role(ConfigData["DeveloperRole"])
         
         Logger.Log(LogLevel.Notice, "Bot configs applied")
 
-    ### Command Processing & Utils ###
-    def ParseCommand(self, text:str):
-        for CommandTuple in self.CommandList:
-            if (text.startswith(CommandTuple[0])):
-                Arguments = text.split(" ")
-                Arguments.pop(0)
-                return (True, CommandTuple[0], CommandTuple[1], Arguments)
-        return (False, "", False, [])
-    
+    ### Command Processing & Utils ###    
     async def PostNotification(self, Message:str):
         try:
             if (self.NotificationChannel is not None):
@@ -199,6 +162,7 @@ class DiscordScamBot(discord.Client):
             Logger.SetNotificationCallback(self.PostNotification)
 
         self.Database.ReconcileServers(self.guilds)
+
         Logger.Log(LogLevel.Notice, f"Bot has started! Is Development? {ConfigData.IsDevelopment()}")
     
     async def on_guild_join(self, server:discord.Guild):
@@ -206,7 +170,7 @@ class DiscordScamBot(discord.Client):
         OwnerName:str = "Admin"
         if (server.owner is not None):
             OwnerName = server.owner.global_name
-
+        
         Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_update(self, PriorUpdate:discord.Guild, NewUpdate:discord.Guild):
@@ -221,280 +185,6 @@ class DiscordScamBot(discord.Client):
         if (server.owner is not None):
             OwnerName = server.owner.global_name
         Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
-        
-    async def on_message(self, message):
-        Sender:discord.Member = message.author   
-        # Prevent the bot from processing its own messages
-        if (Sender.id == self.user.id):
-            return
-        
-        MessageContents:str = message.content.lower()
-        # If not a command, get out of here
-        if (not MessageContents.startswith("?")):
-            return
-        
-        CommandParse = self.ParseCommand(MessageContents)
-        # If the command is not for us, then stop processing
-        if (not CommandParse[0]):
-            return
-        
-        Command = CommandParse[1]
-        RequiresArguments = CommandParse[2]
-        ArgList = CommandParse[3]
-        TargetId:int = -1
-        # Check if this command requires arguments
-        if (RequiresArguments):
-            # Not enough arguments were provided!
-            if (len(ArgList) < 1):
-                await message.reply(f"The command you have specified, {Command}, requires arguments!")
-                Logger.Log(LogLevel.Debug, f"Command {Command} requires arguments but none were provided")
-                return
-            
-            TargetIdStr:str = CommandParse[3][0]
-            if (not TargetIdStr.isnumeric()):
-                await message.reply("The format of this command is incorrect, the userid should be the second value")
-                return
-            
-            # Set the target id properly
-            TargetId = int(TargetIdStr)
-            
-            # Prevent any targets on the bot
-            if (TargetId == self.user.id):
-                return
-        
-        # Do not accept DMs, only channel messages
-        if (message.guild is None):
-            Logger.Log(LogLevel.Debug, f"There is no guild for this server instance!")
-            return
-           
-        # Senders must also be discord server members, not random users
-        if (type(Sender) is not discord.Member):
-            Logger.Log(LogLevel.Debug, f"User is not a discord member, this must be a DM")
-            return
-        
-        SendersId:int = Sender.id
-        InControlServer:bool = (message.guild == self.ControlServer)
-        IsApprover:bool = False
-        IsMaintainer:bool = False
-        IsDeveloper:bool = False
-        # Do two if checks here, we want to make sure that we do role checks only
-        # if we are in the control server to prevent potential overlap of role ids
-        if (InControlServer):
-            if (self.ApproverRole in Sender.roles):
-                IsApprover = True
-                
-            if (self.MaintainerRole is not None and self.MaintainerRole in Sender.roles):
-                IsMaintainer = True
-                
-            if (self.DeveloperRole is not None and self.DeveloperRole in Sender.roles):
-                IsDeveloper = True
-                
-        if (InControlServer):       
-            # If the first bit of the message is the command to ban
-            if (Command.startswith("?scamban")):
-                if (IsApprover):
-                    Logger.Log(LogLevel.Verbose, f"Scam ban message detected from {Sender} for {TargetId}")
-                    Result = await self.PrepareBan(TargetId, Sender)
-                    if (Result is not BanLookup.Banned):
-                        if (Result == BanLookup.Duplicate):
-                            await message.reply(f"{TargetId} already exists in the ban database")
-                            Logger.Log(LogLevel.Log, f"The given id {TargetId} is already banned.")
-                        else:
-                            await message.reply(f"The given id {TargetId} had an error while banning!")
-                            Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {TargetId} with error {str(Result)}")
-                    else:
-                        await message.reply(f"The ban for {TargetId} is in progress...")
-                else:
-                    Logger.Log(LogLevel.Warn, f"A scam ban message was sent by a non-admin from {Sender} for {TargetId}")
-                return
-            elif (Command.startswith("?scamunban")):
-                if (IsApprover):
-                    Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {TargetId}")
-                    Result = await self.PrepareUnban(TargetId, Sender)
-                    if (Result is not BanLookup.Unbanned):
-                        if (Result is BanLookup.NotExist):
-                            await message.reply(f"The given id {TargetId} is not an user we have in our database when unbanning!")
-                            Logger.Log(LogLevel.Log, f"The given id {TargetId} is not in the ban database.")
-                        else:
-                            await message.reply(f"The given id {TargetId} had an error while unbanning!")
-                            Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {TargetId} with error {str(Result)}")
-                    else:
-                        await message.reply(f"The unban for {TargetId} is in progress...")
-                else:
-                    Logger.Log(LogLevel.Warn, f"A scam unban message was sent by a non-admin from {Sender} for {TargetId}")
-
-                return
-            elif (Command.startswith("?activate")):
-                ServersActivated = []
-                ServersToActivate = []
-                for ServerIn in self.guilds:
-                    ServerId:int = ServerIn.id
-                    ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
-                    # Look for anything that is currently not activated
-                    if (not self.Database.IsActivatedInServer(ServerId)):
-                        Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
-                        # Any owners = easy activation :)
-                        if (ServerIn.owner_id == SendersId):
-                            Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
-                            ServersToActivate.append(ServerIn)
-                        else:
-                            # Otherwise we have to look up the user's membership/permissions in the server
-                            GuildMember:discord.Member = await self.LookupUserInServer(ServerIn, SendersId)
-                            if (GuildMember is not None):
-                                Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
-                                if (self.UserHasElevatedPermissions(GuildMember)):
-                                    Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
-                                    ServersToActivate.append(ServerIn)
-                                else:
-                                    Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
-                            else:
-                                Logger.Log(LogLevel.Debug, f"Did not get user information for {ServerInfo}, likely not in there")
-                    else:
-                        Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
-
-                # Take all the servers that we found and process them
-                for WorkServer in ServersToActivate:
-                    if (WorkServer is not None):
-                        self.AddAsyncTask(self.ReprocessBansForServer(WorkServer))
-                        ServersActivated.append(WorkServer.id)
-                
-                NumServersActivated:int = len(ServersActivated)
-                if (NumServersActivated >= 1):
-                    self.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
-                    await message.reply(f"Activated in {NumServersActivated} of your servers!")
-                elif (len(self.Database.GetAllServersOfOwner(SendersId)) == 0):
-                    # make sure that people have added the bot into the server first
-                    await message.reply("I am not in any servers that you own! You must add me to your server before activating.")
-                else:
-                    await message.reply("There are no servers that you own that aren't already activated!")
-                return
-            elif (Command.startswith("?deactivate")):
-                ServersToDeactivate = []
-                ServersOwnedResult = self.Database.GetAllServersOfOwner(SendersId)
-                for OwnerServers in ServersOwnedResult:
-                    if (OwnerServers[0] == 1):
-                        ServersToDeactivate.append(OwnerServers[1])
-                
-                NumServersDeactivated:int = len(ServersToDeactivate)
-                if (NumServersDeactivated >= 1):
-                    self.Database.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
-                    await message.reply(f"Deactivated in {NumServersDeactivated} of your servers!")
-                elif (len(ServersOwnedResult) == 0):
-                    # make sure that people have added the bot into the server first
-                    await message.reply("I am not in any servers that you own!")
-                else:
-                    await message.reply("There are no servers that you own that are activated!")
-                return
-            elif (Command.startswith("?reloadconfig")):
-                if (IsMaintainer):
-                    self.ProcessConfig(True)
-                    await message.reply("Configurations reloaded")
-                else:
-                    await message.reply("You are not allowed to use that command!")
-                    Logger.Log(LogLevel.Error, f"User {Sender} attempted to reload config without proper permissions!")
-                return
-            elif (Command.startswith("?reloadservers")):
-                if (IsMaintainer):
-                    self.Database.Open()
-                    self.Database.ReconcileServers(self.guilds)
-                    await message.reply("Server list reloaded")
-                else:
-                    await message.reply("You are not allowed to use that command!")
-                    Logger.Log(LogLevel.Error, f"User {Sender} attempted to reload servers without proper permissions!")
-                return
-            elif (Command.startswith("?retryactions")):
-                if (not IsMaintainer):
-                    return
-                
-                NumActions:int = 0
-                ServerToProcess:discord.Guild = self.get_guild(TargetId)
-                if (ServerToProcess is None):
-                    await message.reply(f"Could not look up {TargetId} for retrying actions")
-                    return
-                
-                if (len(CommandParse[3]) > 1):
-                    NumActionsStr:str = CommandParse[3][1]
-                    if (not NumActionsStr.isnumeric()):
-                        await message.reply("The format of this command is incorrect, the number of actions should be the third value")
-                        return
-                    else:
-                        NumActions = int(NumActionsStr)
-
-                self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess, LastActions=NumActions))
-                ReturnStr:str = f"Reprocessing the last {NumActions} actions in {ServerToProcess.name}..."
-                Logger.Log(LogLevel.Notice, ReturnStr)
-                await message.reply(ReturnStr)
-                return
-            elif (Command.startswith("?forceactivate")):
-                if (IsMaintainer):
-                    ServerToProcess:discord.Guild = self.get_guild(TargetId)
-                    if (ServerToProcess is not None):
-                        Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {ServerToProcess.name} from {SendersId}")
-                        self.AddAsyncTask(self.ReprocessBansForServer(ServerToProcess))
-                        ServersActivated = [TargetId]
-                        self.Database.SetBotActivationForOwner(ServerToProcess.owner_id, ServersActivated, True)
-                        await message.reply(f"Reprocessing bans for {ServerToProcess.name}")
-                    else:
-                        await message.reply(f"I am unable to resolve that server id!")
-                        Logger.Log(LogLevel.Warn, f"Unable to resolve server {TargetId} for reprocess")
-                else:
-                    await message.reply("You are not allowed to use that command!")
-                    Logger.Log(LogLevel.Error, f"User {Sender} attempted to reload server bans for {TargetId} without permissions!")
-                return
-            elif (Command.startswith("?forceleave")):
-                if (IsMaintainer):
-                    ServerToLeave:discord.Guild = self.get_guild(TargetId)
-                    if (ServerToLeave is not None):
-                        Logger.Log(LogLevel.Notice, f"We have left the server {ServerToLeave.name}[{TargetId}]")
-                        await ServerToLeave.leave()
-                return
-            elif (Command.startswith("?backup")):
-                if (IsMaintainer):
-                    self.Database.Backup()
-                    await message.reply("Backed up current database")
-                return
-            elif (Command.startswith("?print")):
-                if (IsMaintainer):
-                    ReplyStr:str = "I am in the following servers:\n"
-                    RowNum:int = 1
-                    NumBans:int = len(self.Database.GetAllBans())
-                    ActivatedServers:int = 0
-                    QueryResults = self.Database.GetAllServers(False)
-                    for BotServers in QueryResults:
-                        IsActivated:bool = bool(BotServers[2])
-                        ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(IsActivated)}\n"
-                        RowNum += 1
-                        if (IsActivated):
-                            ActivatedServers += 1
-                    # Final formatting
-                    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(self.guilds)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
-                    # Split the string so that it fits properly into discord messaging
-                    MessageChunkLen:int = 2000
-                    MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
-                    for MessageChunk in MessageChunks:
-                        await message.channel.send(MessageChunk)
-                return
-
-        if (Command.startswith("?scamcheck")):
-            if (self.Database.IsActivatedInServer(message.guild.id)):
-                ResponseEmbed:discord.Embed = await self.CreateBanEmbed(TargetId)
-                await message.reply(embed = ResponseEmbed)
-            else:
-                await message.reply("You must activate your server to use commands!")
-        elif (Command.startswith("?commands")):
-            # If the caller of this command is executing it outside of the control server and they don't have elevated permissions
-            # then do not process the rest of this execution
-            if (not self.UserHasElevatedPermissions(Sender) and not InControlServer):
-                return
-            
-            CommandResponse:str = "The list of commands are: \n"
-            for CommandData in self.CommandList:
-                CommandLevel = CommandData[2]
-                Usable:bool = CommandPermission.CanUse(CommandLevel, InControlServer, IsApprover, IsMaintainer, IsDeveloper)
-                if (Usable):
-                    CommandResponse += f"* `{CommandData[0]}`: Access[**{CommandData[2]}**] - {CommandData[3]}\n"
-                
-            await message.reply(f"{CommandResponse}")
     
     ### Ban Handling ###
     async def ReprocessBansForServer(self, Server:discord.Guild, LastActions:int=0) -> BanResult:
@@ -641,5 +331,251 @@ class DiscordScamBot(discord.Client):
 
         Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} as a {ScamStr} performed in {NumServersPerformed}/{NumServers} servers")
 
-Bot = DiscordScamBot()
-Bot.run(ConfigData.GetToken())
+ScamBot = DiscordScamBot()
+
+class TargetIdTransformer(app_commands.Transformer):
+    async def transform(self, interaction: discord.Interaction, value: str) -> int:
+        if (not value.isnumeric()):
+            return -1
+        ConvertedValue:int = int(value)
+        # Prevent any targets on the bot
+        if (ConvertedValue == interaction.client.user.id):
+            return -1
+        return ConvertedValue
+
+async def CommandErrorHandler(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    ErrorType = type(error)
+    ErrorMsg:str = ""
+    InteractionName:str = interaction.command.name
+    if (ErrorType == app_commands.CommandOnCooldown):
+        ErrorMsg = f"This command {InteractionName} is currently on cooldown"
+    elif (ErrorType == app_commands.MissingPermissions):
+        ErrorMsg = f"You do not have permissions to use {InteractionName}"
+    elif (ErrorType == app_commands.MissingRole):
+        ErrorMsg = f"You are missing the roles necessary to run {InteractionName}"
+    else:
+        Logger.Log(LogLevel.Error, f"Encountered error running command {InteractionName}: {str(error)}")
+        ErrorMsg = "An error has occurred while processing your request"
+    
+    await interaction.response.send_message(ErrorMsg, ephemeral=True, delete_after=5.0)
+
+ScamBot.Commands.on_error = CommandErrorHandler
+
+@ScamBot.Commands.command(name="backup", description="Backs up the current database", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["MaintainerRole"])
+async def BackupCommand(interaction:discord.Interaction):
+    ScamBot.Database.Backup()
+    await interaction.response.send_message("Backed up current database")
+    
+@ScamBot.Commands.command(name="forceleave", description="Makes the bot force leave a server", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["MaintainerRole"])
+@app_commands.describe(server='Discord ID of the server to leave')
+async def LeaveServer(interaction:discord.Interaction, server:app_commands.Transform[int, TargetIdTransformer]):
+    if (server <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return
+    
+    ServerToLeave:discord.Guild = ScamBot.get_guild(server)
+    if (ServerToLeave is not None):
+        Logger.Log(LogLevel.Notice, f"We have left the server {ServerToLeave.name}[{server}]")
+        await ServerToLeave.leave()
+        await interaction.response.send_message(f"I am leaving server {server}")
+    else:
+        await interaction.response.send_message(f"Could not find server {server}, id is invalid")
+
+@ScamBot.Commands.command(name="forceactivate", description="Force activates a server for the bot", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["MaintainerRole"])
+@app_commands.describe(server='Discord ID of the server to force activate')
+async def ForceActivate(interaction:discord.Interaction, server:app_commands.Transform[int, TargetIdTransformer]):
+    if (server <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return
+    
+    ServerToProcess:discord.Guild = ScamBot.get_guild(server)
+    if (ServerToProcess is not None):
+        Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {ServerToProcess.name} from {interaction.user.id}")
+        ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(ServerToProcess))
+        ServersActivated = [server]
+        ScamBot.Database.SetBotActivationForOwner(ServerToProcess.owner_id, ServersActivated, True)
+        await interaction.response.send_message(f"Reprocessing bans for {ServerToProcess.name}")
+    else:
+        await interaction.response.send_message(f"I am unable to resolve that server id!")
+        Logger.Log(LogLevel.Warn, f"Unable to resolve server {server} for reprocess")
+
+@ScamBot.Commands.command(name="retryactions", description="Forces the bot to retry last actions", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["MaintainerRole"])
+@app_commands.describe(server='Discord ID of the server to force activate', numactions='The number of actions to perform')
+async def RetryActions(interaction:discord.Interaction, server:app_commands.Transform[int, TargetIdTransformer], numactions:app_commands.Range[int, 1]):
+    if (server <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return
+    
+    ServerToProcess:discord.Guild = ScamBot.get_guild(server)
+    if (ServerToProcess is None):
+        await interaction.response.send_message(f"Could not look up {server} for retrying actions")
+        return
+    
+    ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(ServerToProcess, LastActions=numactions))
+    ReturnStr:str = f"Reprocessing the last {numactions} actions in {ServerToProcess.name}..."
+    Logger.Log(LogLevel.Notice, ReturnStr)
+    await interaction.response.send_message(ReturnStr)
+    
+@ScamBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["MaintainerRole"])
+async def PrintServers(interaction:discord.Interaction):
+    ReplyStr:str = "I am in the following servers:\n"
+    RowNum:int = 1
+    NumBans:int = len(ScamBot.Database.GetAllBans())
+    ActivatedServers:int = 0
+    QueryResults = ScamBot.Database.GetAllServers(False)
+    for BotServers in QueryResults:
+        IsActivated:bool = bool(BotServers[2])
+        ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(IsActivated)}\n"
+        RowNum += 1
+        if (IsActivated):
+            ActivatedServers += 1
+    # Final formatting
+    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(ScamBot.guilds)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
+    # Split the string so that it fits properly into discord messaging
+    MessageChunkLen:int = 2000
+    MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
+    for MessageChunk in MessageChunks:
+        await interaction.channel.send(MessageChunk)
+        
+    await interaction.response.send_message("Done printing", ephemeral=True, delete_after=2.0)
+
+@ScamBot.Commands.command(name="scamban", description="Bans a scammer", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["ApproverRole"])
+@app_commands.describe(targetid='The discord id for the user to ban')
+async def ScamBan(interaction:discord.Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
+    if (targetid <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return 
+    
+    Sender:discord.Member = interaction.user
+    Logger.Log(LogLevel.Verbose, f"Scam ban message detected from {Sender} for {targetid}")
+    Result = await ScamBot.PrepareBan(targetid, Sender)
+    ResponseMsg:str = ""
+    if (Result is not BanLookup.Banned):
+        if (Result == BanLookup.Duplicate):
+            ResponseMsg = f"{targetid} already exists in the ban database"
+            Logger.Log(LogLevel.Log, f"The given id {targetid} is already banned.")
+        else:
+            ResponseMsg = f"The given id {targetid} had an error while banning!"
+            Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {targetid} with error {str(Result)}")
+    else:
+        ResponseMsg = f"The ban for {targetid} is in progress..."
+        
+    await interaction.response.send_message(ResponseMsg)
+
+@ScamBot.Commands.command(name="scamunban", description="Unbans a scammer", guild=CommandControlServer)
+@app_commands.checks.has_role(ConfigData["ApproverRole"])
+@app_commands.describe(targetid='The discord id for the user to unban')
+async def ScamUnban(interaction:discord.Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
+    if (targetid <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return 
+
+    Sender:discord.Member = interaction.user
+    Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
+    Result = await ScamBan.PrepareUnban(targetid, Sender)
+    ResponseMsg:str = ""
+    if (Result is not BanLookup.Unbanned):
+        if (Result is BanLookup.NotExist):
+            ResponseMsg = f"The given id {targetid} is not an user we have in our database when unbanning!"
+            Logger.Log(LogLevel.Log, f"The given id {targetid} is not in the ban database.")
+        else:
+            ResponseMsg = f"The given id {targetid} had an error while unbanning!"
+            Logger.Log(LogLevel.Warn, f"{Sender} attempted unban on {targetid} with error {str(Result)}")
+    else:
+        ResponseMsg = f"The unban for {targetid} is in progress..."
+        
+    await interaction.response.send_message(ResponseMsg)
+        
+@ScamBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
+async def ActivateServer(interaction:discord.Interaction):
+    Sender:discord.Member = interaction.user
+    SendersId:int = Sender.id
+    ServersActivated = []
+    ServersToActivate = []
+    for ServerIn in ScamBot.guilds:
+        ServerId:int = ServerIn.id
+        ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
+        # Look for anything that is currently not activated
+        if (not ScamBot.Database.IsActivatedInServer(ServerId)):
+            Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
+            # Any owners = easy activation :)
+            if (ServerIn.owner_id == SendersId):
+                Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
+                ServersToActivate.append(ServerIn)
+            else:
+                # Otherwise we have to look up the user's membership/permissions in the server
+                GuildMember:discord.Member = await ScamBot.LookupUserInServer(ServerIn, SendersId)
+                if (GuildMember is not None):
+                    Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
+                    if (ScamBot.UserHasElevatedPermissions(GuildMember)):
+                        Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
+                        ServersToActivate.append(ServerIn)
+                    else:
+                        Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
+                else:
+                    Logger.Log(LogLevel.Debug, f"Did not get user information for {ServerInfo}, likely not in there")
+        else:
+            Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
+
+    # Take all the servers that we found and process them
+    for WorkServer in ServersToActivate:
+        if (WorkServer is not None):
+            ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(WorkServer))
+            ServersActivated.append(WorkServer.id)
+    
+    NumServersActivated:int = len(ServersActivated)
+    MessageToRespond:str = ""
+    if (NumServersActivated >= 1):
+        ScamBot.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
+        MessageToRespond = f"Activated in {NumServersActivated} of your servers!"
+    elif (len(ScamBot.Database.GetAllServersOfOwner(SendersId)) == 0):
+        # make sure that people have added the bot into the server first
+        MessageToRespond = "I am not in any servers that you own! You must add me to your server before activating."
+    else:
+        MessageToRespond = "There are no servers that you own that aren't already activated!"
+    await interaction.response.send_message(MessageToRespond)
+    
+@ScamBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
+async def DeactivateServer(interaction:discord.Interaction):
+    Sender:discord.Member = interaction.user
+    SendersId:int = Sender.id
+    ServersToDeactivate = []
+    ServersOwnedResult = ScamBot.Database.GetAllServersOfOwner(SendersId)
+    for OwnerServers in ServersOwnedResult:
+        if (OwnerServers[0] == 1):
+            ServersToDeactivate.append(OwnerServers[1])
+
+    MessageToRespond:str = ""
+    NumServersDeactivated:int = len(ServersToDeactivate)
+    if (NumServersDeactivated >= 1):
+        ScamBot.Database.SetBotActivationForOwner(SendersId, ServersToDeactivate, False)
+        MessageToRespond = f"Deactivated in {NumServersDeactivated} of your servers!"
+    elif (len(ServersOwnedResult) == 0):
+        # make sure that people have added the bot into the server first
+        MessageToRespond = "I am not in any servers that you own!"
+    else:
+        MessageToRespond = "There are no servers that you own that are activated!"
+    await interaction.response.send_message(MessageToRespond)
+    
+@ScamBot.Commands.command(name="scamcheck", description="Checks to see if a discord id is banned")
+@app_commands.describe(targetid='The discord user id to check')
+@app_commands.checks.cooldown(1, 3.0)
+@app_commands.guild_only()
+async def ScamCheck(interaction:discord.Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
+    if (targetid <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True)
+        return
+    
+    if (ScamBot.Database.IsActivatedInServer(interaction.guild_id)):
+        ResponseEmbed:discord.Embed = await ScamBot.CreateBanEmbed(targetid)
+        await interaction.response.send_message(embed = ResponseEmbed)
+    else:
+        await interaction.response.send_message("You must be activated in order to run scam check!")
+
+ScamBot.run(ConfigData.GetToken())
