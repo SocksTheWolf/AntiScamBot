@@ -31,13 +31,17 @@ class ScamBotDatabase():
             return True
         return False
             
-    def Backup(self):
+    def Backup(self) -> bool:
+        # Destination Location
+        DestinationLocation = os.path.abspath(Config.GetBackupLocation())
+        if (not os.path.exists(DestinationLocation)):
+            Logger.Log(LogLevel.Warn, "Backup directory does not exist!!")
+            return False
+        
         if (self.IsConnected()):
             self.Database.commit()
             self.Close()
-        
-        # Destination Location
-        DestinationLocation = os.path.abspath(Config.GetBackupLocation())
+               
         # Copy the database file over there
         shutil.copy(os.path.relpath(Config.GetDBFile()), DestinationLocation)
         
@@ -48,6 +52,7 @@ class ScamBotDatabase():
         os.rename(OriginalFile, NewFile)
         Logger.Log(LogLevel.Notice, f"Current database has been backed up to new file {NewFileName}")
         self.Open()
+        return True
     
     ### Adding/Updating/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples):

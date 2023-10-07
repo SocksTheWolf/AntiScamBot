@@ -14,8 +14,10 @@ ScamBot = DiscordScamBot()
 @ScamBot.Commands.command(name="backup", description="Backs up the current database", guild=CommandControlServer)
 @app_commands.checks.has_role(ConfigData["MaintainerRole"])
 async def BackupCommand(interaction:Interaction):
-    ScamBot.Database.Backup()
-    await interaction.response.send_message("Backed up current database")
+    if (ScamBot.Database.Backup()):
+        await interaction.response.send_message("Backed up current database")
+    else:
+        await interaction.response.send_message("Failed to backup database!")
     
 @ScamBot.Commands.command(name="forceleave", description="Makes the bot force leave a server", guild=CommandControlServer)
 @app_commands.checks.has_role(ConfigData["MaintainerRole"])
