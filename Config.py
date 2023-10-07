@@ -7,16 +7,26 @@ import copy
 load_dotenv()
 
 class Config():
+    __HasLoaded = False
+    def __new__(cls):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super(Config, cls).__new__(cls)
+        return cls.instance
+    
     def __init__(self):
         self.Load()
 
     def Load(self):
+        if (self.__HasLoaded):
+            return
+        
         Data = {}
         
         with open(self.GetConfigFile(), "r") as config_file:
             Data = json.load(config_file)
             
         self.__dict__ = Data
+        self.__HasLoaded = True
         Logger.Log(LogLevel.Notice, "Configuration Loaded!")
         
     def Save(self):
