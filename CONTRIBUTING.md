@@ -42,7 +42,7 @@ You're welcome to propose changes to the website.
 
 Please suggest your ideas in the `suggestions` forum section of the TAG Server, before writing any code. There may be existing reasoning to why something has not been implemented that may not be immediately clear.
 
-Please also do not open a Github issue unless instructed to do so. The issues page is primarily used for bugs and tasks to move into full fledged release (we are still early access).
+Please also do not open a Github issue unless instructed to do so. The issues page is primarily used for bugs and tasks to move into the full fledged release (we are still early access).
 
 ## Have questions about how the bot is used?
 
