@@ -17,17 +17,15 @@ Think of this as a glorified shared ban list with auditing and public logging. S
 
 ### Why does the bot need the permissions it has?
 
-Because of how Discord handles permissions it needs the following permissions
+Because of how Discord handles permissions it needs the following permissions:
 
-* `Read Messages`: To handle commands. The bot will only look for messages that start with "?". If a message does not start with that character, the bot stops processing the message. Eventually I'd like to move to a system where this is not required, but it's was not easy to set up for early access.
+* `Create Commands`: For implementing the various application slash commands.
 
 * `Send Messages`: To send responses to commands that are executed.
 
-* `Ban Members`: To execute the commands
+* `Ban Members`: To execute the bans
 
-* `Add Reactions`: Right now this permission is unused by the bot, but this is to add reactions to command messages in the future.
-
-* `Embed Links`: To give you information when you run `?scamcheck`
+* `Embed Links`: To give you information when you run `/scamcheck`
 
 ### Is the bot open source?
 

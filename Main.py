@@ -15,7 +15,6 @@ CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
 
 class DiscordScamBot(discord.Client):
     # Channel to send updates as to when someone is banned/unbanned
-    # this is an announcement channel
     AnnouncementChannel = None
     # Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
