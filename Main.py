@@ -128,7 +128,7 @@ async def ScamUnban(interaction:Interaction, targetid:app_commands.Transform[int
 
     Sender:Member = interaction.user
     Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
-    Result = await ScamBan.PrepareUnban(targetid, Sender)
+    Result = await ScamBot.PrepareUnban(targetid, Sender)
     ResponseMsg:str = ""
     if (Result is not BanLookup.Unbanned):
         if (Result is BanLookup.NotExist):
