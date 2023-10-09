@@ -80,10 +80,12 @@ class ScamBotDatabase():
     def SetBotActivationForOwner(self, OwnerId:int, Servers, IsActive:bool):
         ActivationChanges = []
         ActivationAdditions = []
+        ActivationAll = []
         ActiveVal = int(IsActive)
         ActiveTuple = (ActiveVal,)
         
         for ServerId in Servers:
+            ActivationAll.append({"Id": ServerId, "OId": OwnerId, "Activated": ActiveVal})
             if (not self.IsInServer(ServerId)):
                 ActivationAdditions.append((ServerId, OwnerId) + ActiveTuple)
             else:
@@ -91,12 +93,15 @@ class ScamBotDatabase():
         
         NumActivationAdditions:int = len(ActivationAdditions)
         NumActivationChanges:int = len(ActivationChanges)
+        NumActivationAll:int = len(ActivationAll)
+
         if (NumActivationAdditions > 0):
             Logger.Log(LogLevel.Debug, f"We have {NumActivationAdditions} additions")
-            self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?)", ActivationAdditions)
         if (NumActivationChanges > 0):
-            self.Database.executemany("UPDATE servers SET Activated=:Activated WHERE Id=:Id", ActivationChanges)
             Logger.Log(LogLevel.Notice, f"Server activation changed in {NumActivationChanges} servers to {str(IsActive)} by {OwnerId}")
+        
+        self.Database.executemany("INSERT INTO servers VALUES(:Id, :OId, :Activated) ON CONFLICT(Id) DO UPDATE SET Activated=:Activated;", ActivationAll)
+
         self.Database.commit()
         
     ### Reconcile Servers ###
