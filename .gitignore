@@ -168,3 +168,4 @@ Gemfile
 Gemfile.lock
 _site/
 .jekyll-cache/
+.vscode/settings.json
