@@ -67,6 +67,10 @@ The name of the person that initiated this action as well as the user that it ha
 
 All bans will be logged into your server's audit log. You can revert any ban if you wish and the bot will not attempt to re-add it unless you explicitly ask the bot to reimport bans for your server.
 
+### Can the bot ever ban the server owner or mods?
+
+The bot cannot ban anyone who has a role located higher in the roles list than it. The only exception to this rule is if you transfer your server ownership to the bot (don't do this). It is suggested to put the role for the bot directly above your general role or underneath your moderator role.
+
 ### What about mistakes?
 
 The bot can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, the bot can only unban users marked that it banned originally). 
