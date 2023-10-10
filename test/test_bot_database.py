@@ -19,8 +19,8 @@ def bot_db() -> ScamBotDatabase:
 def test_add_ban(bot_db: ScamBotDatabase):
     test_id = 1
     test_banner = "TestUser"
-    test_date = datetime.now()
-    db_result = bot_db.AddBan(test_id, test_banner, test_date)
+    test_banner_id = 123
+    db_result = bot_db.AddBan(test_id, test_banner, test_banner_id)
     assert db_result == BanLookup.Good
 
     db_ban_entry = bot_db.Database.execute(f"SELECT * FROM banslist WHERE Id={test_id}")
@@ -29,3 +29,4 @@ def test_add_ban(bot_db: ScamBotDatabase):
 
     assert result_tuple[0] == test_id
     assert result_tuple[1] == test_banner
+    assert result_tuple[2] == test_banner_id
