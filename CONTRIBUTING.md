@@ -15,7 +15,7 @@
 
 ## Write a patch that fixes a bug?
 
-**DO NOT** submit security fixes via this method. Instead, please reach out to Socks directly for further discussion.
+**DO NOT** submit security fixes via this method. Instead, please follow the methods outlined in the [security document found here](/SECURITY.md).
 
 * Open a new Github pull request with your patch changes
 
