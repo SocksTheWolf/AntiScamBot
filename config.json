@@ -9,5 +9,8 @@
     "BotActivityDevelopment": "Running in development mode",
     "UseSleep": false,
     "ActionsPerTick": 20,
-    "SleepAmount": 1
+    "SleepAmount": 0.6,
+    "RunPeriodicBackups": true,
+    "RunBackupEveryXHours": 8.0,
+    "RemoveDaysOldBackups": 5.0
 }

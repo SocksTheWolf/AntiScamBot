@@ -2,12 +2,13 @@ from Logger import Logger, LogLevel
 from BotEnums import BanResult, BanLookup
 from Config import Config
 import discord
+from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 import asyncio
 
 __all__ = ["DiscordScamBot"]
 
-ConfigData=Config()
+ConfigData:Config=Config()
 
 class DiscordScamBot(discord.Client):
     # Channel to send updates as to when someone is banned/unbanned
@@ -15,6 +16,7 @@ class DiscordScamBot(discord.Client):
     # Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
     Database:ScamBotDatabase = None
+    HasLooped:bool = False
     AsyncTasks = set()
 
     ### Initialization ###
@@ -36,6 +38,43 @@ class DiscordScamBot(discord.Client):
         else:
             await self.Commands.sync(guild=CommandControlServer)
             await self.Commands.sync()
+
+        if (ConfigData["RunPeriodicBackups"]):
+            self.UpdateBackupInterval()
+            self.PeriodicBackup.start()
+    
+    ### Backup handling ###
+    def UpdateBackupInterval(self, SetToRetry:bool=False):
+        if (SetToRetry == False):
+            self.PeriodicBackup.change_interval(minutes=0, hours=ConfigData["RunBackupEveryXHours"])
+        else:
+            self.PeriodicBackup.change_interval(minutes=5, hours=0)
+        
+    @tasks.loop(minutes=5)
+    async def PeriodicBackup(self):
+        # Prevent us from running the backup immediately
+        if (not self.HasLooped):
+            self.HasLooped = True
+            return
+        
+        # If we have active async tasks in progress, then delay this task until we are free.
+        if (len(self.AsyncTasks) > 0):
+            Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try again in 5 minutes...")
+            self.UpdateBackupInterval(SetToRetry=True)
+            return
+        
+        # If we currently have the minutes value set, then we need to make sure we get back onto the right track
+        if (self.PeriodicBackup.minutes != 0):
+            self.UpdateBackupInterval()
+        
+        Logger.Log(LogLevel.Notice, "Periodic Bot DB Backup Started...")    
+        self.Database.Backup()
+        self.Database.CleanupBackups()
+        
+    @PeriodicBackup.before_loop
+    async def BeforeCheck(self):
+        # Wait until the bot is all set up before adding in the backup check
+        await self.wait_until_ready()
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
