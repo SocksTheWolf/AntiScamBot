@@ -52,7 +52,11 @@ li img {
 }
 
 .install-note {
-	line-height: 3 !important;
+	line-height: 2 !important;
+	padding: 15px !important;
+	display: inline-block;
+	border: dotted;
+	background-color: rgba(245,222,179,0.75);
 }
 
 @media screen and (max-width: 42em) {
