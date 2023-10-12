@@ -18,8 +18,8 @@ The usage of the bot requires the following data collected:
 
 If you are a trusted approver, the following information is stored when you ban an user in the TAG server:
 
-* Your global discord username
-* Your discord user id
+* Your global Discord username
+* Your Discord user id
 * The time the ban was executed
 
 This collection of data may expand or modify in the future, but will usually stay within the scope of minimal collection as per the recommendations of Discord and their Terms of Service.

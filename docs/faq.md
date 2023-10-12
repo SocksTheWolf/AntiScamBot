@@ -9,7 +9,7 @@ previous: /
 
 ### What is this project in a nutshell?
 
-Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project discord](/discord).
+Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project Discord](/discord).
 
 ### How do I enable it in my server?
 
@@ -88,6 +88,6 @@ It's just a silly little name for the Discord server.
 
 This isn't a formal collective or anything of the sort. It's literally a bunch of people who keep getting commission scams and those that have community servers that use the bot.
 
-### I don't have a discord server, can I join the bot server?
+### I don't have a Discord server, can I join the bot server?
 
 Yes! If you're getting commission scams, feel free to join and report them. However, realize that the TAG server isn't a social community. Streamer communities are much better suited for that.
