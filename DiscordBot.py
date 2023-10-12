@@ -22,7 +22,9 @@ class DiscordScamBot(discord.Client):
     ### Initialization ###
     def __init__(self, *args, **kwargs):
         self.Database = ScamBotDatabase()
-        intents = discord.Intents.default()
+        intents = discord.Intents.none()
+        intents.guilds = True
+        intents.bans = True
         super().__init__(intents=intents)
         self.Commands = discord.app_commands.CommandTree(self)
         
@@ -204,7 +206,7 @@ class DiscordScamBot(discord.Client):
         self.Database.SetBotActivationForOwner(server.owner_id, [server.id], False)
         OwnerName:str = "Admin"
         if (server.owner is not None):
-            OwnerName = server.owner.global_name
+            OwnerName = server.owner.display_name
         
         Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
@@ -218,7 +220,7 @@ class DiscordScamBot(discord.Client):
         self.Database.RemoveServerEntry(server.id)
         OwnerName:str = "Admin"
         if (server.owner is not None):
-            OwnerName = server.owner.global_name
+            OwnerName = server.owner.display_name
         Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
     
     ### Ban Handling ###
