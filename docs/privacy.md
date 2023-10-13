@@ -2,6 +2,7 @@
 title: Privacy Policy
 description: The Privacy Policy for the Antiscam Discord bot
 previous: /
+redirect_from: /privacy-policy
 ---
 
 # Privacy Policy
