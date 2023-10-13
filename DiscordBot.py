@@ -25,6 +25,13 @@ class DiscordScamBot(discord.Client):
         intents = discord.Intents.none()
         intents.guilds = True
         intents.bans = True
+        
+        # bring in these intents so we can get an idea of shared servers scamcheck returns.
+        # Do note, if these are enabled, the bot will take about 1 min to start up.
+        if (ConfigData["ScamCheckShowsSharedServers"]):
+            intents.members = True
+            intents.presences = True
+
         super().__init__(intents=intents)
         self.Commands = discord.app_commands.CommandTree(self)
         
@@ -145,8 +152,12 @@ class DiscordScamBot(discord.Client):
         HasUserData:bool = (User is not None)
         UserData = discord.Embed(title="User Data")
         if (HasUserData):
-            UserData.add_field(name="User", value=User.display_name)
-            UserData.add_field(name="User Handle", value=User.mention)
+            UserData.add_field(name="Name", value=User.display_name)
+            UserData.add_field(name="Handle", value=User.mention)
+            # This will always be an approximation, plus they may be in servers the bot is not in.
+            if (ConfigData["ScamCheckShowsSharedServers"]):
+                UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
+            UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
             UserData.set_thumbnail(url=User.display_avatar.url)
         
         UserData.add_field(name="Banned", value=f"{UserBanned}")
@@ -154,7 +165,7 @@ class DiscordScamBot(discord.Client):
         # Figure out who banned them
         if (UserBanned):
             # BannerName, BannerId, Date
-            UserData.add_field(name="Banned By", value=f"{BanData[0]}")
+            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
             UserData.add_field(name="Time", value=f"{BanData[2]}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):

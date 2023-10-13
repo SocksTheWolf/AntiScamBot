@@ -12,5 +12,6 @@
     "SleepAmount": 0.6,
     "RunPeriodicBackups": true,
     "RunBackupEveryXHours": 8.0,
-    "RemoveDaysOldBackups": 5.0
+    "RemoveDaysOldBackups": 5.0,
+    "ScamCheckShowsSharedServers": true
 }
