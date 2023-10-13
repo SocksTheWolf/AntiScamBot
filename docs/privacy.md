@@ -1,8 +1,8 @@
 ---
 title: Privacy Policy
 description: The Privacy Policy for the Antiscam Discord bot
-previous: /
 redirect_from: /privacy-policy
+previous: /
 ---
 
 # Privacy Policy
@@ -33,12 +33,16 @@ While external access is protected, this is not guarenteed and the bot owners as
 
 ## Where is the data stored?
 
-It is currently stored in a sqlite database that the bot has access to.
+It is currently stored in a sqlite database that the bot has access to. There is no external access to the database.
+
+## Do you store information about users?
+
+Outside of the information laid out above, no.
 
 ## How do I remove the data the bot has on me/my servers?
 
 Kick/remove the bot from your server. Data will be removed the next time the bot is either online or is processing events.
 
-## Everything else
+## What about...?
 
 For more information, you can check the [Discord Terms Of Service](https://discord.com/terms).
