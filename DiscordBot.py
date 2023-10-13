@@ -222,20 +222,20 @@ class DiscordScamBot(discord.Client):
         if (server.owner is not None):
             OwnerName = server.owner.display_name
         
-        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
+        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_update(self, PriorUpdate:discord.Guild, NewUpdate:discord.Guild):
         NewOwnerId:int = NewUpdate.owner_id
         if (PriorUpdate.owner_id != NewOwnerId):
             self.Database.SetNewServerOwner(NewUpdate.id, NewOwnerId)
-            Logger.Log(LogLevel.Notice, f"Detected that the server {PriorUpdate.name} is now owned by {NewOwnerId}")
+            Logger.Log(LogLevel.Notice, f"Detected that the server {PriorUpdate.name}[{NewUpdate.id}] is now owned by {NewOwnerId}")
         
     async def on_guild_remove(self, server:discord.Guild):
         self.Database.RemoveServerEntry(server.id)
         OwnerName:str = "Admin"
         if (server.owner is not None):
             OwnerName = server.owner.display_name
-        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
+        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
     
     ### Ban Handling ###
     async def ReprocessBansForServer(self, Server:discord.Guild, LastActions:int=0) -> BanResult:
