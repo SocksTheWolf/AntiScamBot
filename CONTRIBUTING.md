@@ -28,6 +28,12 @@
     * Proper error handling
     * Ususally variables are explicitly typed, unless they are a list.
 
+## Want to implement a feature listed on the issues page?
+
+Please make sure to communicate that you are interested in working on said feature in the issues ticket. This allows us to maintain proper resources. This way multiple people don't end up working on the same thing at the same time.
+
+If this issue is already assigned, please do not unassign the assignee without talking to the maintainer of the repository first.
+
 ## Fix whitespace, formatting, or make purely cosmetic code changes?
 
 Unless the changes were previously [issue tracked](https://github.com/SocksTheWolf/AntiScamBot/issues), then these changes will be likely not be accepted into the project. [Rails has good rational](https://github.com/rails/rails/pull/13771#issuecomment-32746700) as to why these changes can bog down a project.
