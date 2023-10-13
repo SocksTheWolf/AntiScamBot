@@ -35,9 +35,10 @@ class ConfirmBan(ui.View):
                 ResponseMsg = f"The given id {self.TargetId} had an error while banning!"
                 Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {self.TargetId} with error {str(Result)}")
         else:
-            ResponseMsg = f"The ban for {self.TargetId} is in progress..."
-            
-        await interaction.response.send_message(ResponseMsg)
+            ResponseMsg = f"{interaction.user.mention}, the ban for {self.TargetId} is now in progress..."
+
+        # Make this message silent as we may include an @ mention in here and do not want to bother the user with notifications
+        await interaction.response.send_message(ResponseMsg, silent=True)
         await self.StopInteractions()
         
     @ui.button(label="Cancel", style=ButtonStyle.gray)
