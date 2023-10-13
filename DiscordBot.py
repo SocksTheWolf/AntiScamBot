@@ -1,6 +1,7 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanResult, BanLookup
 from Config import Config
+from datetime import datetime
 import discord
 from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
@@ -166,7 +167,9 @@ class DiscordScamBot(discord.Client):
         if (UserBanned):
             # BannerName, BannerId, Date
             UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
-            UserData.add_field(name="Time", value=f"{BanData[2]}", inline=False)
+            # Create a date time format (all of the database timestamps are in iso format)
+            DateTime:datetime = datetime.fromisoformat(BanData[2])
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):
             UserData.colour = discord.Colour.dark_orange()
