@@ -14,13 +14,13 @@ The usage of this service/application ("bot") in your server requires the collec
 The usage of the bot requires the following data collected:
 
 * A numeric value that represents a Discord Server ("Server ID")
-* A numeric value The Discord Owner ID of the Server ("Owner ID")
+* A numeric value that represents the Owner ID of the Server ("Owner ID")
 * A value that represents if the bot is "activated" in a server with the "Server ID" ("Activated").
 
 If you are a trusted approver, the following information is stored when you ban an user in the TAG server:
 
-* Your global Discord username
-* Your Discord user id
+* The approver's Discord username
+* The approver's Discord user id
 * The time the ban was executed
 
 This collection of data may expand or modify in the future, but will usually stay within the scope of minimal collection as per the recommendations of Discord and their Terms of Service.
