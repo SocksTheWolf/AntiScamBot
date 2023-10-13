@@ -1,6 +1,6 @@
 ---
 title: Privacy Policy
-description: The Privacy Policy for the Discord bot
+description: The Privacy Policy for the Antiscam Discord bot
 previous: /
 ---
 

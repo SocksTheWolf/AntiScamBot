@@ -1,6 +1,6 @@
 ---
 title: Commission Scammer Bot
-description: About the Discord bot that bans scammers
+description: About the Antiscam Discord Bot
 redirect_from: /bot
 ---
 

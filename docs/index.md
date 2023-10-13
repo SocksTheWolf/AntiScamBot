@@ -1,6 +1,6 @@
 ---
 title: Home
-description: Information about The Antiscam Group and the Discord bot
+description: Information about The Antiscam Group and the Antiscam Discord bot
 ---
 
 # The Antiscam Group (TAG)
