@@ -4,8 +4,6 @@ description: About the Antiscam Discord Bot
 redirect_from: /bot
 ---
 
-# The Commission Banning Bot
-
 Currently, commission scammers are a scourge on our Discord communities. Unfortunately, unless they are banned in all relative servers, they'll hop onto the next server and then attempt to scam people from there next.
 
 To stop this from happening, we share a ban list of known scammers so that the scammers are unable to contact anyone.
