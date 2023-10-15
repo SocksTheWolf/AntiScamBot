@@ -1,13 +1,13 @@
 ---
 title: Privacy Policy
-description: The Privacy Policy for the Antiscam Discord bot
+description: The Privacy Policy for the ScamGuard Discord bot
 redirect_from: /privacy-policy
 previous: /
 ---
 
 # Privacy Policy
 
-The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of the bot is considered an agreement to this policy. 
+The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of ScamGuard ("the bot") is considered an agreement to this policy. 
 
 ## What is collected?
 
@@ -42,6 +42,8 @@ Outside of the information laid out above, no.
 ## How do I remove the data the bot has on me/my servers?
 
 Kick/remove the bot from your server. Data will be removed the next time the bot is either online or is processing events.
+
+Data will be fully removed from the active working database and all backups within three calendar weeks.
 
 ## What about...?
 

@@ -1,6 +1,6 @@
 ---
 title: Commission Scammer Bot
-description: About the Antiscam Discord Bot
+description: About ScamGuard, the Antiscam Discord Bot
 redirect_from: /bot
 ---
 
