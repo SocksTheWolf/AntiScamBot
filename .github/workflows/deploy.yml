@@ -10,9 +10,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
       uses: webfactory/ssh-agent@v0.7.0
@@ -21,7 +18,7 @@ jobs:
         log-public-key: false
     
     - name: Update Python Project
-      uses: appleboy/ssh-action@master
+      uses: appleboy/ssh-action@v1.0.0
       env:
         AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
       with:
