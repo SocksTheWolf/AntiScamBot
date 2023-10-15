@@ -50,6 +50,6 @@ Please suggest your ideas in the `suggestions` forum section of the TAG Server, 
 
 Please also do not open a Github issue unless instructed to do so. The issues page is primarily used for bugs and tasks to move into the full fledged release (we are still early access).
 
-## Have questions about how the bot is used?
+## Have questions about how ScamGuard is used?
 
 Please ask that in the support channel of the TAG discord.
