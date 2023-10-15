@@ -31,6 +31,20 @@ Because of how Discord handles permissions it needs the following permissions:
 
 Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
 
+## Why do you use the member/presence data access? Are you spying on me?
+
+This is a question about this screen in particular:
+
+![ScamGuard Data Access](/assets/botdataaccess.png){:.centered}
+
+And the answer is no.
+
+Due to the Discord API, we need these intents in order to do checks on potential scammers and where they are located. This information is not actually stored, neither in logs or in any database. Outside of calculating how many servers a scammer is in, the data is fully transient.
+
+Seen below is an example of how we use these data intents:
+
+![ScamGuard Scam Check Result](/assets/dataintentusage.png){:.centered}
+
 ### What information do you store?
 
 You can [view our privacy policy right here](/privacy-policy)!
@@ -63,7 +77,7 @@ So currently, this bot requires that someone with a "Trusted" role approves the 
 
 The name of the person that initiated this action as well as the user that it happened to will be blasted to a subscribable Discord feed via the announcement channel, of which you can get updates as to the going ons. It is recommended you add the feed as a webhook to your server.
 
-![Bot Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
+![ScamGuard Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
 All bans will be logged into your server's audit log. You can revert any ban if you wish and ScamGuard will not attempt to re-add it unless you explicitly ask it to reimport bans for your server.
 

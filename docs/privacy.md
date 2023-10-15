@@ -45,6 +45,20 @@ Kick/remove the bot from your server. Data will be removed the next time the bot
 
 Data will be fully removed from the active working database and all backups within three calendar weeks.
 
+## Why do you use the member/presence data access? Are you spying on me?
+
+This is a question about this screen in particular:
+
+![ScamGuard Data Access](/assets/botdataaccess.png){:.centered}
+
+And the answer is no.
+
+Due to Discord API shenanigans, we need to enable these intents in order to be able to estimate how many servers a scammer is in when gathering information for a ban. We solely use that information to generate a count of how many servers. We do not keep track of which servers the scammer is in, nor do we save that information anywhere.
+
+Seen below is an example of how we use these data intents:
+
+![ScamGuard Scam Check Result](/assets/dataintentusage.png){:.centered}
+
 ## What about...?
 
 For more information, you can check the [Discord Terms Of Service](https://discord.com/terms).
