@@ -3,7 +3,6 @@ description: The website home to an automated solution for commission solicitors
 author: The Antiscam Group
 logo: /assets/site-logo.png
 url: "https://theantiscamgroup.com"
-google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
 github_username: socksthewolf
 remote_theme: pages-themes/cayman@master
