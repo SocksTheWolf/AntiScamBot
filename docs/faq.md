@@ -1,10 +1,10 @@
 ---
 title: FAQ
-description: Answers regarding the bot, what it does and other things!
+description: Answers regarding ScamGuard, what it does and other things!
 previous: /
 ---
 
-## The Bot
+## The Bot, ScamGuard
 ---
 
 ### What is this project in a nutshell?
