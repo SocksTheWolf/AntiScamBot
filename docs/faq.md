@@ -31,7 +31,7 @@ Because of how Discord handles permissions it needs the following permissions:
 
 Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
 
-## Why do you use the member/presence data access? Are you spying on me?
+### Why do you use the member/presence data access? Are you spying on me?
 
 This is a question about this screen in particular:
 
@@ -47,7 +47,11 @@ Seen below is an example of how we use these data intents:
 
 ### What information do you store?
 
-You can [view our privacy policy right here](/privacy-policy)!
+You can [view our privacy policy right here](/privacy)!
+
+### Is there a terms of service for using ScamGuard?
+
+Yes, you can [view that page here](/terms)!
 
 ## Commission Scammers
 ---
@@ -102,6 +106,6 @@ It's just a silly little name for the Discord server.
 
 This isn't a formal collective or anything of the sort. It's literally a bunch of people who keep getting commission scams and those that have community servers that use ScamGuard.
 
-### I don't have a Discord server, can I join the bot server?
+### I don't have a Discord server, can I join the TAG server?
 
 Yes! If you're getting commission scams, feel free to join and report them. However, realize that the TAG server isn't a social community. Streamer communities are much better suited for that.
