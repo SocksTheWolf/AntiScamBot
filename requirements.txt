@@ -2,3 +2,7 @@ colorama
 discord.py
 python-dotenv
 asyncio
+datetime
+sqlalchemy
+sqlalchemy.orm
+sqlalchemy-easy-softdelete
