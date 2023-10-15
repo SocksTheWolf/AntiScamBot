@@ -78,14 +78,13 @@ async def RetryActions(interaction:Interaction, server:app_commands.Transform[in
 async def PrintServers(interaction:Interaction):
     ReplyStr:str = "I am in the following servers:\n"
     RowNum:int = 1
-    NumBans:int = len(ScamBot.Database.GetAllBans())
+    NumBans:int = len(list(ScamBot.Database.GetAllBans()))
     ActivatedServers:int = 0
-    QueryResults = ScamBot.Database.GetAllServers(False)
+    QueryResults = list(ScamBot.Database.GetAllServers(False))
     for BotServers in QueryResults:
-        IsActivated:bool = bool(BotServers[2])
-        ReplyStr += f"#{RowNum}: Server {BotServers[0]}, Owner {BotServers[1]}, Activated {str(IsActivated)}\n"
+        ReplyStr += f"#{RowNum}: Server {BotServers.discord_server_id}, Owner {BotServers.discord_owner_user_id}, Activated {str(bool(BotServers.activation_state))}\n"
         RowNum += 1
-        if (IsActivated):
+        if (BotServers.activation_state):
             ActivatedServers += 1
     # Final formatting
     ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Discord: {len(ScamBot.guilds)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
@@ -183,7 +182,6 @@ async def ActivateServer(interaction:Interaction):
         if (WorkServer is not None):
             ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(WorkServer))
             ServersActivated.append(WorkServer.id)
-    
     NumServersActivated:int = len(ServersActivated)
     MessageToRespond:str = ""
     if (NumServersActivated >= 1):
@@ -203,8 +201,8 @@ async def DeactivateServer(interaction:Interaction):
     ServersToDeactivate = []
     ServersOwnedResult = ScamBot.Database.GetAllServersOfOwner(SendersId)
     for OwnerServers in ServersOwnedResult:
-        if (OwnerServers[0] == 1):
-            ServersToDeactivate.append(OwnerServers[1])
+        if (OwnerServers.activation_state):
+            ServersToDeactivate.append(OwnerServers.discord_server_id)
 
     MessageToRespond:str = ""
     NumServersDeactivated:int = len(ServersToDeactivate)
