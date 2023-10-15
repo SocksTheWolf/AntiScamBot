@@ -1,13 +1,18 @@
 title: The Antiscam Group
-description: The website home to an automated solution for commission solicitors.
+description: The website home to an automated solution to stop commission solicitors.
 author: The Antiscam Group
 logo: /assets/site-logo.png
 url: "https://theantiscamgroup.com"
+google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
+bot_name: ScamGuard
+discord_client_id: 1152057650226401320
+discord_uses_intents: false
 github_username: socksthewolf
 remote_theme: pages-themes/cayman@master
 plugins:
-  - jekyll-redirect-from
   - jekyll-remote-theme
+  - jekyll-liquify
+  - jekyll-redirect-from
   - jekyll-seo-tag
   - jekyll-sitemap

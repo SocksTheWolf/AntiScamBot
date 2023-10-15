@@ -1,13 +1,4 @@
 <link rel="shortcut icon" type="image/x-icon" href="{{ '/favicon.ico' | relative_url }}" />
 <meta property="og:image" content="{{ '/assets/site-logo.png' | absolute_url }}" />
 <meta property="twitter:image" content="{{ '/assets/site-logo.png' | absolute_url }}" />
-
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3B15EPXBFZ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-3B15EPXBFZ');
-</script>
+{% include head-custom-google-analytics.html %}

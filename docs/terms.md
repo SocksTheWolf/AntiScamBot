@@ -1,6 +1,6 @@
 ---
 title: Terms of Service
-description: The Terms of Service for the ScamGuard Discord bot
+description: The Terms of Service for the {{ site.bot_name }} Discord bot
 redirect_from: /terms-of-service
 ---
 

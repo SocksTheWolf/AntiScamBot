@@ -1,6 +1,6 @@
 ---
-title: Commission Scammer Bot
-description: About ScamGuard, the Antiscam Discord Bot
+title: About {{ site.bot_name }} 
+description: The anti-commission scammer Discord Bot
 redirect_from: /bot
 ---
 
@@ -10,10 +10,10 @@ To stop this from happening, we share a ban list of known scammers so that the s
 
 This bot is powered via community reporting, trusted verification, and complete transparency in all actions. 
 
-When it comes to something as complicated as automatic ban handling, I want to make sure that you feel safe knowing that the decisions and actions done by ScamGuard are 100% checkable. I do not want to have you deal with a case where someone is banned due to drama or disagreements.
+When it comes to something as complicated as automatic ban handling, I want to make sure that you feel safe knowing that the decisions and actions done by {{ site.bot_name }} are 100% checkable. I do not want to have you deal with a case where someone is banned due to drama or disagreements.
 
 Information will always be posted to the bot ban channel, as seen below:
 
-![Bot Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
+![{{ site.bot_name }} Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
 <span>If you have additional questions, you can [check out the FAQ here](/faq).</span>{:.centered}

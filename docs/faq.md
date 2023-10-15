@@ -1,10 +1,10 @@
 ---
 title: FAQ
-description: Answers regarding ScamGuard, what it does and other things!
+description: Answers regarding {{ site.bot_name }}, what it does and other things!
 previous: /
 ---
 
-## The Bot, ScamGuard
+## The Bot, {{ site.bot_name }}
 ---
 
 ### What is this project in a nutshell?
@@ -15,7 +15,7 @@ Think of this as a glorified shared ban list with auditing and public logging. S
 
 {% include install_info.html %}
 
-### Why does ScamGuard need the permissions it has?
+### Why does {{ site.bot_name }} need the permissions it has?
 
 Because of how Discord handles permissions it needs the following permissions:
 
@@ -27,29 +27,19 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Embed Links`: To give you information when you run `/scamcheck`
 
-### Is ScamGuard open source?
+### Is {{ site.bot_name }} open source?
 
 Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
 
-### Why do you use the member/presence data access? Are you spying on me?
-
-This is a question about this screen in particular:
-
-![ScamGuard Data Access](/assets/botdataaccess.png){:.centered}
-
-And the answer is no.
-
-Due to the Discord API, we need these intents in order to do checks on potential scammers and where they are located. This information is not actually stored, neither in logs or in any database. Outside of calculating how many servers a scammer is in, the data is fully transient.
-
-Seen below is an example of how we use these data intents:
-
-![ScamGuard Scam Check Result](/assets/dataintentusage.png){:.centered}
+{% if site.discord_uses_intents == true %}
+#{% include intents.html %}
+{% endif %}
 
 ### What information do you store?
 
 You can [view our privacy policy right here](/privacy)!
 
-### Is there a terms of service for using ScamGuard?
+### Is there a terms of service for using {{ site.bot_name }}?
 
 Yes, you can [view that page here](/terms)!
 
@@ -69,29 +59,29 @@ When these scammers first ran rampant, they would always open their dms with the
 ## The Process
 ---
 
-### How does ScamGuard know who is a commission scammer?
+### How does {{ site.bot_name }} know who is a commission scammer?
 
 User reports. Vetters go through the user report and then trigger a ban on the user in question if they are a scammer.
 
 ### What about abuse?
 
-So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to ScamGuard. 
+So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to {{ site.bot_name }}. 
 
-### How do I know if someone was banned by ScamGuard?
+### How do I know if someone was banned by {{ site.bot_name }}?
 
 The name of the person that initiated this action as well as the user that it happened to will be blasted to a subscribable Discord feed via the announcement channel, of which you can get updates as to the going ons. It is recommended you add the feed as a webhook to your server.
 
-![ScamGuard Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
+![{{ site.bot_name }} Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
-All bans will be logged into your server's audit log. You can revert any ban if you wish and ScamGuard will not attempt to re-add it unless you explicitly ask it to reimport bans for your server.
+All bans will be logged into your server's audit log. You can revert any ban if you wish and {{ site.bot_name }} will not attempt to re-add it unless you explicitly ask it to reimport bans for your server.
 
-### Can ScamGuard ever ban the server owner or mods?
+### Can {{ site.bot_name }} ever ban the server owner or mods?
 
-ScamGuard cannot ban anyone who has a role located higher in the roles list than it. The only exception to this rule is if you transfer your server ownership to the bot (don't do this). It is suggested to put the role for ScamGuard directly above your general role or underneath your moderator role.
+{{ site.bot_name }} cannot ban anyone who has a role located higher in the roles list than it. The only exception to this rule is if you transfer your server ownership to the bot (don't do this). It is suggested to put the role for {{ site.bot_name }} directly above your general role or underneath your moderator role.
 
 ### What about mistakes?
 
-ScamGuard can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, ScamGuard can only unban users marked that it banned originally). 
+{{ site.bot_name }} can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, {{ site.bot_name }} can only unban users marked that it banned originally). 
 
 You can also just simply unban the user. 
 
@@ -104,7 +94,7 @@ It's just a silly little name for the Discord server.
 
 ### How do I join the group?
 
-This isn't a formal collective or anything of the sort. It's literally a bunch of people who keep getting commission scams and those that have community servers that use ScamGuard.
+This isn't a formal collective or anything of the sort. It's literally a bunch of people who keep getting commission scams and those that have community servers that use {{ site.bot_name }}.
 
 ### I don't have a Discord server, can I join the TAG server?
 

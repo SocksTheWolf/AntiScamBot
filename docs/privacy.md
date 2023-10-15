@@ -1,13 +1,13 @@
 ---
 title: Privacy Policy
-description: The Privacy Policy for the ScamGuard Discord bot
+description: The Privacy Policy for the {{ site.bot_name }} Discord bot
 redirect_from: /privacy-policy
 previous: /
 ---
 
 # Privacy Policy
 
-The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of ScamGuard ("the bot") is considered an agreement to this policy. 
+The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy. 
 
 ## What is collected?
 
@@ -45,19 +45,9 @@ Kick/remove the bot from your server. Data will be removed the next time the bot
 
 Data will be fully removed from the active working database and all backups within three calendar weeks.
 
-## Why do you use the member/presence data access? Are you spying on me?
-
-This is a question about this screen in particular:
-
-![ScamGuard Data Access](/assets/botdataaccess.png){:.centered}
-
-And the answer is no.
-
-Due to Discord API shenanigans, we need to enable these intents in order to be able to estimate how many servers a scammer is in when gathering information for a ban. We solely use that information to generate a count of how many servers. We do not keep track of which servers the scammer is in, nor do we save that information anywhere.
-
-Seen below is an example of how we use these data intents:
-
-![ScamGuard Scam Check Result](/assets/dataintentusage.png){:.centered}
+{% if site.discord_uses_intents == true %}
+{% include intents.html %}
+{% endif %}
 
 ## What about...?
 
