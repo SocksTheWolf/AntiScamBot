@@ -20,6 +20,7 @@ To start the bot locally, create a .env file in the current directory with the f
 
 ```
 DISCORD_TOKEN="your discord bot token"  
+DATABASE_ENGINE="sqlite"
 DATABASE_FILE="a path to your sql file"  
 CONFIG_FILE="a path to your config file"  
 BACKUP_LOCATION="a path to a directory to store your backup sql file"  
@@ -30,7 +31,8 @@ Here is an example of a .env file.
 
 ```
 DISCORD_TOKEN="0"  
-DATABASE_FILE="database.db"  
+DATABASE_ENGINE="sqlite"
+DATABASE_NAME="database.db"
 CONFIG_FILE="config.json"  
 BACKUP_LOCATION="backup/"  
 DEVELOPMENT_MODE="true"  
