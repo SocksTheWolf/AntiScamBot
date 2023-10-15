@@ -1,6 +1,6 @@
 ---
 title: FAQ
-description: Answers regarding {{ site.bot_name }}, what it does and other things!
+description: Answers regarding site.bot_name, what it does and other things!
 previous: /
 ---
 

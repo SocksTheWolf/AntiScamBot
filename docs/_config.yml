@@ -7,12 +7,11 @@ google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
 bot_name: ScamGuard
 discord_client_id: 1152057650226401320
-discord_uses_intents: false
+discord_uses_intents: true
 github_username: socksthewolf
 remote_theme: pages-themes/cayman@master
 plugins:
   - jekyll-remote-theme
-  - jekyll-liquify
   - jekyll-redirect-from
   - jekyll-seo-tag
   - jekyll-sitemap

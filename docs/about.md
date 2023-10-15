@@ -1,5 +1,5 @@
 ---
-title: About {{ site.bot_name }} 
+title: About site.bot_name
 description: The anti-commission scammer Discord Bot
 redirect_from: /bot
 ---

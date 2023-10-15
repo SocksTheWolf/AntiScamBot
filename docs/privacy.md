@@ -1,6 +1,6 @@
 ---
 title: Privacy Policy
-description: The Privacy Policy for the {{ site.bot_name }} Discord bot
+description: The Privacy Policy for the site.bot_name Discord bot
 redirect_from: /privacy-policy
 previous: /
 ---
