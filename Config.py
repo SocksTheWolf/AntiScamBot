@@ -63,9 +63,13 @@ class Config():
         return os.getenv("DISCORD_TOKEN")
 
     @staticmethod    
-    def GetDBFile() -> str:
-        return os.getenv("DATABASE_FILE")
-    
+    def GetDBEngine() -> str:
+        return os.getenv("DATABASE_ENGINE")
+
+    @staticmethod    
+    def GetDBName() -> str:
+        return os.getenv("DATABASE_NAME")
+
     @staticmethod
     def GetConfigFile() -> str:
         return os.getenv("CONFIG_FILE")
