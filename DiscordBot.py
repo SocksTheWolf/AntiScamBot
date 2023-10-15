@@ -344,7 +344,7 @@ class DiscordScamBot(discord.Client):
         if (not IsBan):
             ScamStr = "non-scammer"
         
-        BanReason=f"Reported {ScamStr} by {Sender.name}"
+        BanReason=f"Confirmed {ScamStr} by {Sender.name}"
         AllServers = self.Database.GetAllActivatedServers()
         NumServers:int = len(AllServers)
         ActionsAppliedThisLoop:int = 0
