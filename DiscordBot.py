@@ -243,7 +243,7 @@ class DiscordScamBot(discord.Client):
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
-        BanQueryResult = self.Database.GetAllBans(LastActions)
+        BanQueryResult = list(self.Database.GetAllBans(LastActions))
         TotalBans:int = len(BanQueryResult)
         ActionsAppliedThisLoop:int = 0
         DoesSleep:bool = ConfigData["UseSleep"]
@@ -256,9 +256,9 @@ class DiscordScamBot(discord.Client):
                 else:
                     ActionsAppliedThisLoop += 1
 
-            UserId:int = int(Ban[0])
+            UserId:int = int(Ban.target_discord_user_id)
             UserToBan = discord.Object(UserId)
-            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban[1]}", True)
+            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban.assigner_discord_user_name}", True)
             # See if the ban did go through.
             if (BanResponse[0] == False):
                 BanResponseFlag:BanResult = BanResponse[1]
@@ -345,7 +345,7 @@ class DiscordScamBot(discord.Client):
             ScamStr = "non-scammer"
         
         BanReason=f"Reported {ScamStr} by {Sender.name}"
-        AllServers = self.Database.GetAllActivatedServers()
+        AllServers = list(self.Database.GetAllActivatedServers())
         NumServers:int = len(AllServers)
         ActionsAppliedThisLoop:int = 0
         DoesSleep:bool = ConfigData["UseSleep"]
@@ -359,7 +359,7 @@ class DiscordScamBot(discord.Client):
                 else:
                     ActionsAppliedThisLoop += 1
                 
-            ServerId:int = ServerData[0]
+            ServerId:int = ServerData.discord_server_id
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, IsBan)
