@@ -230,5 +230,6 @@ async def ScamCheck(interaction:Interaction, targetid:app_commands.Transform[int
     else:
         await interaction.response.send_message("You must be activated in order to run scam check!")
 
-ScamBot.Commands.on_error = CommandErrorHandler
-ScamBot.run(ConfigData.GetToken())
+if __name__ == "__main__":
+    ScamBot.Commands.on_error = CommandErrorHandler
+    ScamBot.run(ConfigData.GetToken())
