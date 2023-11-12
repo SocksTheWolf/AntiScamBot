@@ -30,19 +30,25 @@ class ScamBotDatabase():
         if (self.Database is not None):
             return True
         return False
-            
-    def Backup(self) -> bool:
-        # Destination Location
+    
+    def HasBackupDirectory(self) -> bool:
         DestinationLocation = os.path.abspath(Config.GetBackupLocation())
         if (not os.path.exists(DestinationLocation)):
+            return False
+        
+        return True
+    
+    def Backup(self) -> bool:
+        if (not self.HasBackupDirectory()):
             Logger.Log(LogLevel.Warn, "Backup directory does not exist!!")
             return False
         
         if (self.IsConnected()):
             self.Database.commit()
             self.Close()
-               
-        # Copy the database file over there
+        
+        # Copy the database file over here
+        DestinationLocation = os.path.abspath(Config.GetBackupLocation())
         shutil.copy(os.path.relpath(Config.GetDBFile()), DestinationLocation)
         
         # Rename the file
@@ -54,6 +60,26 @@ class ScamBotDatabase():
         self.Open()
         return True
     
+    def CleanupBackups(self):
+        if (not self.HasBackupDirectory()):
+            return
+        
+        BackupsCleaned:int = 0
+        OlderThan:float = Config()["RemoveDaysOldBackups"]
+        BackupLocation = os.path.abspath(Config.GetBackupLocation())
+        FileList = os.listdir(BackupLocation)
+        FilesOlderThan:float = time.time() - OlderThan * 86400
+        for File in FileList:
+            FileLocation:str = os.path.join(BackupLocation, File)
+            FileModTime:float = os.stat(FileLocation).st_mtime
+            if (FileModTime < FilesOlderThan):
+                if (os.path.isfile(FileLocation)):
+                    Logger.Log(LogLevel.Log, f"Removing file {File}")
+                    os.remove(FileLocation)
+                    BackupsCleaned += 1
+        
+        Logger.Log(LogLevel.Notice, f"Cleaned up {BackupsCleaned} backups older than {OlderThan} days!")
+                
     ### Adding/Updating/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples):
         BotAdditionUpdates = []

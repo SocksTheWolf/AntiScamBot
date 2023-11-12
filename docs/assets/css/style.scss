@@ -51,6 +51,20 @@ li img {
     margin-right: auto;
 }
 
+.install-note {
+	line-height: 2 !important;
+	padding: 15px !important;
+	display: inline-block;
+	border: dotted;
+	background-color: rgba(245,222,179,0.75);
+}
+
+.site-footer-docs {
+  margin-top: 5px;
+  display: inline-block;
+  margin-left: 3px;
+}
+
 @media screen and (max-width: 42em) {
     nav li {
         padding: 0 1px;

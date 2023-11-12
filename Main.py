@@ -2,9 +2,10 @@ from Logger import Logger, LogLevel
 from BotEnums import BanLookup
 from Config import Config
 from CommandHelpers import TargetIdTransformer, CommandErrorHandler
-from discord import app_commands, Interaction, Guild, Member, Embed, Object
+from discord import app_commands, Interaction, Guild, Member, Embed, Object, Webhook
 import BotSetup
 from DiscordBot import DiscordScamBot
+from ConfirmBanView import ConfirmBan
 
 ConfigData=Config()
 CommandControlServer=Object(id=ConfigData["ControlServer"])
@@ -106,19 +107,15 @@ async def ScamBan(interaction:Interaction, targetid:app_commands.Transform[int, 
     
     Sender:Member = interaction.user
     Logger.Log(LogLevel.Verbose, f"Scam ban message detected from {Sender} for {targetid}")
-    Result = await ScamBot.PrepareBan(targetid, Sender)
-    ResponseMsg:str = ""
-    if (Result is not BanLookup.Banned):
-        if (Result == BanLookup.Duplicate):
-            ResponseMsg = f"{targetid} already exists in the ban database"
-            Logger.Log(LogLevel.Log, f"The given id {targetid} is already banned.")
-        else:
-            ResponseMsg = f"The given id {targetid} had an error while banning!"
-            Logger.Log(LogLevel.Warn, f"{Sender} attempted ban on {targetid} with error {str(Result)}")
+    # Check to see if the ban already exists
+    if (not ScamBot.Database.DoesBanExist(targetid)):
+        BanEmbed:Embed = await ScamBot.CreateBanEmbed(targetid)
+        BanView:ConfirmBan = ConfirmBan(targetid, ScamBot)
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        BanView.Hook = await interaction.followup.send(embed=BanEmbed, view=BanView, wait=True, ephemeral=True)
     else:
-        ResponseMsg = f"The ban for {targetid} is in progress..."
-        
-    await interaction.response.send_message(ResponseMsg)
+        Logger.Log(LogLevel.Log, f"The given id {targetid} is already banned.")
+        await interaction.response.send_message(f"{targetid} already exists in the ban database")
 
 @ScamBot.Commands.command(name="scamunban", description="Unbans a scammer", guild=CommandControlServer)
 @app_commands.checks.has_role(ConfigData["ApproverRole"])
@@ -150,6 +147,11 @@ async def ActivateServer(interaction:Interaction):
     SendersId:int = Sender.id
     ServersActivated = []
     ServersToActivate = []
+    # Hold onto these objects, as activate is one of the most expensive commands if
+    # we are running off a database that is mostly made of up unactivated servers.
+    await interaction.response.defer(thinking=True)
+    ResponseHook:Webhook = interaction.followup
+    # Go through all servers that the bot is currently in.
     for ServerIn in ScamBot.guilds:
         ServerId:int = ServerIn.id
         ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
@@ -176,6 +178,7 @@ async def ActivateServer(interaction:Interaction):
             Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
 
     # Take all the servers that we found and process them
+    Logger.Log(LogLevel.Verbose, f"Finished crawling through all servers, found {len(ServersToActivate)} servers to activate.")
     for WorkServer in ServersToActivate:
         if (WorkServer is not None):
             ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(WorkServer))
@@ -191,7 +194,7 @@ async def ActivateServer(interaction:Interaction):
         MessageToRespond = "I am not in any servers that you own! You must add me to your server before activating."
     else:
         MessageToRespond = "There are no servers that you own that aren't already activated!"
-    await interaction.response.send_message(MessageToRespond)
+    await ResponseHook.send(MessageToRespond)
     
 @ScamBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
 async def DeactivateServer(interaction:Interaction):
@@ -214,18 +217,32 @@ async def DeactivateServer(interaction:Interaction):
     else:
         MessageToRespond = "There are no servers that you own that are activated!"
     await interaction.response.send_message(MessageToRespond)
-    
-@ScamBot.Commands.command(name="scamcheck", description="Checks to see if a discord id is banned")
-@app_commands.describe(targetid='The discord user id to check')
+
+# Control server version of scamcheck
+@ScamBot.Commands.command(name="scamcheck", description="In the control server, check to see if a discord id is banned", guild=CommandControlServer)
+@app_commands.describe(target='The discord user id to check')
 @app_commands.checks.cooldown(1, 3.0)
+async def ScamCheck_Control(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
+    if (target <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+        return
+    
+    ResponseEmbed:Embed = await ScamBot.CreateBanEmbed(target)
+    await interaction.response.send_message(embed = ResponseEmbed)
+
+# Global version of scamcheck
+@ScamBot.Commands.command(name="scamcheck", description="Checks to see if a discord id is banned")
+@app_commands.describe(target='The discord user id to check')
+@app_commands.checks.has_permissions(ban_members=True)
+@app_commands.checks.cooldown(1, 5.0)
 @app_commands.guild_only()
-async def ScamCheck(interaction:Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
-    if (targetid <= -1):
-        await interaction.response.send_message("Invalid id!", ephemeral=True)
+async def ScamCheck_Global(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
+    if (target <= -1):
+        await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
         return
     
     if (ScamBot.Database.IsActivatedInServer(interaction.guild_id)):
-        ResponseEmbed:Embed = await ScamBot.CreateBanEmbed(targetid)
+        ResponseEmbed:Embed = await ScamBot.CreateBanEmbed(target)
         await interaction.response.send_message(embed = ResponseEmbed)
     else:
         await interaction.response.send_message("You must be activated in order to run scam check!")

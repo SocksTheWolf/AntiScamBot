@@ -1,13 +1,15 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanResult, BanLookup
 from Config import Config
+from datetime import datetime
 import discord
+from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 import asyncio
 
 __all__ = ["DiscordScamBot"]
 
-ConfigData=Config()
+ConfigData:Config=Config()
 
 class DiscordScamBot(discord.Client):
     # Channel to send updates as to when someone is banned/unbanned
@@ -15,12 +17,22 @@ class DiscordScamBot(discord.Client):
     # Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
     Database:ScamBotDatabase = None
+    HasLooped:bool = False
     AsyncTasks = set()
 
     ### Initialization ###
     def __init__(self, *args, **kwargs):
         self.Database = ScamBotDatabase()
-        intents = discord.Intents.default()
+        intents = discord.Intents.none()
+        intents.guilds = True
+        intents.bans = True
+        
+        # bring in these intents so we can get an idea of shared servers scamcheck returns.
+        # Do note, if these are enabled, the bot will take about 1 min to start up.
+        if (ConfigData["ScamCheckShowsSharedServers"]):
+            intents.members = True
+            intents.presences = True
+
         super().__init__(intents=intents)
         self.Commands = discord.app_commands.CommandTree(self)
         
@@ -36,6 +48,43 @@ class DiscordScamBot(discord.Client):
         else:
             await self.Commands.sync(guild=CommandControlServer)
             await self.Commands.sync()
+
+        if (ConfigData["RunPeriodicBackups"]):
+            self.UpdateBackupInterval()
+            self.PeriodicBackup.start()
+    
+    ### Backup handling ###
+    def UpdateBackupInterval(self, SetToRetry:bool=False):
+        if (SetToRetry == False):
+            self.PeriodicBackup.change_interval(minutes=0, hours=ConfigData["RunBackupEveryXHours"])
+        else:
+            self.PeriodicBackup.change_interval(minutes=5, hours=0)
+        
+    @tasks.loop(minutes=5)
+    async def PeriodicBackup(self):
+        # Prevent us from running the backup immediately
+        if (not self.HasLooped):
+            self.HasLooped = True
+            return
+        
+        # If we have active async tasks in progress, then delay this task until we are free.
+        if (len(self.AsyncTasks) > 0):
+            Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try again in 5 minutes...")
+            self.UpdateBackupInterval(SetToRetry=True)
+            return
+        
+        # If we currently have the minutes value set, then we need to make sure we get back onto the right track
+        if (self.PeriodicBackup.minutes != 0):
+            self.UpdateBackupInterval()
+        
+        Logger.Log(LogLevel.Notice, "Periodic Bot DB Backup Started...")    
+        self.Database.Backup()
+        self.Database.CleanupBackups()
+        
+    @PeriodicBackup.before_loop
+    async def BeforeCheck(self):
+        # Wait until the bot is all set up before adding in the backup check
+        await self.wait_until_ready()
 
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
@@ -104,8 +153,12 @@ class DiscordScamBot(discord.Client):
         HasUserData:bool = (User is not None)
         UserData = discord.Embed(title="User Data")
         if (HasUserData):
-            UserData.add_field(name="User", value=User.display_name)
-            UserData.add_field(name="User Handle", value=User.mention)
+            UserData.add_field(name="Name", value=User.display_name)
+            UserData.add_field(name="Handle", value=User.mention)
+            # This will always be an approximation, plus they may be in servers the bot is not in.
+            if (ConfigData["ScamCheckShowsSharedServers"]):
+                UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
+            UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
             UserData.set_thumbnail(url=User.display_avatar.url)
         
         UserData.add_field(name="Banned", value=f"{UserBanned}")
@@ -113,8 +166,10 @@ class DiscordScamBot(discord.Client):
         # Figure out who banned them
         if (UserBanned):
             # BannerName, BannerId, Date
-            UserData.add_field(name="Banned By", value=f"{BanData[0]}")
-            UserData.add_field(name="Time", value=f"{BanData[2]}", inline=False)
+            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
+            # Create a date time format (all of the database timestamps are in iso format)
+            DateTime:datetime = datetime.fromisoformat(BanData[2])
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):
             UserData.colour = discord.Colour.dark_orange()
@@ -165,22 +220,22 @@ class DiscordScamBot(discord.Client):
         self.Database.SetBotActivationForOwner(server.owner_id, [server.id], False)
         OwnerName:str = "Admin"
         if (server.owner is not None):
-            OwnerName = server.owner.global_name
+            OwnerName = server.owner.display_name
         
-        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
+        Logger.Log(LogLevel.Notice, f"Bot has joined server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_update(self, PriorUpdate:discord.Guild, NewUpdate:discord.Guild):
         NewOwnerId:int = NewUpdate.owner_id
         if (PriorUpdate.owner_id != NewOwnerId):
             self.Database.SetNewServerOwner(NewUpdate.id, NewOwnerId)
-            Logger.Log(LogLevel.Notice, f"Detected that the server {PriorUpdate.name} is now owned by {NewOwnerId}")
+            Logger.Log(LogLevel.Notice, f"Detected that the server {PriorUpdate.name}[{NewUpdate.id}] is now owned by {NewOwnerId}")
         
     async def on_guild_remove(self, server:discord.Guild):
         self.Database.RemoveServerEntry(server.id)
         OwnerName:str = "Admin"
         if (server.owner is not None):
-            OwnerName = server.owner.global_name
-        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name} [{server.id}] of owner {OwnerName}[{server.owner_id}]")
+            OwnerName = server.owner.display_name
+        Logger.Log(LogLevel.Notice, f"Bot has been removed from server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
     
     ### Ban Handling ###
     async def ReprocessBansForServer(self, Server:discord.Guild, LastActions:int=0) -> BanResult:
@@ -289,7 +344,7 @@ class DiscordScamBot(discord.Client):
         if (not IsBan):
             ScamStr = "non-scammer"
         
-        BanReason=f"Reported {ScamStr} by {Sender.name}"
+        BanReason=f"Confirmed {ScamStr} by {Sender.name}"
         AllServers = self.Database.GetAllActivatedServers()
         NumServers:int = len(AllServers)
         ActionsAppliedThisLoop:int = 0

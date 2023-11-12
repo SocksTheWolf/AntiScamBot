@@ -15,7 +15,7 @@
 
 ## Write a patch that fixes a bug?
 
-**DO NOT** submit security fixes via this method. Instead, please reach out to Socks directly for further discussion.
+**DO NOT** submit security fixes via this method. Instead, please follow the methods outlined in the [security document found here](/SECURITY.md).
 
 * Open a new Github pull request with your patch changes
 
@@ -27,6 +27,12 @@
     * We use title case for everything
     * Proper error handling
     * Ususally variables are explicitly typed, unless they are a list.
+
+## Want to implement a feature listed on the issues page?
+
+Please make sure to communicate that you are interested in working on said feature in the issues ticket. This allows us to maintain proper resources. This way multiple people don't end up working on the same thing at the same time.
+
+If this issue is already assigned, please do not unassign the assignee without talking to the maintainer of the repository first.
 
 ## Fix whitespace, formatting, or make purely cosmetic code changes?
 
@@ -44,6 +50,6 @@ Please suggest your ideas in the `suggestions` forum section of the TAG Server, 
 
 Please also do not open a Github issue unless instructed to do so. The issues page is primarily used for bugs and tasks to move into the full fledged release (we are still early access).
 
-## Have questions about how the bot is used?
+## Have questions about how ScamGuard is used?
 
 Please ask that in the support channel of the TAG discord.
