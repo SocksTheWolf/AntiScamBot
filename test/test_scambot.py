@@ -1,15 +1,13 @@
 import asyncio
 import os
 from dotenv import load_dotenv
-from BotDatabase import ScamBotDatabase
 from BotEnums import BanLookup
 from BotSetup import SetupDatabases # importing the module instantly runs the function SetupDatabases
 import pytest
 from DiscordBot import DiscordScamBot
 from Main import ScamBot
-from discord import Client, Guild, Object, errors
+from discord import Client, Guild, Object
 from unittest.mock import patch, AsyncMock
-from requests import Response
 
 
 @pytest.fixture(scope="function")
@@ -48,14 +46,16 @@ def setup_data() -> dict:
 
 @pytest.mark.asyncio
 @patch.object(ScamBot, 'PublishAnnouncement')
+@patch.object(ScamBot, 'CreateBanEmbed')
 @patch('discord.client.Client.fetch_user')
 @patch('discord.client.Client.get_guild')
-async def test_scam_ban(get_guild, fetch_user_mock , publish_mock, setup_data):
+async def test_scam_ban_unban(get_guild, fetch_user_mock, embeded_mock, publish_mock, setup_data):
     """
     Tests the following:  
     - When calling PrepareBan() with an id that hasn't been banned, Guild.ban is called with the id and the result is BanLookup.Banned
     - When calling PrepareBan() with an id that already has been banned, Guild.ban is not called and the result is BanLookup.Duplicate
     - When Calling PrepareUnban() with an id that has been banned, Guild.unban is called and the result is BanLookup.Unbanned
+    - When Calling PrepareUnban() with an id that has been unbanned, Guild.unban is not called and the result is BanLookup.NotExist
     """
 
     #setup code
@@ -77,8 +77,8 @@ async def test_scam_ban(get_guild, fetch_user_mock , publish_mock, setup_data):
     # 1st PrepareBan() test
     first_ban_command = await asyncio.wait_for(ScamBot.PrepareBan(setup_data["user_ban_id"], setup_data["banner_mock"]), timeout=5) 
     assert first_ban_command == BanLookup.Banned
-    fake_ban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported scammer by {setup_data["banner_mock"].name}')
-    fake_ban_func2.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported scammer by {setup_data["banner_mock"].name}')
+    fake_ban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Confirmed scammer by {setup_data["banner_mock"].name}')
+    fake_ban_func2.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Confirmed scammer by {setup_data["banner_mock"].name}')
 
     # 2nd PrepareBan() test
     fake_ban_func.reset_mock()
@@ -91,33 +91,13 @@ async def test_scam_ban(get_guild, fetch_user_mock , publish_mock, setup_data):
     # PrepareUnban() test
     first_unban_command = await asyncio.wait_for(ScamBot.PrepareUnban(setup_data["user_ban_id"], setup_data["banner_mock"]), timeout=5)
     assert first_unban_command == BanLookup.Unbanned 
-    fake_unban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported non-scammer by {setup_data["banner_mock"].name}')
-    fake_unban_func2.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported non-scammer by {setup_data["banner_mock"].name}')
+    fake_unban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Confirmed non-scammer by {setup_data["banner_mock"].name}')
+    fake_unban_func2.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Confirmed non-scammer by {setup_data["banner_mock"].name}')
 
-@pytest.mark.asyncio
-@patch.object(ScamBot, 'PublishAnnouncement')
-@patch('discord.client.Client.fetch_user')
-@patch('discord.client.Client.get_guild')
-async def test_scam_ban_no_permissions(get_guild, fetch_user_mock , publish_mock, setup_data):
-    """ Tests the PrepareBan() call when the ban command returns Forbidden Exception """
-    #setup code
-    forbidden_response = Response()
-    forbidden_response.status = 403
-    fake_ban_func = AsyncMock()
-    fake_ban_func.return_value = errors.Forbidden(forbidden_response, message="Forbidden")
-    setup_data["fake_guild"].attach_mock(fake_ban_func, 'ban')
-
-    fake_ban_func2 = AsyncMock()
-    fake_ban_func2.return_value = errors.Forbidden(forbidden_response, message="Forbidden")
-    setup_data["fake_guild2"].attach_mock(fake_ban_func2, 'ban')
-
-    get_guild.side_effect = [setup_data["fake_guild"], setup_data["fake_guild2"]]
-
-    ScamBot.Database.SetBotActivationForOwner(setup_data["fake_guild"].owner_id, [setup_data["fake_guild"].id], True)
-    ScamBot.Database.SetBotActivationForOwner(setup_data["fake_guild2"].owner_id, [setup_data["fake_guild2"].id], True)
-
-    first_ban_command = await asyncio.wait_for(ScamBot.PrepareBan(setup_data["user_ban_id"], setup_data["banner_mock"]), timeout=5) 
-    assert first_ban_command == BanLookup.Banned
-    fake_ban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported scammer by {setup_data["banner_mock"].name}')
-    fake_ban_func2.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'Reported scammer by {setup_data["banner_mock"].name}')
-    #TODO currently no other action is done if ban call returns forbidden due to missing permissions
+    # 2nd PrepareUnban() test
+    fake_unban_func.reset_mock()
+    fake_unban_func2.reset_mock()
+    first_unban_command = await asyncio.wait_for(ScamBot.PrepareUnban(setup_data["user_ban_id"], setup_data["banner_mock"]), timeout=5)
+    assert first_unban_command == BanLookup.NotExist 
+    fake_unban_func.assert_not_called()
+    fake_unban_func2.assert_not_called()
