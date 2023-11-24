@@ -62,8 +62,11 @@ class RelayServer:
         if (self.ShouldStop):
             return
         
-        self.ListenForConnections()
-        self.HandleRecv()
+        try:
+            self.ListenForConnections()
+            self.HandleRecv()
+        except Exception as ex:
+            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server {str(ex)}")            
 
     def ListenForConnections(self):
         AcceptEvents = self.AcceptListener.select(0)
