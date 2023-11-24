@@ -43,7 +43,7 @@ class RelayServer:
             # that should probably be fixed in the multiprocessing listener system. 
             # It's been fixed upstream in the main socket library since 2010.
             os.name = "posix"
-            self.ListenSocket = Listener(("localhost", 9500), "AF_INET", backlog=10)
+            self.ListenSocket = Listener(("localhost", ConfigData["RelayPort"]), "AF_INET", backlog=10)
             os.name = "nt"
         
         self.AcceptListener = selectors.DefaultSelector()
@@ -118,7 +118,7 @@ class RelayClient:
         if (os.name == "posix"):
             self.Connection = Client(InFileLocation, "AF_UNIX")
         else:
-            self.Connection = Client(('localhost', 9500), "AF_INET")
+            self.Connection = Client(('localhost', ConfigData["RelayPort"]), "AF_INET")
         self.BotID = InBotID
         
     def __del__(self):

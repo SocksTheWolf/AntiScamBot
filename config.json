@@ -9,6 +9,7 @@
     "BotActivity": "Destroying Scammers...",
     "BotActivityDevelopment": "Running in development mode",
     "UseSleep": false,
+    "RelayPort": 9500,
     "ActionsPerTick": 20,
     "SleepAmount": 0.6,
     "RunPeriodicBackups": true,
