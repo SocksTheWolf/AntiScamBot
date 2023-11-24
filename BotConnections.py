@@ -2,8 +2,7 @@ from Logger import Logger, LogLevel
 from multiprocessing.connection import Listener, Client, wait
 from BotEnums import RelayMessageType
 from Config import Config
-import tempfile, selectors, os, socket
-import platform
+import selectors, os, platform
 
 ConfigData:Config=Config()
 
@@ -30,18 +29,19 @@ class RelayMessage:
 class RelayServer:
     Connections=[]
     ConnectionsToInstances={}
-    FileLocation = None
+    FileLocation:str = ""
     ShouldStop:bool = False
     ControlBotId:int = -1
     
     def __init__(self, InControlBotId:int):
         self.ControlBotId = InControlBotId
-        self.FileLocation = tempfile.mktemp()
         if (platform.system() == "Linux"):
-            self.ListenSocket = Listener(self.FileLocation, "AF_UNIX")
+            self.ListenSocket = Listener(None, "AF_UNIX")
+            self.FileLocation = self.ListenSocket.address
         else:
-            # This is a really dumb hack to get around a bug that should probably be fixed in
-            # the multiprocessing listener system. It's been fixed upstream since 2010.
+            # This is a really dumb hack to get around a bug (allow for address reuse)
+            # that should probably be fixed in the multiprocessing listener system. 
+            # It's been fixed upstream in the main socket library since 2010.
             os.name = "posix"
             self.ListenSocket = Listener(("localhost", 9500), "AF_INET")
             os.name = "nt"
@@ -53,7 +53,7 @@ class RelayServer:
         
     def __del__(self):
         self.ShouldStop = True
-        # Handling sending death notes to all other processes
+        # TODO: We could be handling sending death notes to all other processes
         
     def GetFileLocation(self):
         return self.FileLocation
@@ -230,4 +230,4 @@ class RelayClient:
                 else:
                     self.FunctionRouter[RelayedMessage.Type](**Arguments)
             except Exception as ex:
-                Logger.Log(LogLevel.Warn, f"Failed to handle recv message, got error {str(ex)}")
+                Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} Failed to handle recv message, got error {str(ex)}")

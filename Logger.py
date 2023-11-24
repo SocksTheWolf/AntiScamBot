@@ -1,9 +1,7 @@
 from enum import auto
 from colorama import Fore, Style, init
 from EnumWrapper import CompareEnum
-import datetime
-import time
-import asyncio
+import datetime, time, asyncio
 
 __all__ = ["LogLevel", "Logger"]
 

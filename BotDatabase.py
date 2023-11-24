@@ -2,10 +2,8 @@ from datetime import datetime
 from BotEnums import BanLookup
 from Logger import Logger, LogLevel
 from Config import Config
+import shutil, time, os
 import sqlite3
-import shutil
-import time
-import os
 
 class ScamBotDatabase():
     Database = None

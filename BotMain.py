@@ -2,11 +2,10 @@ from Logger import Logger, LogLevel
 from BotEnums import BanResult, RelayMessageType
 from Config import Config
 from BotConnections import RelayClient
-import discord
+import discord, asyncio
 from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
-import asyncio
 
 __all__ = ["DiscordBot"]
 
