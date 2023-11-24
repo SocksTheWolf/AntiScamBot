@@ -18,7 +18,7 @@ jobs:
         log-public-key: false
     
     - name: Update Python Project
-      uses: appleboy/ssh-action@v1.0.0
+      uses: appleboy/ssh-action@master
       env:
         AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
       with:
