@@ -61,7 +61,6 @@ class RelayServer:
     async def TickRelay(self):
         if (self.ShouldStop):
             return
-        
         try:
             self.ListenForConnections()
             self.HandleRecv()
