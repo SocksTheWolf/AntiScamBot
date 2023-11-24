@@ -175,7 +175,7 @@ class ScamBotDatabase():
         for ServerToRemove in ServersIn:
             self.Database.execute(f"DELETE FROM servers where Id={ServerToRemove} AND Instance={BotId}")
             self.Database.commit()
-            Logger.Log(LogLevel.Notice, f"Bot #{BotId} has been removed from server {ServerToRemove}")
+            Logger.Log(LogLevel.Warn, f"Bot #{BotId} has been removed from server {ServerToRemove}")
 
     ### Query Status ###
     def IsInServer(self, ServerId:int) -> bool:
