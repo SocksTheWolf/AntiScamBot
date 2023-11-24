@@ -212,6 +212,12 @@ class DiscordBot(discord.Client):
         OwnerName:str = "Admin"
         if (server.owner is not None):
             OwnerName = server.owner.display_name
+            
+        # Prevent ourselves from being added to a server we are already in.
+        if (self.Database.IsInServer(server.id)):
+            Logger.Log(LogLevel.Notice, f"Bot #{self.BotID} was attempted to be added to server {server.name}[{server.id}] but already in there")
+            await server.leave()
+            return
 
         self.Database.SetBotActivationForOwner([server.id], False, self.BotID, OwnerId=server.owner_id)
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has joined server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")

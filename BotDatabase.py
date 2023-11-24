@@ -139,7 +139,7 @@ class ScamBotDatabase():
             if (not self.IsInServer(DiscordServer.id)):
                 NewAdditions.append((DiscordServer.id, DiscordServer.owner_id))
             
-            # Ignore the control server
+            # Ignore the control server but add any other servers to this list.
             if (DiscordServer.id != ControlServerID):
                 ServersIn.append(DiscordServer.id)
         
