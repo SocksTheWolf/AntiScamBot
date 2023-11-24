@@ -16,7 +16,7 @@ class LogLevel(CompareEnum):
   Notice=auto()
   Silence=auto()
 
-CurrentLoggingLevel = LogLevel.Verbose
+CurrentLoggingLevel = LogLevel.Debug
 CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
 NotificationCallback = None
@@ -50,7 +50,7 @@ class Logger():
     
     # Set up color logging
     ColorStr = ""
-    MessageStr = f"ScamBot [{str(Level)}]: {Input}"
+    MessageStr = f"ScamGuard [{str(Level)}]: {Input}"
     if Level == LogLevel.Error:
       ColorStr = Fore.RED + Style.BRIGHT
     elif Level == LogLevel.Warn:

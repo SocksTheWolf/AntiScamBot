@@ -16,3 +16,17 @@ class BanResult(CompareEnum):
   LostPermissions=auto()
   ServerOwner=auto()
   Error=auto()
+  
+class RelayMessageType(CompareEnum):
+  Hello=auto()
+  BanUser=auto()
+  UnbanUser=auto()
+  LeaveServer=auto()
+  ReprocessBans=auto()
+  ProcessActivation=auto()
+  ProcessDeactivation=auto()
+  CloseApplication=auto()
+  # TODO: In future to remove the number of writers
+  AddedToServer=auto()
+  RemovedFromServer=auto()
+  ServerOwnerChanged=auto()
