@@ -299,6 +299,53 @@ class DiscordScamBot(discord.Client):
         
         return BanLookup.Unbanned
 
+    async def ActivateUserServers(self, SendersId):
+        ServersToActivate = []
+        for ServerIn in self.guilds:
+            ServerId:int = ServerIn.id
+            ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
+            # Look for anything that is currently not activated
+            if (not self.Database.IsActivatedInServer(ServerId)):
+                Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
+                # Any owners = easy activation :)
+                if (ServerIn.owner_id == SendersId):
+                    Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
+                    ServersToActivate.append(ServerIn)
+                else:
+                    # Otherwise we have to look up the user's membership/permissions in the server
+                    GuildMember:discord.Member = await self.LookupUserInServer(ServerIn, SendersId)
+                    if (GuildMember is not None):
+                        Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
+                        if (self.UserHasElevatedPermissions(GuildMember)):
+                            Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
+                            ServersToActivate.append(ServerIn)
+                        else:
+                            Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
+                    else:
+                        Logger.Log(LogLevel.Debug, f"Did not get user information for {ServerInfo}, likely not in there")
+            else:
+                Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
+
+        # Take all the servers that we found and process them
+        Logger.Log(LogLevel.Verbose, f"Finished crawling through all servers, found {len(ServersToActivate)} servers to activate.")
+        ServersActivated = []
+        for WorkServer in ServersToActivate:
+            if (WorkServer is not None):
+                self.AddAsyncTask(self.ReprocessBansForServer(WorkServer))
+                ServersActivated.append(WorkServer.id)
+        
+        NumServersActivated:int = len(ServersActivated)
+        MessageToRespond:str = ""
+        if (NumServersActivated >= 1):
+            self.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
+            MessageToRespond = f"Activated in {NumServersActivated} of your servers!"
+        elif (len(self.Database.GetAllServersOfOwner(SendersId)) == 0):
+            # make sure that people have added the bot into the server first
+            MessageToRespond = "I am not in any servers that you own! You must add me to your server before activating."
+        else:
+            MessageToRespond = "There are no servers that you own that aren't already activated!"
+        return MessageToRespond
+
     async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> (bool, BanResult):
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id

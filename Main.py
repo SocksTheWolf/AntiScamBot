@@ -145,55 +145,13 @@ async def ScamUnban(interaction:Interaction, targetid:app_commands.Transform[int
 async def ActivateServer(interaction:Interaction):
     Sender:Member = interaction.user
     SendersId:int = Sender.id
-    ServersActivated = []
-    ServersToActivate = []
+    
     # Hold onto these objects, as activate is one of the most expensive commands if
     # we are running off a database that is mostly made of up unactivated servers.
     await interaction.response.defer(thinking=True)
     ResponseHook:Webhook = interaction.followup
     # Go through all servers that the bot is currently in.
-    for ServerIn in ScamBot.guilds:
-        ServerId:int = ServerIn.id
-        ServerInfo:str = f"{ServerIn.name}[{ServerIn.id}]"
-        # Look for anything that is currently not activated
-        if (not ScamBot.Database.IsActivatedInServer(ServerId)):
-            Logger.Log(LogLevel.Debug, f"Activation looking in mutual server {ServerInfo}")
-            # Any owners = easy activation :)
-            if (ServerIn.owner_id == SendersId):
-                Logger.Log(LogLevel.Verbose, f"User owns server {ServerInfo}")
-                ServersToActivate.append(ServerIn)
-            else:
-                # Otherwise we have to look up the user's membership/permissions in the server
-                GuildMember:Member = await ScamBot.LookupUserInServer(ServerIn, SendersId)
-                if (GuildMember is not None):
-                    Logger.Log(LogLevel.Verbose, f"Found user in guild {ServerInfo}")
-                    if (ScamBot.UserHasElevatedPermissions(GuildMember)):
-                        Logger.Log(LogLevel.Verbose, f"User has the appropriate permissions in server {ServerInfo}")
-                        ServersToActivate.append(ServerIn)
-                    else:
-                        Logger.Log(LogLevel.Debug, f"User does not have the permissions...")
-                else:
-                    Logger.Log(LogLevel.Debug, f"Did not get user information for {ServerInfo}, likely not in there")
-        else:
-            Logger.Log(LogLevel.Debug, f"Bot is already activated in {ServerId}")
-
-    # Take all the servers that we found and process them
-    Logger.Log(LogLevel.Verbose, f"Finished crawling through all servers, found {len(ServersToActivate)} servers to activate.")
-    for WorkServer in ServersToActivate:
-        if (WorkServer is not None):
-            ScamBot.AddAsyncTask(ScamBot.ReprocessBansForServer(WorkServer))
-            ServersActivated.append(WorkServer.id)
-    
-    NumServersActivated:int = len(ServersActivated)
-    MessageToRespond:str = ""
-    if (NumServersActivated >= 1):
-        ScamBot.Database.SetBotActivationForOwner(SendersId, ServersActivated, True)
-        MessageToRespond = f"Activated in {NumServersActivated} of your servers!"
-    elif (len(ScamBot.Database.GetAllServersOfOwner(SendersId)) == 0):
-        # make sure that people have added the bot into the server first
-        MessageToRespond = "I am not in any servers that you own! You must add me to your server before activating."
-    else:
-        MessageToRespond = "There are no servers that you own that aren't already activated!"
+    MessageToRespond = await ScamBot.ActivateUserServers(SendersId)
     await ResponseHook.send(MessageToRespond)
     
 @ScamBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)

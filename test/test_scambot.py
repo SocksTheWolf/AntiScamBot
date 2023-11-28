@@ -5,9 +5,10 @@ from BotEnums import BanLookup
 from BotSetup import SetupDatabases # importing the module instantly runs the function SetupDatabases
 import pytest
 from DiscordBot import DiscordScamBot
-from Main import ScamBot
+from Main import ScamBot, ScamBan, ScamUnban
 from discord import Client, Guild, Object
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock, PropertyMock
+from requests import Response
 
 
 @pytest.fixture(scope="function")
@@ -17,6 +18,12 @@ def setup_data() -> dict:
     banner_mock = AsyncMock()
     banner_mock.name = "test name"
     banner_mock.id = 1
+
+    banner_perm_mock = AsyncMock()
+    banner_perm_mock.administrator = False
+    banner_perm_mock.manage_guild = False
+    banner_perm_mock.ban_members = False
+    banner_mock.guild_permissions = banner_perm_mock
 
     user_ban_id = 2
     
@@ -101,3 +108,41 @@ async def test_scam_ban_unban(get_guild, fetch_user_mock, embeded_mock, publish_
     assert first_unban_command == BanLookup.NotExist 
     fake_unban_func.assert_not_called()
     fake_unban_func2.assert_not_called()
+
+@pytest.mark.asyncio
+@patch.object(ScamBot, 'PublishAnnouncement')
+@patch.object(ScamBot, 'CreateBanEmbed')
+@patch('discord.client.Client.fetch_user')
+@patch('discord.client.Client.get_guild')
+async def test_activate_server(get_guild, fetch_user_mock,  embeded_mock, publish_mock, setup_data):
+
+    fake_ban_func = AsyncMock()
+    setup_data["fake_guild"].attach_mock(fake_ban_func, 'ban')
+    fake_unban_func = AsyncMock()
+    setup_data["fake_guild"].attach_mock(fake_unban_func, 'unban')
+
+    fake_ban_func2 = AsyncMock()
+    setup_data["fake_guild2"].attach_mock(fake_ban_func2, 'ban')
+    fake_unban_func2 = AsyncMock()
+    setup_data["fake_guild2"].attach_mock(fake_unban_func2, 'unban')
+    setup_data["fake_guild2"].fetch_member.return_value = setup_data["banner_mock"]
+
+    get_guild.side_effect = [setup_data["fake_guild"], setup_data["fake_guild2"]]
+
+    #this is called in the on_guild_join hook with the False option
+    ScamBot.Database.SetBotActivationForOwner(setup_data["fake_guild"].owner_id, [setup_data["fake_guild"].id], False)
+    ScamBot.Database.SetBotActivationForOwner(setup_data["fake_guild2"].owner_id, [setup_data["fake_guild2"].id], False)
+
+    # With no guilds activated, ban functions are not called
+    first_ban_command = await asyncio.wait_for(ScamBot.PrepareBan(setup_data["user_ban_id"], setup_data["banner_mock"]), timeout=5)
+    assert first_ban_command == BanLookup.Banned
+    fake_ban_func.assert_not_called()
+    fake_ban_func2.assert_not_called() 
+
+    type(ScamBot).guilds = [setup_data["fake_guild"], setup_data["fake_guild2"]]
+
+    # By activating
+    await asyncio.wait_for(ScamBot.ActivateUserServers(setup_data["fake_guild"].owner_id), timeout=5)
+    await asyncio.sleep(2)
+    fake_ban_func.assert_called_once_with(Object(setup_data["user_ban_id"]), reason=f'User banned by {setup_data["banner_mock"].name}')
+    fake_ban_func2.assert_not_called()
