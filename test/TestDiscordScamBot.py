@@ -4,16 +4,16 @@ from dotenv import load_dotenv
 from BotEnums import BanLookup
 from BotSetup import SetupDatabases # importing the module instantly runs the function SetupDatabases
 import pytest
-from DiscordBot import DiscordScamBot
-from Main import ScamBot, ScamBan, ScamUnban
+from ScamGuard import ScamGuard
 from discord import Client, Guild, Object
-from unittest.mock import patch, AsyncMock, PropertyMock
-from requests import Response
-
+from unittest.mock import patch, AsyncMock
+BotId = 1
+ScamGuardBot = ScamGuard(BotId)
 
 @pytest.fixture(scope="function")
 def TData() -> dict: 
     load_dotenv()
+    SetupDatabases()
     #Shared test data
     TUser1 = AsyncMock()
     TUser1.name = "test name"
@@ -45,15 +45,15 @@ def TData() -> dict:
     }
 
     #calling del to close the db connection to clean up
-    ScamBot.__del__()
+    ScamGuardBot.__del__()
     db_filepath = os.getenv("DATABASE_FILE")
     os.remove(db_filepath)
     SetupDatabases()
-    ScamBot.__init__()
+    ScamGuardBot.__init__(BotId)
 
 @pytest.mark.asyncio
-@patch.object(ScamBot, 'PublishAnnouncement')
-@patch.object(ScamBot, 'CreateBanEmbed')
+@patch.object(ScamGuardBot, 'PublishAnnouncement')
+@patch.object(ScamGuardBot, 'CreateBanEmbed')
 @patch('discord.client.Client.fetch_user')
 @patch('discord.client.Client.get_guild')
 async def TestScamBanUnban(GetGuildMock, FetchUserMock, EmbededMock, PublishMock, TData):
@@ -78,11 +78,12 @@ async def TestScamBanUnban(GetGuildMock, FetchUserMock, EmbededMock, PublishMock
 
     GetGuildMock.side_effect = [TData["TGuild1"], TData["TGuild2"], TData["TGuild1"], TData["TGuild2"]]
 
-    ScamBot.Database.SetBotActivationForOwner(TData["TGuild1"].owner_id, [TData["TGuild1"].id], True)
-    ScamBot.Database.SetBotActivationForOwner(TData["TGuild2"].owner_id, [TData["TGuild2"].id], True)
+    ScamGuardBot.Database.SetBotActivationForOwner([TData["TGuild1"].id], True, BotId=BotId, OwnerId=TData["TGuild1"].owner_id)
+    ScamGuardBot.Database.SetBotActivationForOwner([TData["TGuild2"].id], True, BotId=BotId, OwnerId=TData["TGuild2"].owner_id)
 
     # 1st PrepareBan() test
-    FirstBanEnum = await asyncio.wait_for(ScamBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5) 
+    FirstBanEnum = await asyncio.wait_for(ScamGuardBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    await asyncio.sleep(1) 
     assert FirstBanEnum == BanLookup.Banned
     TBanMock1.assert_called_once_with(Object(TData["BanUserId"]), reason=f'Confirmed scammer by {TData["TUser1"].name}')
     TBanMock2.assert_called_once_with(Object(TData["BanUserId"]), reason=f'Confirmed scammer by {TData["TUser1"].name}')
@@ -90,13 +91,15 @@ async def TestScamBanUnban(GetGuildMock, FetchUserMock, EmbededMock, PublishMock
     # 2nd PrepareBan() test
     TBanMock1.reset_mock()
     TBanMock2.reset_mock()
-    SecondBanEnum = await asyncio.wait_for(ScamBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5) 
+    SecondBanEnum = await asyncio.wait_for(ScamGuardBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    await asyncio.sleep(1) 
     assert SecondBanEnum == BanLookup.Duplicate
     TBanMock1.assert_not_called()
     TBanMock2.assert_not_called()
 
     # PrepareUnban() test
-    FirstUnbanEnum = await asyncio.wait_for(ScamBot.PrepareUnban(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    FirstUnbanEnum = await asyncio.wait_for(ScamGuardBot.PrepareUnban(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    await asyncio.sleep(1) 
     assert FirstUnbanEnum == BanLookup.Unbanned 
     TUnbanMock1.assert_called_once_with(Object(TData["BanUserId"]), reason=f'Confirmed non-scammer by {TData["TUser1"].name}')
     TUnbanMock2.assert_called_once_with(Object(TData["BanUserId"]), reason=f'Confirmed non-scammer by {TData["TUser1"].name}')
@@ -104,14 +107,15 @@ async def TestScamBanUnban(GetGuildMock, FetchUserMock, EmbededMock, PublishMock
     # 2nd PrepareUnban() test
     TUnbanMock1.reset_mock()
     TUnbanMock2.reset_mock()
-    SecondUnbanEnum = await asyncio.wait_for(ScamBot.PrepareUnban(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    SecondUnbanEnum = await asyncio.wait_for(ScamGuardBot.PrepareUnban(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    await asyncio.sleep(1) 
     assert SecondUnbanEnum == BanLookup.NotExist 
     TUnbanMock1.assert_not_called()
     TUnbanMock2.assert_not_called()
 
 @pytest.mark.asyncio
-@patch.object(ScamBot, 'PublishAnnouncement')
-@patch.object(ScamBot, 'CreateBanEmbed')
+@patch.object(ScamGuardBot, 'PublishAnnouncement')
+@patch.object(ScamGuardBot, 'CreateBanEmbed')
 @patch('discord.client.Client.fetch_user')
 @patch('discord.client.Client.get_guild')
 async def TestActivateServer(GetGuildMock, FetchUserMock,  EmbededMock, PublishMock, TData):
@@ -131,19 +135,20 @@ async def TestActivateServer(GetGuildMock, FetchUserMock,  EmbededMock, PublishM
     GetGuildMock.side_effect = [TData["TGuild1"], TData["TGuild2"]]
 
     #this is called in the on_guild_join hook with the False option
-    ScamBot.Database.SetBotActivationForOwner(TData["TGuild1"].owner_id, [TData["TGuild1"].id], False)
-    ScamBot.Database.SetBotActivationForOwner(TData["TGuild2"].owner_id, [TData["TGuild2"].id], False)
+    ScamGuardBot.Database.SetBotActivationForOwner([TData["TGuild1"].id], False, BotId=BotId, OwnerId=TData["TGuild1"].owner_id)
+    ScamGuardBot.Database.SetBotActivationForOwner([TData["TGuild2"].id], False, BotId=BotId, OwnerId=TData["TGuild2"].owner_id)
 
     # With no guilds activated, ban functions are not called
-    FirstBanEnum = await asyncio.wait_for(ScamBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    FirstBanEnum = await asyncio.wait_for(ScamGuardBot.PrepareBan(TData["BanUserId"], TData["TUser1"]), timeout=5)
+    await asyncio.sleep(1) 
     assert FirstBanEnum == BanLookup.Banned
     TBanMock1.assert_not_called()
     TBanMock2.assert_not_called() 
 
-    type(ScamBot).guilds = [TData["TGuild1"], TData["TGuild2"]]
+    type(ScamGuardBot).guilds = [TData["TGuild1"], TData["TGuild2"]]
 
     # By activating TGuild1 with it's owner, TGuild1 should make a Ban request while TGuild2 should not get a ban request
-    await asyncio.wait_for(ScamBot.ActivateUserServers(TData["TGuild1"].owner_id), timeout=5)
-    await asyncio.sleep(2)
+    await asyncio.wait_for(ScamGuardBot.ActivateServersWithPermissions(TData["TGuild1"].owner_id), timeout=5)
+    await asyncio.sleep(1)
     TBanMock1.assert_called_once_with(Object(TData["BanUserId"]), reason=f'User banned by {TData["TUser1"].name}')
     TBanMock2.assert_not_called()
