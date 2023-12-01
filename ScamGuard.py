@@ -77,7 +77,7 @@ class ScamGuard(DiscordBot):
         if (self.PeriodicBackup.minutes != 0):
             self.UpdateBackupInterval()
         
-        Logger.Log(LogLevel.Notice, "Periodic Bot DB Backup Started...")    
+        Logger.Log(LogLevel.Log, "Periodic Bot DB Backup Started...")    
         self.Database.Backup()
         self.Database.CleanupBackups()
         

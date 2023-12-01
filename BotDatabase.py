@@ -54,7 +54,7 @@ class ScamBotDatabase():
         NewFile = os.path.join(DestinationLocation, NewFileName)
         OriginalFile = os.path.join(DestinationLocation, Config.GetDBFile())
         os.rename(OriginalFile, NewFile)
-        Logger.Log(LogLevel.Notice, f"Current database has been backed up to new file {NewFileName}")
+        Logger.Log(LogLevel.Log, f"Current database has been backed up to new file {NewFileName}")
         self.Open()
         return True
     
@@ -76,7 +76,7 @@ class ScamBotDatabase():
                     os.remove(FileLocation)
                     BackupsCleaned += 1
         
-        Logger.Log(LogLevel.Notice, f"Cleaned up {BackupsCleaned} backups older than {OlderThan} days!")
+        Logger.Log(LogLevel.Log, f"Cleaned up {BackupsCleaned} backups older than {OlderThan} days!")
                 
     ### Adding/Updating/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples, BotID:int):
