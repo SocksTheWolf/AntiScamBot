@@ -187,7 +187,6 @@ if __name__ == '__main__':
         else:
             await interaction.response.send_message("You must be activated in order to run scam check!")
 
-
     SetupDatabases()
     ScamGuardBot.Commands.on_error = CommandErrorHandler
     ScamGuardBot.run(ConfigData.GetToken())

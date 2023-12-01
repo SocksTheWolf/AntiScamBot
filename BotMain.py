@@ -273,44 +273,6 @@ class DiscordBot(discord.Client):
         
     def UnbanUser(self, TargetId:int, AuthName:str):
         self.AddAsyncTask(self.ProcessActionOnUser(TargetId, AuthName, False))
-
-    async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> (bool, BanResult):
-        IsDevelopmentMode:bool = ConfigData.IsDevelopment()
-        BanId:int = User.id
-        ServerOwnerId:int = Server.owner_id
-        ServerInfo:str = f"{Server.name}[{Server.id}]"
-        try:
-            BanStr:str = "ban"
-            if (not IsBan):
-                BanStr = "unban"
-            
-            Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action in {ServerInfo} owned by {ServerOwnerId}")
-            if (BanId == ServerOwnerId):
-                Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {ServerInfo} as it is the owner!")
-                return (False, BanResult.ServerOwner)
-            
-            # if we are in development mode, we don't do any actions to any other servers.
-            if (IsDevelopmentMode == False):
-                if (IsBan):
-                    await Server.ban(User, reason=Reason)
-                else:
-                    await Server.unban(User, reason=Reason)
-            else:
-                Logger.Log(LogLevel.Debug, "Action was dropped as we are currently in development mode")
-            return (True, BanResult.Processed)
-        except(discord.NotFound):
-            if (not IsBan):
-                Logger.Log(LogLevel.Verbose, f"User {BanId} is not banned in server")
-                return (True, BanResult.NotBanned)
-            else:
-                Logger.Log(LogLevel.Warn, f"User {BanId} is not a valid user while processing the ban")
-                return (False, BanResult.InvalidUser)
-        except discord.Forbidden as forbiddenEx:
-            Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {ServerInfo} owned by {ServerOwnerId}! Err: {str(forbiddenEx)}")
-            return (False, BanResult.LostPermissions)
-        except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
-        return (False, BanResult.Error)
         
     # Handles pushing the ban/unban to every server we are in
     async def ProcessActionOnUser(self, TargetId:int, AuthorizerName:str, IsBan:bool):
