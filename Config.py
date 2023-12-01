@@ -57,10 +57,30 @@ class Config():
             return False
         except(Exception):
             return False
-
+        
     @staticmethod
-    def GetToken() -> str:
-        return os.getenv("DISCORD_TOKEN")
+    def GetAllSubTokens():
+        if (not os.path.exists(Config.GetAPIKeysFile())):
+            return {}
+        
+        with open(Config.GetAPIKeysFile(), "r") as crypto_file:
+            return json.load(crypto_file)
+        
+    @staticmethod
+    def GetToken(ForInstance:int=-1) -> str:
+        if (ForInstance <= 0):
+            return os.getenv("DISCORD_TOKEN")
+        else:
+            CryptoKeys = Config.GetAllSubTokens()
+            InstanceStr:str = str(ForInstance)
+            if (CryptoKeys[InstanceStr] is None):
+                return ""
+            return CryptoKeys[InstanceStr]
+             
+    @staticmethod
+    def GetNumberOfInstances() -> int:
+        CryptoKeys = Config.GetAllSubTokens()
+        return len(CryptoKeys)
 
     @staticmethod    
     def GetDBFile() -> str:
@@ -69,6 +89,10 @@ class Config():
     @staticmethod
     def GetConfigFile() -> str:
         return os.getenv("CONFIG_FILE")
+    
+    @staticmethod
+    def GetAPIKeysFile() -> str:
+        return os.getenv("API_KEYS")
     
     @staticmethod
     def GetBackupLocation() -> str:

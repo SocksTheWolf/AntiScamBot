@@ -1,5 +1,6 @@
 {
-    "ControlServer": 1155997672667365406,
+    "ControlBotID": 0,
+	"ControlServer": 1155997672667365406,
     "MaintainerRole": 1156303006854291516,
     "ApproverRole": 1156092480069046292,
     "AnnouncementChannel": 1156110286508523570,
@@ -8,6 +9,7 @@
     "BotActivity": "Destroying Scammers...",
     "BotActivityDevelopment": "Running in development mode",
     "UseSleep": false,
+    "RelayPort": 9500,
     "ActionsPerTick": 20,
     "SleepAmount": 0.6,
     "RunPeriodicBackups": true,

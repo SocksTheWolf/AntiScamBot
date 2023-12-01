@@ -1,6 +1,6 @@
 ---
 title: FAQ
-description: Answers regarding site.bot_name, what it does and other things!
+description: Answers regarding ScamGuard, what it does and other things!
 previous: /
 ---
 
@@ -26,6 +26,14 @@ Because of how Discord handles permissions it needs the following permissions:
 * `Ban Members`: To execute the bans
 
 * `Embed Links`: To give you information when you run `/scamcheck`
+
+### I am not able to add the bot, it says the bot needs to be verified?
+
+We have submitted {{ site.bot_name }} for verification but this process has been very slow. While the bot is still being verified, you can add one of the many fallback bots.
+
+Eventually when the main bot is verified, the fallback bots will move their assignments onto the main bot instance. We are aware of how frustrating this is. We hope this is solved sooner, but our hands are tied.
+
+Anything under the "THE BOT" role in the TAG server is allowed to be added.
 
 ### Is {{ site.bot_name }} open source?
 
@@ -74,6 +82,12 @@ The name of the person that initiated this action as well as the user that it ha
 ![{{ site.bot_name }} Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
 All bans will be logged into your server's audit log. You can revert any ban if you wish and {{ site.bot_name }} will not attempt to re-add it unless you explicitly ask it to reimport bans for your server.
+
+### How do I report a scam?
+
+Join the TAG server! The combat potential abuse, the ability to report is granted on a timer based on how long you are in the server. Users of the bot will be granted access upon successful activation.
+
+Reports are not visible until then.
 
 ### Can {{ site.bot_name }} ever ban the server owner or mods?
 

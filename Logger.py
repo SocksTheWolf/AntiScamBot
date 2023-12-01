@@ -1,9 +1,7 @@
 from enum import auto
 from colorama import Fore, Style, init
 from EnumWrapper import CompareEnum
-import datetime
-import time
-import asyncio
+import datetime, time, asyncio
 
 __all__ = ["LogLevel", "Logger"]
 
@@ -16,7 +14,7 @@ class LogLevel(CompareEnum):
   Notice=auto()
   Silence=auto()
 
-CurrentLoggingLevel = LogLevel.Verbose
+CurrentLoggingLevel = LogLevel.Debug
 CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
 NotificationCallback = None
@@ -50,7 +48,7 @@ class Logger():
     
     # Set up color logging
     ColorStr = ""
-    MessageStr = f"ScamBot [{str(Level)}]: {Input}"
+    MessageStr = f"ScamGuard [{str(Level)}]: {Input}"
     if Level == LogLevel.Error:
       ColorStr = Fore.RED + Style.BRIGHT
     elif Level == LogLevel.Warn:
