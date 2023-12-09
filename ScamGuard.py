@@ -158,9 +158,9 @@ class ScamGuard(DiscordBot):
         # Figure out who banned them
         if (UserBanned):
             # BannerName, BannerId, Date
-            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
+            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_id}", inline=False)
             # Create a date time format (all of the database timestamps are in iso format)
-            DateTime:datetime = datetime.fromisoformat(BanData[2])
+            DateTime:datetime = datetime.fromisoformat(BanData.updated_at)
             UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):
