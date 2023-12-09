@@ -46,8 +46,6 @@ class DiscordBot(discord.Client):
 
     def __del__(self):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
-        if (self.Database is not None):
-            self.Database.Close()
        
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
@@ -250,9 +248,9 @@ class DiscordBot(discord.Client):
                 else:
                     ActionsAppliedThisLoop += 1
 
-            UserId:int = int(Ban[0])
+            UserId:int = int(Ban.discord_user_id)
             UserToBan = discord.Object(UserId)
-            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban[1]}", True)
+            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban.assigner_discord_user_name}", True)
             # See if the ban did go through.
             if (BanResponse[0] == False):
                 BanResponseFlag:BanResult = BanResponse[1]
@@ -299,7 +297,7 @@ class DiscordBot(discord.Client):
                 else:
                     ActionsAppliedThisLoop += 1
                 
-            ServerId:int = ServerData[0]
+            ServerId:int = int(ServerData.discord_server_id)
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, IsBan)
