@@ -74,6 +74,8 @@ if __name__ == '__main__':
         RowNum:int = 1
         NumBans:int = len(ScamGuardBot.Database.GetAllBans())
         ActivatedServers:int = 0
+        await interaction.response.defer(thinking=True)
+        ResponseHook:Webhook = interaction.followup
         QueryResults = ScamGuardBot.Database.GetAllServers(False)
         for BotServers in QueryResults:
             IsActivated:bool = bool(BotServers[2])
@@ -89,7 +91,7 @@ if __name__ == '__main__':
         for MessageChunk in MessageChunks:
             await interaction.channel.send(MessageChunk)
             
-        await interaction.response.send_message("Done printing", ephemeral=True, delete_after=2.0)
+        await ResponseHook.send("Done printing", ephemeral=True)
 
     @ScamGuardBot.Commands.command(name="scamban", description="Bans a scammer", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["ApproverRole"])
