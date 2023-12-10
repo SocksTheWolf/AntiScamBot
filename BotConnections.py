@@ -2,7 +2,7 @@ from Logger import Logger, LogLevel
 from multiprocessing.connection import Listener, Client, wait
 from BotEnums import RelayMessageType
 from Config import Config
-import selectors, os
+import selectors, os, traceback
 
 ConfigData:Config=Config()
 
@@ -65,7 +65,8 @@ class RelayServer:
             self.ListenForConnections()
             self.HandleRecv()
         except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server {str(ex)}")            
+            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
+            self.ShouldStop = True
 
     def ListenForConnections(self):
         AcceptEvents = self.AcceptListener.select(0)
@@ -232,4 +233,4 @@ class RelayClient:
                 else:
                     self.FunctionRouter[RelayedMessage.Type](**Arguments)
             except Exception as ex:
-                Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} Failed to handle recv message, got error {str(ex)}")
+                Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} Failed to handle recv message, got exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
