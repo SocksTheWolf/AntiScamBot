@@ -1,7 +1,7 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanLookup
 from Config import Config
-from CommandHelpers import TargetIdTransformer, CommandErrorHandler
+from CommandHelpers import TargetIdTransformer, ServerIdTransformer, CommandErrorHandler
 from discord import app_commands, Interaction, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases
 from ScamGuard import ScamGuard
@@ -24,7 +24,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="forceleave", description="Makes the bot force leave a server", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     @app_commands.describe(server='Discord ID of the server to leave')
-    async def LeaveServer(interaction:Interaction, server:app_commands.Transform[int, TargetIdTransformer]):
+    async def LeaveServer(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer]):
         if (server <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True)
             return
@@ -38,7 +38,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="forceactivate", description="Force activates a server for the bot", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     @app_commands.describe(server='Discord ID of the server to force activate')
-    async def ForceActivate(interaction:Interaction, server:app_commands.Transform[int, TargetIdTransformer]):
+    async def ForceActivate(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer]):
         if (server <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True)
             return
@@ -57,7 +57,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="retryactions", description="Forces the bot to retry last actions", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     @app_commands.describe(server='Discord ID of the server to force activate', numactions='The number of actions to perform')
-    async def RetryActions(interaction:Interaction, server:app_commands.Transform[int, TargetIdTransformer], numactions:app_commands.Range[int, 1]):
+    async def RetryActions(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], numactions:app_commands.Range[int, 1]):
         if (server <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True)
             return

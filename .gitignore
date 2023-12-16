@@ -165,7 +165,7 @@ cython_debug/
 
 # Remove runtime stuff
 *.db
-apikeys.json
+apikeys*
 
 # Pages ignores
 Gemfile

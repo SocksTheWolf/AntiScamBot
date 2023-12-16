@@ -2,8 +2,11 @@ from Logger import Logger, LogLevel
 from discord import Interaction, app_commands
 
 # This transformer allows us to take in a discord id (as the default int is too small)
-# and properly convert it to a value that we can use to observe discord servers/users
-class TargetIdTransformer(app_commands.Transformer):
+# and properly convert it to a value that we can use to observe Discord data
+class BaseIdTransformer(app_commands.Transformer):
+    async def OnTransform(self, interaction: Interaction, TargetId:int) -> int:
+        return TargetId
+        
     async def transform(self, interaction: Interaction, value: str) -> int:
         if (not value.isnumeric()):
             return -1
@@ -11,7 +14,19 @@ class TargetIdTransformer(app_commands.Transformer):
         # Prevent any targets on the bot
         if (ConvertedValue == interaction.client.user.id):
             return -1
-        return ConvertedValue
+        return await self.OnTransform(interaction, ConvertedValue)
+
+# This transformer checks to see if the given id is a real discord User.
+class TargetIdTransformer(BaseIdTransformer):
+    async def OnTransform(self, interaction: Interaction, TargetId:int) -> int:
+        if (await interaction.client.UserAccountExists(TargetId)):
+            return TargetId
+        else:
+            return -1
+
+# This transformer is just a named copy of the BaseIdTransformer
+class ServerIdTransformer(app_commands.Transformer):
+    pass
 
 # Simple error handling logger, so that we aren't completely bogging down the application run log with
 # errors and such.
