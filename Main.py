@@ -57,7 +57,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="retryactions", description="Forces the bot to retry last actions", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     @app_commands.describe(server='Discord ID of the server to force activate', numactions='The number of actions to perform')
-    async def RetryActions(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], numactions:app_commands.Range[int, 1]):
+    async def RetryActions(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], numactions:app_commands.Range[int, 0]):
         if (server <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True)
             return
