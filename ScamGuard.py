@@ -129,19 +129,10 @@ class ScamGuard(DiscordBot):
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
     
-    async def LookupUserForBanEmbed(self, UserID:int) -> discord.User|None:
-        try:
-            return await self.fetch_user(UserID)
-        except discord.NotFound as ex:
-            Logger.Log(LogLevel.Warn, f"UserID {UserID} was not found with error {str(ex)}")
-        except discord.HTTPException as httpEx:
-            Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
-        return None
-    
     async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
         BanData = self.Database.GetBanInfo(TargetId)
         UserBanned:bool = (BanData is not None)
-        User:discord.User = await self.LookupUserForBanEmbed(TargetId)
+        User:discord.User = await self.LookupUser(TargetId)
         HasUserData:bool = (User is not None)
         UserData = discord.Embed(title="User Data")
         if (HasUserData):

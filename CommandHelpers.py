@@ -25,7 +25,7 @@ class TargetIdTransformer(BaseIdTransformer):
             return -1
 
 # This transformer is just a named copy of the BaseIdTransformer
-class ServerIdTransformer(app_commands.Transformer):
+class ServerIdTransformer(BaseIdTransformer):
     pass
 
 # Simple error handling logger, so that we aren't completely bogging down the application run log with
