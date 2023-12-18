@@ -128,22 +128,39 @@ class DiscordBot(discord.Client):
             if (Server.owner_id == UserID):
                 ServersWithPermissions.append(ServerId)
             else:
-                GuildMember:discord.Member = await self.LookupUserInServer(Server, UserID)
+                GuildMember:discord.Member = await self.LookupUser(UserID, ServerToInspect=Server)
                 if (GuildMember is not None):
                     if (self.UserHasElevatedPermissions(GuildMember)):
                         ServersWithPermissions.append(ServerId)
         return ServersWithPermissions
-
-    async def LookupUserInServer(self, Server:discord.Guild, UserId:int) -> discord.Member:
+    
+    async def UserAccountExists(self, UserID:int) -> bool:
         try:
-            MemberResult:discord.Member = await Server.fetch_member(UserId)
-            return MemberResult
-        except discord.Forbidden:
-            Logger.Log(LogLevel.Error, f"Bot does not have access to {Server.name}")
-        except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Debug, f"Encountered http exception while looking up user {str(ex)}")
+            await self.fetch_user(UserID)
+            return True
         except discord.NotFound:
-            Logger.Log(LogLevel.Debug, f"Could not find user {UserId} in {Server.name}")
+            return False
+        except discord.HTTPException:
+            return False
+        
+        return False
+
+    async def LookupUser(self, UserID:int, ServerToInspect:discord.Guild=None) -> discord.User|discord.Member|None:
+        GivenServer:bool = (ServerToInspect is not None)
+        try:
+            if (GivenServer):
+                return await ServerToInspect.fetch_member(UserID)
+            else:
+                return await self.fetch_user(UserID)
+        except discord.Forbidden:
+            Logger.Log(LogLevel.Error, f"Bot does not have access to {ServerToInspect.name}")
+        except discord.NotFound as ex:
+            if (GivenServer):
+                Logger.Log(LogLevel.Debug, f"Could not find user {UserID} in {ServerToInspect.name}")
+            else:
+                Logger.Log(LogLevel.Warn, f"UserID {UserID} was not found with error {str(ex)}")
+        except discord.HTTPException as httpEx:
+            Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
         return None
     
     def UserHasElevatedPermissions(self, User:discord.Member) -> bool:   
