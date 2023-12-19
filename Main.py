@@ -6,7 +6,6 @@ from discord import app_commands, Interaction, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases
 from ScamGuard import ScamGuard
 from ConfirmBanView import ConfirmBan
-from ScamReportModal import SubmitScamReport
 
 ConfigData:Config=Config()
 
@@ -172,39 +171,6 @@ if __name__ == '__main__':
         
         ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
         await interaction.response.send_message(embed = ResponseEmbed)
-
-    # Global version of scamcheck
-    @ScamGuardBot.Commands.command(name="scamcheck", description="Checks to see if a discord id is banned")
-    @app_commands.describe(target='The discord user id to check')
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
-    @app_commands.guild_only()
-    async def ScamCheck_Global(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
-        if (target <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
-            return
-        
-        if (ScamGuardBot.Database.IsActivatedInServer(interaction.guild_id)):
-            ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
-            await interaction.response.send_message(embed = ResponseEmbed)
-        else:
-            await interaction.response.send_message("You must be activated in order to run scam check!")
-
-    @ScamGuardBot.Commands.command(name="scamreport", description="Brings up a dialog box that allows you to report scammers")
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
-    @app_commands.guild_only()
-    async def ReportScam_Global(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):        
-        UserToSend:Member = await interaction.client.fetch_user(target)
-        await interaction.response.send_modal(SubmitScamReport(UserToSend))
-        
-    @ScamGuardBot.Commands.command(name="scamreportuser", description="Brings up a dialog box that allows you to report scammers")
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
-    @app_commands.guild_only()
-    async def ReportScamUser_Global(interaction:Interaction, user:Member):
-        await interaction.response.send_modal(SubmitScamReport(user))
     
     SetupDatabases()
-    ScamGuardBot.Commands.on_error = CommandErrorHandler
     ScamGuardBot.run(ConfigData.GetToken())

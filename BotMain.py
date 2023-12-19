@@ -6,6 +6,8 @@ import discord, asyncio, json
 from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
+from BotCommands import GlobalScamCommands
+from CommandHelpers import CommandErrorHandler
 
 __all__ = ["DiscordBot"]
 
@@ -36,6 +38,8 @@ class DiscordBot(discord.Client):
             intents.presences = True
 
         super().__init__(intents=intents)
+        self.Commands = discord.app_commands.CommandTree(self)
+        self.Commands.on_error = CommandErrorHandler
         self.ClientHandler = RelayClient(RelayFileLocation, self.BotID)
         
         # Register functions for handling basic client actions
@@ -50,6 +54,29 @@ class DiscordBot(discord.Client):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
         if (self.Database is not None):
             self.Database.Close()
+            
+    async def setup_hook(self):
+        CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
+        
+        GlobalCommands = GlobalScamCommands(name="scamguard",
+                                            description="Handles ScamGuard commands", 
+                                            # Allow only users that can submit bans
+                                            default_permissions=discord.Permissions(1 << 2),
+                                            extras={"instance": self})
+        
+        self.Commands.add_command(GlobalCommands)
+        if (ConfigData.IsDevelopment()):
+            # This copies the global commands over to your guild.
+            self.Commands.copy_global_to(guild=CommandControlServer)
+            await self.Commands.sync(guild=CommandControlServer)
+            await self.Commands.sync()
+        else:
+            # Remove the report and check commands from any control servers
+            self.Commands.remove_command(GlobalCommands, guild=CommandControlServer)
+            await self.Commands.sync(guild=CommandControlServer)
+            await self.Commands.sync()
+            
+        await super().setup_hook()
        
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
