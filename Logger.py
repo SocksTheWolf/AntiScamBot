@@ -2,6 +2,7 @@ from enum import auto
 from colorama import Fore, Style, init
 from EnumWrapper import CompareEnum
 import datetime, time, asyncio
+from logger_tt import setup_logging, logger
 
 __all__ = ["LogLevel", "Logger"]
 
@@ -18,6 +19,8 @@ CurrentLoggingLevel = LogLevel.Verbose
 CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
 NotificationCallback = None
+
+setup_logging(use_multiprocessing=True)
 
 class Logger():
   @staticmethod
@@ -48,19 +51,24 @@ class Logger():
     
     # Set up color logging
     ColorStr = ""
+    LoggerFunc = logger.info
     MessageStr = f"ScamGuard [{str(Level)}]: {Input}"
     if Level == LogLevel.Error:
       ColorStr = Fore.RED + Style.BRIGHT
+      LoggerFunc = logger.error
     elif Level == LogLevel.Warn:
       ColorStr = Fore.YELLOW + Style.BRIGHT
+      LoggerFunc = logger.warn
     elif Level == LogLevel.Verbose:
       ColorStr = Style.DIM
+      LoggerFunc = logger.info
     elif Level == LogLevel.Debug:
       ColorStr = Style.BRIGHT + Fore.BLACK
+      LoggerFunc = logger.debug
     elif Level == LogLevel.Notice:
       ColorStr = Fore.GREEN + Style.BRIGHT
 
-    print(Logger.PrintDate() + f"{ColorStr} {MessageStr}" + Style.RESET_ALL)
+    LoggerFunc(Logger.PrintDate() + f"{ColorStr} {MessageStr}" + Style.RESET_ALL)
     
     if (NotificationCallback is not None and Level >= CurrentNotificationLevel):
       try:
