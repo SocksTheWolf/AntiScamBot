@@ -1,8 +1,8 @@
-from discord import ui, TextStyle, Interaction, Member
+from discord import ui, TextStyle, Interaction, Member, User
 from Logger import Logger, LogLevel
 
 class SubmitScamReport(ui.Modal):
-    ReportedUser:Member = None
+    ReportedUser:Member|User = None
     TypeOfScam = ui.TextInput(label="Type of Scam", placeholder="Please Select the Type of Scam", max_length=50, min_length=10)
     Reasoning = ui.TextInput(label="Scam Ban Reasoning",
                                      placeholder="The reason that this user should be reported",
@@ -12,7 +12,7 @@ class SubmitScamReport(ui.Modal):
                                         style=TextStyle.paragraph,
                                         max_length=4000,
                                         required=True)
-    def __init__(self, InReportUser:Member):
+    def __init__(self, InReportUser:Member|User):
         self.ReportedUser = InReportUser
         TruncatedName:str = InReportUser.name[:20]
         super().__init__(title=f"Report {TruncatedName}[{InReportUser.id}]")

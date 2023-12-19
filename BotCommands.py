@@ -1,5 +1,5 @@
 from CommandHelpers import TargetIdTransformer
-from discord import app_commands, Interaction, Member, Embed
+from discord import app_commands, Interaction, Member, User, Embed
 from ScamReportModal import SubmitScamReport
 from Config import Config
 
@@ -30,7 +30,16 @@ class GlobalScamCommands(app_commands.Group):
             await interaction.response.send_message("You cannot make remote reports from this server!", ephemeral=True, delete_after=5.0)
             return
         
-        UserToSend:Member = await self.GetInstance().LookupUser(target, ServerToInspect=interaction.guild)
+        UserToSend:Member|User|None = await self.GetInstance().LookupUser(target, ServerToInspect=interaction.guild)
+        # If the user is no longer in said server, then do a global lookup
+        if (UserToSend is None):
+            UserToSend = await self.GetInstance().LookupUser(target)
+        
+        # If the user is still invalid, then ask for a manual report.
+        if (UserToSend is None):
+            await interaction.response.send_message("Unable to look up the given user for a report, you'll have to make a report manually.", ephemeral=True)
+            return
+        
         await interaction.response.send_modal(SubmitScamReport(UserToSend))
         
     @app_commands.command(name="reportuser", description="Report a mentionable member")
