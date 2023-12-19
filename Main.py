@@ -26,13 +26,13 @@ if __name__ == '__main__':
     @app_commands.describe(server='Discord ID of the server to leave')
     async def LeaveServer(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer]):
         if (server <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return
         
         if (ScamGuardBot.LeaveServer(server)):
             await interaction.response.send_message(f"Bot is attempting to leave server {server}")
         else:
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
 
 
     @ScamGuardBot.Commands.command(name="forceactivate", description="Force activates a server for the bot", guild=CommandControlServer)
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     @app_commands.describe(server='Discord ID of the server to force activate')
     async def ForceActivate(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer]):
         if (server <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return
         
         if (ScamGuardBot.Database.IsInServer(server)):
@@ -59,11 +59,20 @@ if __name__ == '__main__':
     @app_commands.describe(server='Discord ID of the server to force activate', numactions='The number of actions to perform')
     async def RetryActions(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], numactions:app_commands.Range[int, 0]):
         if (server <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return
             
         ScamGuardBot.AddAsyncTask(ScamGuardBot.ReprocessBansForServer(server, LastActions=numactions))
         ReturnStr:str = f"Reprocessing the last {numactions} actions in {server}..."
+        Logger.Log(LogLevel.Notice, ReturnStr)
+        await interaction.response.send_message(ReturnStr)
+        
+    @ScamGuardBot.Commands.command(name="retryinstance", description="Forces the bot to retry last actions for instance", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    @app_commands.describe(instance='Bot Instance ID to reimport', numactions='The number of actions to perform')
+    async def RedoInstance(interaction:Interaction, instance:app_commands.Range[int, 0], numactions:app_commands.Range[int, 0]):
+        ScamGuardBot.AddAsyncTask(ScamGuardBot.ReprocessBansForInstance(instance, LastActions=numactions))
+        ReturnStr:str = f"Reprocessing the last {numactions} actions for instance {instance}"
         Logger.Log(LogLevel.Notice, ReturnStr)
         await interaction.response.send_message(ReturnStr)
         
@@ -98,7 +107,7 @@ if __name__ == '__main__':
     @app_commands.describe(targetid='The discord id for the user to ban')
     async def ScamBan(interaction:Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
         if (targetid <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return 
         
         Sender:Member = interaction.user
@@ -118,7 +127,7 @@ if __name__ == '__main__':
     @app_commands.describe(targetid='The discord id for the user to unban')
     async def ScamUnban(interaction:Interaction, targetid:app_commands.Transform[int, TargetIdTransformer]):
         if (targetid <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True)
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return 
 
         Sender:Member = interaction.user
@@ -171,25 +180,6 @@ if __name__ == '__main__':
         
         ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
         await interaction.response.send_message(embed = ResponseEmbed)
-
-    # Global version of scamcheck
-    @ScamGuardBot.Commands.command(name="scamcheck", description="Checks to see if a discord id is banned")
-    @app_commands.describe(target='The discord user id to check')
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
-    @app_commands.guild_only()
-    async def ScamCheck_Global(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
-        if (target <= -1):
-            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
-            return
-        
-        if (ScamGuardBot.Database.IsActivatedInServer(interaction.guild_id)):
-            ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
-            await interaction.response.send_message(embed = ResponseEmbed)
-        else:
-            await interaction.response.send_message("You must be activated in order to run scam check!")
-
-
+    
     SetupDatabases()
-    ScamGuardBot.Commands.on_error = CommandErrorHandler
     ScamGuardBot.run(ConfigData.GetToken())

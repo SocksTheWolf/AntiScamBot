@@ -2,10 +2,12 @@ from Logger import Logger, LogLevel
 from BotEnums import BanResult, RelayMessageType
 from Config import Config
 from BotConnections import RelayClient
-import discord, asyncio
+import discord, asyncio, json
 from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
+from BotCommands import GlobalScamCommands
+from CommandHelpers import CommandErrorHandler
 
 __all__ = ["DiscordBot"]
 
@@ -14,6 +16,8 @@ ConfigData:Config=Config()
 class DiscordBot(discord.Client):
     # Discord Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
+    ReportChannel = None
+    ReportChannelTag = None
     BotID:int = None
     ClientHandler:RelayClient = None
     Database:ScamBotDatabase = None
@@ -34,11 +38,14 @@ class DiscordBot(discord.Client):
             intents.presences = True
 
         super().__init__(intents=intents)
+        self.Commands = discord.app_commands.CommandTree(self)
+        self.Commands.on_error = CommandErrorHandler
         self.ClientHandler = RelayClient(RelayFileLocation, self.BotID)
         
         # Register functions for handling basic client actions
         self.ClientHandler.RegisterFunction(RelayMessageType.BanUser, self.BanUser)
         self.ClientHandler.RegisterFunction(RelayMessageType.UnbanUser, self.UnbanUser)
+        self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessInstance, self.ScheduleReprocessInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessBans, self.ScheduleReprocessBans)
         self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
@@ -46,6 +53,29 @@ class DiscordBot(discord.Client):
 
     def __del__(self):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
+            
+    async def setup_hook(self):
+        CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
+        
+        GlobalCommands = GlobalScamCommands(name="scamguard",
+                                            description="Handles ScamGuard commands", 
+                                            # Allow only users that can submit bans
+                                            default_permissions=discord.Permissions(1 << 2),
+                                            extras={"instance": self})
+        
+        self.Commands.add_command(GlobalCommands)
+        if (ConfigData.IsDevelopment()):
+            # This copies the global commands over to your guild.
+            self.Commands.copy_global_to(guild=CommandControlServer)
+            await self.Commands.sync(guild=CommandControlServer)
+            await self.Commands.sync()
+        else:
+            # Remove the report and check commands from any control servers
+            self.Commands.remove_command(GlobalCommands, guild=CommandControlServer)
+            await self.Commands.sync(guild=CommandControlServer)
+            await self.Commands.sync()
+            
+        await super().setup_hook()
        
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
@@ -89,6 +119,13 @@ class DiscordBot(discord.Client):
                 
         if (ConfigData.IsValid("NotificationChannel", int)):
             self.NotificationChannel = self.get_channel(ConfigData["NotificationChannel"])
+            
+        if (ConfigData.IsValid("ReportChannel", int)):
+            self.ReportChannel = self.get_channel(ConfigData["ReportChannel"])
+            for tag in self.ReportChannel.available_tags:
+                if (tag.name == ConfigData["ReportChannelTag"]):
+                    self.ReportChannelTag = tag
+                    break
 
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) configs applied")
         
@@ -244,7 +281,49 @@ class DiscordBot(discord.Client):
         
         self.Database.RemoveServerEntry(server.id, self.BotID)
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has been removed from server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
-    
+        
+    ### Report Handling ###
+    async def PostScamReport(self, ReportData):
+        if (self.ReportChannel is None or self.ReportChannelTag is None):
+            return
+        
+        ImageEmbeds:list[discord.Embed] = []
+        ReasoningString:str = ""
+        if (len(ReportData["Reasoning"])):
+            ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
+        
+        # Format the message that is going to be posted!
+        ReportContent:str = f"""
+        User ID: `{ReportData['ReportedUserId']}`
+        Username: {ReportData['ReportedUserName']}
+        Type Of Scam: {ReportData['TypeOfScam']}
+        {ReasoningString}
+        
+        Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]"""
+        
+        # Format all embeds into the list properly
+        NumEmbeds:int = 0
+        for Evidence in ReportData["Evidence"]:
+            if (NumEmbeds >= 10):
+                break
+            
+            if (Evidence.startswith("https")):
+                NewEmbed:discord.Embed = discord.Embed()
+                NewEmbed.set_image(url=Evidence)
+                ImageEmbeds.append(NewEmbed)
+                NumEmbeds += 1
+        
+        try:
+            await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
+                                         content=ReportContent,
+                                         applied_tags=[self.ReportChannelTag],
+                                         reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
+                                         embeds=ImageEmbeds)
+        except discord.Forbidden:
+            Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
+        except discord.HTTPException as ex:
+            Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")            
+
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
         Server:discord.Guild = self.get_guild(ServerId)
@@ -279,6 +358,16 @@ class DiscordBot(discord.Client):
                 NumBans += 1
         Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
         return BanReturn
+    
+    async def ReprocessInstance(self, LastActions:int):
+        BanQueryResult = self.Database.GetAllBans(LastActions)
+        for Ban in BanQueryResult:
+            UserId:int = int(Ban[0])
+            AuthorizerName:str = Ban[1]
+            await self.ProcessActionOnUser(UserId, AuthorizerName, True)
+    
+    def ScheduleReprocessInstance(self, LastActions:int):
+        self.AddAsyncTask(self.ReprocessInstance(LastActions))
     
     def ScheduleReprocessBans(self, ServerId:int, LastActions:int=0):
         self.AddAsyncTask(self.ReprocessBans(ServerId, LastActions))

@@ -24,19 +24,8 @@ class ScamGuard(DiscordBot):
     def __init__(self, AssignedBotID:int):
         self.ServerHandler = RelayServer(AssignedBotID)
         super().__init__(self.ServerHandler.GetFileLocation(), AssignedBotID)
-        self.Commands = discord.app_commands.CommandTree(self)
         
     async def setup_hook(self):
-        CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
-        if (ConfigData.IsDevelopment()):
-            # This copies the global commands over to your guild.
-            self.Commands.copy_global_to(guild=CommandControlServer)
-            await self.Commands.sync(guild=CommandControlServer)
-            await self.Commands.sync()
-        else:
-            await self.Commands.sync(guild=CommandControlServer)
-            await self.Commands.sync()
-
         if (ConfigData["RunPeriodicBackups"]):
             self.UpdateBackupInterval()
             self.PeriodicBackup.start()
@@ -191,12 +180,19 @@ class ScamGuard(DiscordBot):
         
         return BanLookup.Unbanned
     
+    async def ReprocessBansForInstance(self, InstanceID:int, LastActions:int):
+        if (InstanceID == self.BotID):
+            await self.ReprocessInstance(LastActions)
+        else:
+            self.ClientHandler.SendReprocessInstanceBans(InstanceId=InstanceID, InNumToRetry=LastActions)
+
     async def ReprocessBansForServer(self, ServerId:int, LastActions:int=0) -> BanResult:
         TargetBotId:int = self.Database.GetBotIdForServer(ServerId)
         if (TargetBotId == self.BotID):
             return await self.ReprocessBans(ServerId, LastActions)
         else:
             self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
+            return BanResult.Processed
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
         SenderName:str = Sender.name
