@@ -142,6 +142,8 @@ class RelayClient:
                 DataPayload={"TargetUser": TargetUserId}
             case RelayMessageType.LeaveServer:
                 DataPayload={"TargetServer": TargetServer}
+            case RelayMessageType.ReprocessInstance:
+                DataPayload={"NumToRetry": NumToRetry}
             case RelayMessageType.ReprocessBans:
                 DataPayload={"TargetServer": TargetServer, "NumToRetry": NumToRetry}
         
@@ -180,6 +182,11 @@ class RelayClient:
         if (self.BotID != ConfigData.ControlBotID):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessBans, Destination=InstanceId, TargetServer=ServerToRetry, NumToRetry=InNumToRetry))
+    
+    def SendReprocessInstanceBans(self, InstanceId, InNumToRetry:int=-1):
+        if (self.BotID != ConfigData.ControlBotID):
+            return
+        self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessInstance, Destination=InstanceId, NumToRetry=InNumToRetry))
     
     def SendCloseApplication(self, InstanceToTarget):
         if (self.BotID != ConfigData.ControlBotID):
@@ -226,6 +233,8 @@ class RelayClient:
                     Arguments = {"ServerId": RelayedMessage.Data["TargetServer"]}
                 case RelayMessageType.ReprocessBans:
                     Arguments = {"ServerId": RelayedMessage.Data["TargetServer"], "LastActions": RelayedMessage.Data["NumToRetry"]}
+                case RelayMessageType.ReprocessInstance:
+                    Arguments = {"LastActions": RelayedMessage.Data["NumToRetry"]}
 
             try:
                 if (Arguments is None):

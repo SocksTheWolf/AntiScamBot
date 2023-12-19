@@ -45,6 +45,7 @@ class DiscordBot(discord.Client):
         # Register functions for handling basic client actions
         self.ClientHandler.RegisterFunction(RelayMessageType.BanUser, self.BanUser)
         self.ClientHandler.RegisterFunction(RelayMessageType.UnbanUser, self.UnbanUser)
+        self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessInstance, self.ScheduleReprocessInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessBans, self.ScheduleReprocessBans)
         self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
@@ -359,6 +360,16 @@ class DiscordBot(discord.Client):
                 NumBans += 1
         Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
         return BanReturn
+    
+    async def ReprocessInstance(self, LastActions:int):
+        BanQueryResult = self.Database.GetAllBans(LastActions)
+        for Ban in BanQueryResult:
+            UserId:int = int(Ban[0])
+            AuthorizerName:str = Ban[1]
+            await self.ProcessActionOnUser(UserId, AuthorizerName, True)
+    
+    def ScheduleReprocessInstance(self, LastActions:int):
+        self.AddAsyncTask(self.ReprocessInstance(LastActions))
     
     def ScheduleReprocessBans(self, ServerId:int, LastActions:int=0):
         self.AddAsyncTask(self.ReprocessBans(ServerId, LastActions))

@@ -23,6 +23,7 @@ class RelayMessageType(CompareEnum):
   UnbanUser=auto()
   LeaveServer=auto()
   ReprocessBans=auto()
+  ReprocessInstance=auto()
   ProcessActivation=auto()
   ProcessDeactivation=auto()
   CloseApplication=auto()

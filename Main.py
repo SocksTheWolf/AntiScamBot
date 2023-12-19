@@ -67,6 +67,15 @@ if __name__ == '__main__':
         Logger.Log(LogLevel.Notice, ReturnStr)
         await interaction.response.send_message(ReturnStr)
         
+    @ScamGuardBot.Commands.command(name="retryactions", description="Forces the bot to retry last actions", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    @app_commands.describe(instance='Bot Instance ID To reimport', numactions='The number of actions to perform')
+    async def RetryActions(interaction:Interaction, instance:app_commands.Range[int, 0], numactions:app_commands.Range[int, 0]):
+        ScamGuardBot.AddAsyncTask(ScamGuardBot.ReprocessBansForInstance(instance, LastActions=numactions))
+        ReturnStr:str = f"Reprocessing the last {numactions} actions for instance {instance}"
+        Logger.Log(LogLevel.Notice, ReturnStr)
+        await interaction.response.send_message(ReturnStr)
+        
     @ScamGuardBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     async def PrintServers(interaction:Interaction):

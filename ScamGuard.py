@@ -180,12 +180,19 @@ class ScamGuard(DiscordBot):
         
         return BanLookup.Unbanned
     
+    async def ReprocessBansForInstance(self, InstanceID:int, LastActions:int):
+        if (InstanceID == self.BotID):
+            await self.ReprocessInstance(LastActions)
+        else:
+            self.ClientHandler.SendReprocessInstanceBans(InstanceId=InstanceID, InNumToRetry=LastActions)
+
     async def ReprocessBansForServer(self, ServerId:int, LastActions:int=0) -> BanResult:
         TargetBotId:int = self.Database.GetBotIdForServer(ServerId)
         if (TargetBotId == self.BotID):
             return await self.ReprocessBans(ServerId, LastActions)
         else:
             self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
+            return BanResult.Processed
         
     async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
         SenderName:str = Sender.name
