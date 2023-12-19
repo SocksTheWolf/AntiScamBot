@@ -5,6 +5,8 @@
     "ApproverRole": 1156092480069046292,
     "AnnouncementChannel": 1156110286508523570,
     "NotificationChannel": 1156305992829644800,
+    "ReportChannel": 1156667446472740935,
+    "ReportChannelTag": "scam report",
     "DeveloperRole": 1156322618044055712,
     "BotActivity": "Destroying Scammers...",
     "BotActivityDevelopment": "Running in development mode",
