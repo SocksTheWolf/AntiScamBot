@@ -13,7 +13,7 @@ class GlobalScamCommands(app_commands.Group):
      
     @app_commands.command(name="check", description="Checks to see if a discord id is banned")
     @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
+    @app_commands.checks.cooldown(1, 3.0)
     async def ScamCheck_Global(self, interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
         if (target <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
