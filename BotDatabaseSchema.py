@@ -26,10 +26,10 @@ class Server(Base):
     __tablename__ = "servers"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    bot_instance_id = Column(String(32), nullable=False)
+    bot_instance_id = Column(Integer, nullable=False, server_default="0")
     discord_server_id = Column(String(32), unique=True, nullable=False)
     owner_discord_user_id = Column(String(32), nullable=False)
     activation_state = Column(Integer, server_default="0")
-    activator_discord_user_id = Column(String(32), nullable=False)
+    activator_discord_user_id = Column(String(32), nullable=False, server_default='-1')
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime(), server_default=func.now(), onupdate=func.now())
