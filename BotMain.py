@@ -299,7 +299,10 @@ class DiscordBot(discord.Client):
         if (self.ReportChannel is None or self.ReportChannelTag is None):
             return
         
-        ImageEmbeds:list[discord.Embed] = []
+        PostEmbeds:list[discord.Embed] = []
+        if (ConfigData["AutoEmbedScamCheckOnReport"]):
+            PostEmbeds.append(await self.CreateBanEmbed(ReportData['ReportedUserId']))
+        
         ReasoningString:str = ""
         if (len(ReportData["Reasoning"])):
             ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
@@ -307,14 +310,15 @@ class DiscordBot(discord.Client):
         # Format the message that is going to be posted!
         ReportContent:str = f"""
         User ID: `{ReportData['ReportedUserId']}`
-        Username: {ReportData['ReportedUserName']}
-        Type Of Scam: {ReportData['TypeOfScam']}
-        {ReasoningString}
+Username: {ReportData['ReportedUserName']}
+Type Of Scam: {ReportData['TypeOfScam']}
+{ReasoningString}
         
-        Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]"""
+Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]
+"""
         
-        # Format all embeds into the list properly
-        NumEmbeds:int = 0
+        # Format all the image embeds into the list properly
+        NumEmbeds:int = len(PostEmbeds)
         for Evidence in ReportData["Evidence"]:
             if (NumEmbeds >= 10):
                 break
@@ -322,7 +326,7 @@ class DiscordBot(discord.Client):
             if (Evidence.startswith("https")):
                 NewEmbed:discord.Embed = discord.Embed()
                 NewEmbed.set_image(url=Evidence)
-                ImageEmbeds.append(NewEmbed)
+                PostEmbeds.append(NewEmbed)
                 NumEmbeds += 1
         
         try:
@@ -330,7 +334,7 @@ class DiscordBot(discord.Client):
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
                                          reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
-                                         embeds=ImageEmbeds)
+                                         embeds=PostEmbeds)
         except discord.Forbidden:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
