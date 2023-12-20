@@ -172,6 +172,11 @@ class DiscordBot(discord.Client):
                 if (GuildMember is not None):
                     if (self.UserHasElevatedPermissions(GuildMember)):
                         ServersWithPermissions.append(ServerId)
+                        Logger.Log(LogLevel.Log, f"User [{UserID}] is in server {Server.name} with permissions")
+                    else:
+                        Logger.Log(LogLevel.Verbose, f"User [{UserID}] does not have elevated permissions in {Server.name}")
+                else:
+                    Logger.Log(LogLevel.Verbose, f"User [{UserID}] is not in server {Server.name}")
         return ServersWithPermissions
     
     async def UserAccountExists(self, UserID:int) -> bool:
@@ -203,7 +208,10 @@ class DiscordBot(discord.Client):
             Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
         return None
     
-    def UserHasElevatedPermissions(self, User:discord.Member) -> bool:   
+    def UserHasElevatedPermissions(self, User:discord.Member) -> bool:
+        if (User is None):
+            return False
+         
         UserPermissions:discord.Permissions = User.guild_permissions 
         if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
             return True
@@ -213,6 +221,7 @@ class DiscordBot(discord.Client):
     async def ActivateServersWithPermissions(self, UserID:int) -> int:
         ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, True)
         NumServersWithPermissions:int = len(ServersWithPermissions)
+        Logger.Log(LogLevel.Log, f"User [{UserID}] has {NumServersWithPermissions} servers with acceptable permissions...")
         if (NumServersWithPermissions > 0):
             # TODO: instead of activating and reprocessing on our own, have this be sent by the listener controller
             #self.ClientHandler.SendElevatedResults(ServersWithPermissions)
