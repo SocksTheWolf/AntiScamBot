@@ -110,7 +110,7 @@ class ScamBotDatabase():
         server = self.Database.scalars(stmt).first()
 
         if (server is None):
-            Logger.Log(LogLevel.Warn, f"Bot had attempted to set new owner on non-existant server ")
+            Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to set new owner on non-assigned server: {ServerId}")
             return
         
         server.owner_discord_user_id = NewOwnerId
@@ -123,7 +123,7 @@ class ScamBotDatabase():
         server = self.Database.scalars(stmt).first()
 
         if (server is None):
-            Logger.Log(LogLevel.Warn, f"Attempted to remove an invalid server id: {ServerId}")
+            Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to remove an non-assigned server: {ServerId}")
             return
         
         self.Database.delete(server)
