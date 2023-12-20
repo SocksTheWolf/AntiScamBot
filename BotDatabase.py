@@ -96,7 +96,7 @@ class ScamBotDatabase():
                 bot_instance_id = BotID,
                 discord_server_id = Entry.id,
                 owner_discord_user_id = Entry.owner_id,
-                activator_discord_user_id = Entry.owner_id
+                activator_discord_user_id = -1
             )
             BotAdditionUpdates.append(server)
         
@@ -130,32 +130,29 @@ class ScamBotDatabase():
         self.Database.commit()
 
     def SetBotActivationForOwner(self, Servers:list[int], IsActive:bool, BotId:int, OwnerId:int=-1, ActivatorId:int=-1):
-        ActivationChanges:list[int] = []
-        ActivationAdditions:list[int] = []
+        NumActivationChanges = 0
+        NumActivationAdditions = 0
         ActiveVal = int(IsActive)
         
         for ServerId in Servers:
-            # This is if in the case of that this is the first time the bot has been added
-            # to the server
+            # If we're not in the server, and we've been given an OwnerId, then create the server
+            # IsActive SHOULD be False when passed in this manner
             if (not self.IsInServer(ServerId)):
-                # prevent garbage data from happening
                 if (OwnerId > 0):
-                    ActivationAdditions.append(ServerId)
+                    NumActivationAdditions += 1
 
                     serverToChange = Server(
                         bot_instance_id = BotId,
                         discord_server_id = ServerId,
                         owner_discord_user_id = OwnerId,
                         activation_state = ActiveVal,
-                        activator_discord_user_id = ActivatorId, 
+                        activator_discord_user_id = -1, 
                     )
-                    # should only be true on_guild_join, set for data integrity; ideally would be person who invited the bot to the guild
-                    if (ActivatorId == -1):
-                        serverToChange.activator_discord_user_id = OwnerId
 
                     self.Database.add(serverToChange)
+            # Otherwise, fetch the existing server and update it
             else:
-                ActivationChanges.append(ServerId)
+                NumActivationChanges += 1
 
                 stmt = select(Server).where(Server.discord_server_id==ServerId)
                 serverToChange = self.Database.scalars(stmt).first()
@@ -165,8 +162,6 @@ class ScamBotDatabase():
 
                 self.Database.add(serverToChange)
 
-        NumActivationAdditions:int = len(ActivationAdditions)
-        NumActivationChanges:int = len(ActivationChanges)
 
         if (NumActivationAdditions > 0):
             Logger.Log(LogLevel.Debug, f"We have {NumActivationAdditions} additions")
