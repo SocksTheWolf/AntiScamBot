@@ -123,7 +123,7 @@ def SetupDatabases():
         username='',
         password='',
         host='',
-        database='dbtest.db',
+        database=Config.GetDBFile(),
     )
 
     engine = create_engine(database_url)
@@ -133,7 +133,7 @@ def SetupDatabases():
     CurrentVersion=0
 
     # if the old table 'banslist' exists, then it is not using the new ORM versioning scheme and we need to migrate
-    # otherwise we are on the new schtema, and can query the the current database version from migration history
+    # otherwise we are on the new schema, and can query the the current database version from migration history
     if (inspect(engine).has_table("banslist") == True):
         query = text('PRAGMA user_version')
         CurrentVersion = session.execute(query).first()[0]
