@@ -1,7 +1,6 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanResult, BanLookup
 from Config import Config
-from datetime import datetime
 from BotMain import DiscordBot
 from BotConnections import RelayServer
 import discord
@@ -117,39 +116,6 @@ class ScamGuard(DiscordBot):
                 Logger.Log(LogLevel.Error, f"Could not publish message, as it did not send!")
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
-    
-    async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
-        BanData = self.Database.GetBanInfo(TargetId)
-        UserBanned:bool = (BanData is not None)
-        User:discord.User = await self.LookupUser(TargetId)
-        HasUserData:bool = (User is not None)
-        UserData = discord.Embed(title="User Data")
-        if (HasUserData):
-            UserData.add_field(name="Name", value=User.display_name)
-            UserData.add_field(name="Handle", value=User.mention)
-            # This will always be an approximation, plus they may be in servers the bot is not in.
-            if (ConfigData["ScamCheckShowsSharedServers"]):
-                UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
-            UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
-            UserData.set_thumbnail(url=User.display_avatar.url)
-        
-        UserData.add_field(name="Banned", value=f"{UserBanned}")
-        
-        # Figure out who banned them
-        if (UserBanned):
-            # BannerName, BannerId, Date
-            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
-            # Create a date time format (all of the database timestamps are in iso format)
-            DateTime:datetime = datetime.fromisoformat(BanData[2])
-            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
-            UserData.colour = discord.Colour.red()
-        elif (not HasUserData):
-            UserData.colour = discord.Colour.dark_orange()
-        else:
-            UserData.colour = discord.Colour.green()
-
-        UserData.set_footer(text=f"User ID: {TargetId}")
-        return UserData
 
     ### Ban Handling ###            
     async def PrepareBan(self, TargetId:int, Sender:discord.Member) -> BanLookup:        

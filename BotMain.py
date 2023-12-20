@@ -8,6 +8,7 @@ from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
+from datetime import datetime
 
 __all__ = ["DiscordBot"]
 
@@ -324,7 +325,41 @@ class DiscordBot(discord.Client):
         except discord.Forbidden:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")            
+            Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")
+
+    ### Utils ###
+    async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
+        BanData = self.Database.GetBanInfo(TargetId)
+        UserBanned:bool = (BanData is not None)
+        User:discord.User = await self.LookupUser(TargetId)
+        HasUserData:bool = (User is not None)
+        UserData = discord.Embed(title="User Data")
+        if (HasUserData):
+            UserData.add_field(name="Name", value=User.display_name)
+            UserData.add_field(name="Handle", value=User.mention)
+            # This will always be an approximation, plus they may be in servers the bot is not in.
+            if (ConfigData["ScamCheckShowsSharedServers"]):
+                UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
+            UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
+            UserData.set_thumbnail(url=User.display_avatar.url)
+        
+        UserData.add_field(name="Banned", value=f"{UserBanned}")
+        
+        # Figure out who banned them
+        if (UserBanned):
+            # BannerName, BannerId, Date
+            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
+            # Create a date time format (all of the database timestamps are in iso format)
+            DateTime:datetime = datetime.fromisoformat(BanData[2])
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
+            UserData.colour = discord.Colour.red()
+        elif (not HasUserData):
+            UserData.colour = discord.Colour.dark_orange()
+        else:
+            UserData.colour = discord.Colour.green()
+
+        UserData.set_footer(text=f"User ID: {TargetId}")
+        return UserData
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:

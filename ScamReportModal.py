@@ -14,8 +14,9 @@ class SubmitScamReport(ui.Modal):
                                         required=True)
     def __init__(self, InReportUser:Member|User):
         self.ReportedUser = InReportUser
-        TruncatedName:str = InReportUser.name[:20]
-        super().__init__(title=f"Report {TruncatedName}[{InReportUser.id}]")
+        TruncatedName:str = InReportUser.name[:19]
+        ModalTitle:str=f"Report {TruncatedName}[{InReportUser.id}]"[:45]
+        super().__init__(title=ModalTitle)
     
     async def on_submit(self, interaction: Interaction):                
         # Check to see if already banned.
