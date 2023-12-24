@@ -8,6 +8,7 @@ from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
+from datetime import datetime
 
 __all__ = ["DiscordBot"]
 
@@ -169,6 +170,11 @@ class DiscordBot(discord.Client):
                 if (GuildMember is not None):
                     if (self.UserHasElevatedPermissions(GuildMember)):
                         ServersWithPermissions.append(ServerId)
+                        Logger.Log(LogLevel.Log, f"User [{UserID}] is in server {Server.name} with permissions")
+                    else:
+                        Logger.Log(LogLevel.Verbose, f"User [{UserID}] does not have elevated permissions in {Server.name}")
+                else:
+                    Logger.Log(LogLevel.Verbose, f"User [{UserID}] is not in server {Server.name}")
         return ServersWithPermissions
     
     async def UserAccountExists(self, UserID:int) -> bool:
@@ -200,7 +206,10 @@ class DiscordBot(discord.Client):
             Logger.Log(LogLevel.Warn, f"Failed to fetch user {UserID}, got {str(httpEx)}")
         return None
     
-    def UserHasElevatedPermissions(self, User:discord.Member) -> bool:   
+    def UserHasElevatedPermissions(self, User:discord.Member) -> bool:
+        if (User is None):
+            return False
+         
         UserPermissions:discord.Permissions = User.guild_permissions 
         if (UserPermissions.administrator or (UserPermissions.manage_guild and UserPermissions.ban_members)):
             return True
@@ -210,6 +219,7 @@ class DiscordBot(discord.Client):
     async def ActivateServersWithPermissions(self, UserID:int) -> int:
         ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, True)
         NumServersWithPermissions:int = len(ServersWithPermissions)
+        Logger.Log(LogLevel.Log, f"User [{UserID}] has {NumServersWithPermissions} servers with acceptable permissions...")
         if (NumServersWithPermissions > 0):
             # TODO: instead of activating and reprocessing on our own, have this be sent by the listener controller
             #self.ClientHandler.SendElevatedResults(ServersWithPermissions)
@@ -287,7 +297,10 @@ class DiscordBot(discord.Client):
         if (self.ReportChannel is None or self.ReportChannelTag is None):
             return
         
-        ImageEmbeds:list[discord.Embed] = []
+        PostEmbeds:list[discord.Embed] = []
+        if (ConfigData["AutoEmbedScamCheckOnReport"]):
+            PostEmbeds.append(await self.CreateBanEmbed(ReportData['ReportedUserId']))
+        
         ReasoningString:str = ""
         if (len(ReportData["Reasoning"])):
             ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
@@ -295,14 +308,15 @@ class DiscordBot(discord.Client):
         # Format the message that is going to be posted!
         ReportContent:str = f"""
         User ID: `{ReportData['ReportedUserId']}`
-        Username: {ReportData['ReportedUserName']}
-        Type Of Scam: {ReportData['TypeOfScam']}
-        {ReasoningString}
+Username: {ReportData['ReportedUserName']}
+Type Of Scam: {ReportData['TypeOfScam']}
+{ReasoningString}
         
-        Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]"""
+Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]
+"""
         
-        # Format all embeds into the list properly
-        NumEmbeds:int = 0
+        # Format all the image embeds into the list properly
+        NumEmbeds:int = len(PostEmbeds)
         for Evidence in ReportData["Evidence"]:
             if (NumEmbeds >= 10):
                 break
@@ -310,7 +324,7 @@ class DiscordBot(discord.Client):
             if (Evidence.startswith("https")):
                 NewEmbed:discord.Embed = discord.Embed()
                 NewEmbed.set_image(url=Evidence)
-                ImageEmbeds.append(NewEmbed)
+                PostEmbeds.append(NewEmbed)
                 NumEmbeds += 1
         
         try:
@@ -318,11 +332,45 @@ class DiscordBot(discord.Client):
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
                                          reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
-                                         embeds=ImageEmbeds)
+                                         embeds=PostEmbeds)
         except discord.Forbidden:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
-            Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")            
+            Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")
+
+    ### Utils ###
+    async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
+        BanData = self.Database.GetBanInfo(TargetId)
+        UserBanned:bool = (BanData is not None)
+        User:discord.User = await self.LookupUser(TargetId)
+        HasUserData:bool = (User is not None)
+        UserData = discord.Embed(title="User Data")
+        if (HasUserData):
+            UserData.add_field(name="Name", value=User.display_name)
+            UserData.add_field(name="Handle", value=User.mention)
+            # This will always be an approximation, plus they may be in servers the bot is not in.
+            if (ConfigData["ScamCheckShowsSharedServers"]):
+                UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
+            UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
+            UserData.set_thumbnail(url=User.display_avatar.url)
+        
+        UserData.add_field(name="Banned", value=f"{UserBanned}")
+        
+        # Figure out who banned them
+        if (UserBanned):
+            # BannerName, BannerId, Date
+            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
+            # Create a date time format (all of the database timestamps are in iso format)
+            DateTime:datetime = datetime.fromisoformat(BanData[2])
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
+            UserData.colour = discord.Colour.red()
+        elif (not HasUserData):
+            UserData.colour = discord.Colour.dark_orange()
+        else:
+            UserData.colour = discord.Colour.green()
+
+        UserData.set_footer(text=f"User ID: {TargetId}")
+        return UserData
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
