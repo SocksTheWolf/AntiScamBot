@@ -410,8 +410,8 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
     async def ReprocessInstance(self, LastActions:int):
         BanQueryResult = self.Database.GetAllBans(LastActions)
         for Ban in BanQueryResult:
-            UserId:int = int(Ban[0])
-            AuthorizerName:str = Ban[1]
+            UserId:int = Ban.discord_user_id
+            AuthorizerName:str = Ban.assigner_discord_user_name
             await self.ProcessActionOnUser(UserId, AuthorizerName, True)
     
     def ScheduleReprocessInstance(self, LastActions:int):
