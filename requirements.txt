@@ -1,4 +1,6 @@
 colorama==0.4.6
 discord.py==2.3.2
 python-dotenv==1.0.0
+sqlalchemy
+sqlalchemy.orm
 logger_tt

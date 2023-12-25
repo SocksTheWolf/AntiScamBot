@@ -3,7 +3,9 @@ from BotEnums import BanLookup
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
-import sqlite3
+from BotDatabaseSchema import Ban, Server
+from sqlalchemy import create_engine, select, URL, asc, desc
+from sqlalchemy.orm import Session
 
 class ScamBotDatabase():
     Database = None
@@ -17,11 +19,19 @@ class ScamBotDatabase():
 
     def Open(self):
         self.Close()
-        self.Database = sqlite3.connect(Config.GetDBFile())
-        
+
+        database_url = URL.create(
+            'sqlite',
+            username='',
+            password='',
+            host='',
+            database=Config.GetDBFile(),
+        )
+        self.Database = Session(create_engine(database_url))
+
     def Close(self):
         if (self.IsConnected()):
-            self.Database.close()
+            self.Database.get_bind().dispose()
             self.Database = None
             
     def IsConnected(self) -> bool:
@@ -80,64 +90,99 @@ class ScamBotDatabase():
                 
     ### Adding/Updating/Removing Server Entries ###
     def AddBotGuilds(self, ListOwnerAndServerTuples, BotID:int):
-        BotAdditionUpdates = []
+        BotAdditionUpdates:list[Server] = []
         for Entry in ListOwnerAndServerTuples:
-            BotAdditionUpdates.append(Entry + (-1, 0, BotID))
+            server = Server(
+                bot_instance_id = BotID,
+                discord_server_id = Entry.id,
+                owner_discord_user_id = Entry.owner_id,
+                activator_discord_user_id = -1
+            )
+            BotAdditionUpdates.append(server)
         
-        self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", BotAdditionUpdates)
+        self.Database.bulk_save_objects(BotAdditionUpdates)
         self.Database.commit()
+
         Logger.Log(LogLevel.Notice, f"Bot #{BotID} had {len(BotAdditionUpdates)} new server updates")
         
     def SetNewServerOwner(self, ServerId:int, NewOwnerId:int, BotId:int):
-        ActivationChanges = []
-        ActivationChanges.append({"Id": ServerId, "OwnerId": NewOwnerId, "BotId": BotId})
-        self.Database.executemany("UPDATE servers SET OwnerId=:OwnerId WHERE Id=:Id AND Instance=:BotId", ActivationChanges)
-        self.Database.commit()
+        stmt = select(Server).where((Server.discord_server_id==ServerId) & (Server.bot_instance_id==BotId))
+        server = self.Database.scalars(stmt).first()
+
+        if (server is None):
+            Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to set new owner on non-assigned server: {ServerId}")
+            return
         
+        server.owner_discord_user_id = NewOwnerId
+
+        self.Database.add(server)
+        self.Database.commit()
+           
     def RemoveServerEntry(self, ServerId:int, BotId:int):
-        if (self.IsInServer(ServerId)):  
-            self.Database.execute(f"DELETE FROM servers WHERE Id={ServerId} AND Instance={BotId}")
-            self.Database.commit()
-        else:
-            Logger.Log(LogLevel.Warn, f"Attempted to remove server {ServerId} but we are not in that list!")
-    
-    def SetBotActivationForOwner(self, Servers, IsActive:bool, BotId:int, OwnerId:int=-1, ActivatorId:int=-1):
-        ActivationChanges = []
-        ActivationAdditions = []
+        stmt = select(Server).where((Server.discord_server_id==ServerId) & (Server.bot_instance_id==BotId))
+        server = self.Database.scalars(stmt).first()
+
+        if (server is None):
+            Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to remove an non-assigned server: {ServerId}")
+            return
+        
+        self.Database.delete(server)
+        self.Database.commit()
+
+    def SetBotActivationForOwner(self, Servers:list[int], IsActive:bool, BotId:int, OwnerId:int=-1, ActivatorId:int=-1):
+        NumActivationChanges = 0
+        NumActivationAdditions = 0
         ActiveVal = int(IsActive)
         
         for ServerId in Servers:
-            # This is if in the case of that this is the first time the bot has been added
-            # to the server
+            # If we're not in the server, and we've been given an OwnerId, then create the server
+            # IsActive SHOULD be False when passed in this manner
             if (not self.IsInServer(ServerId)):
-                # prevent garbage data from happening
                 if (OwnerId > 0):
-                    ActivationAdditions.append((ServerId, OwnerId, ActiveVal, ActivatorId, BotId))
+                    NumActivationAdditions += 1
+
+                    serverToChange = Server(
+                        bot_instance_id = BotId,
+                        discord_server_id = ServerId,
+                        owner_discord_user_id = OwnerId,
+                        activation_state = ActiveVal,
+                        activator_discord_user_id = -1, 
+                    )
+
+                    self.Database.add(serverToChange)
+            # Otherwise, fetch the existing server and update it
             else:
-                ActivationChanges.append({"Id": ServerId, "ActivatorId": ActivatorId, "Activated": ActiveVal, "BotId": BotId})
-        
-        NumActivationAdditions:int = len(ActivationAdditions)
-        NumActivationChanges:int = len(ActivationChanges)
+                NumActivationChanges += 1
+
+                stmt = select(Server).where(Server.discord_server_id==ServerId)
+                serverToChange = self.Database.scalars(stmt).first()
+                
+                serverToChange.activation_state = ActiveVal
+                serverToChange.activator_discord_user_id = ActivatorId
+
+                self.Database.add(serverToChange)
+
+
         if (NumActivationAdditions > 0):
             Logger.Log(LogLevel.Debug, f"We have {NumActivationAdditions} additions")
-            self.Database.executemany("INSERT INTO servers VALUES(?, ?, ?, ?, ?)", ActivationAdditions)
+
         if (NumActivationChanges > 0):
-            self.Database.executemany("UPDATE servers SET Activated=:Activated, ActivatorId=:ActivatorId WHERE Id=:Id AND Instance=:BotId", ActivationChanges)
             Logger.Log(LogLevel.Notice, f"Server activation changed in {NumActivationChanges} servers to {str(IsActive)} by {ActivatorId}")
+
         self.Database.commit()
         
     ### Reconcile Servers ###
     def ReconcileServers(self, Servers, BotId:int):       
         NewAdditions = []
         # Discord Guild IDs that we will later use to remove
-        ServersIn = []
+        ServersIn:list[int] = []
         # Control server id
         ControlServerID:int = Config().ControlServer
         # Loop through all the servers we are in and grab their guild ids
         for DiscordServer in Servers:
             # Check to see if we know about this server already.
             if (not self.IsInServer(DiscordServer.id)):
-                NewAdditions.append((DiscordServer.id, DiscordServer.owner_id))
+                NewAdditions.append(DiscordServer)
             
             # Ignore the control server but add any other servers to this list.
             if (DiscordServer.id != ControlServerID):
@@ -149,12 +194,12 @@ class ScamBotDatabase():
 
         # Check the current list of servers vs what the database has
         # to see if there are any servers we need to remove
-        res = self.Database.execute(f"SELECT Id FROM servers WHERE Instance={BotId} AND NOT Id={ControlServerID}")
-        AllServersWithThisBot = res.fetchall()
+        stmt = select(Server).where((Server.discord_server_id!=ControlServerID) & (Server.bot_instance_id==BotId))
+        AllServersWithThisBot = list(self.Database.scalars(stmt).all())
         Logger.Log(LogLevel.Debug, f"Bot #{BotId} server count: {len(AllServersWithThisBot)} with discord in {len(ServersIn)}")
         # Go through all the servers in the database for this bot
         for InServerId in AllServersWithThisBot:
-            ServerId = InServerId[0]
+            ServerId = int(InServerId.discord_server_id)
             try:
                 # If we are in the server, then we remove the entry from the list of servers
                 # we are in. This is because this list will be used later to remove entries that
@@ -173,103 +218,124 @@ class ScamBotDatabase():
             return
 
         for ServerToRemove in ServersIn:
-            self.Database.execute(f"DELETE FROM servers where Id={ServerToRemove} AND Instance={BotId}")
-            self.Database.commit()
+            self.RemoveServerEntry(ServerToRemove, BotId)
             Logger.Log(LogLevel.Warn, f"Bot #{BotId} has been removed from server {ServerToRemove}")
 
     ### Query Status ###
     def IsInServer(self, ServerId:int) -> bool:
-        res = self.Database.execute(f"SELECT * FROM servers WHERE Id={ServerId}")
-        if (res.fetchone() is None):
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+        if (server is None):
             return False
-        else:
-            return True
+        return True
     
     def IsActivatedInServer(self, ServerId:int) -> bool:
         if (not self.IsInServer(ServerId)):
             return False
-        
-        res = self.Database.execute(f"SELECT Activated FROM servers WHERE Id={ServerId}")
-        FetchResult = res.fetchone()
-        if (FetchResult[0] == 0):
-            return False
-        else:
+
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+
+        if (server.activation_state):
             return True
 
+        return False
+
     def DoesBanExist(self, TargetId:int) -> bool:
-        result = self.Database.execute(f"SELECT * FROM banslist WHERE Id={TargetId}")
-        if (result.fetchone() is None):
+        stmt = select(Ban).where(Ban.discord_user_id==TargetId)
+        result = self.Database.scalars(stmt).first()
+
+        if (result is None):
             return False
-        else:
-            return True
+
+        return True
     
     # Returns the banner's name, the id and the date
-    def GetBanInfo(self, TargetId:int):
-        return self.Database.execute(f"SELECT BannerName, BannerId, Date FROM banslist WHERE Id={TargetId}").fetchone()
+    def GetBanInfo(self, TargetId:int) -> Ban:
+        stmt = select(Ban).where(Ban.discord_user_id==TargetId)
+        return self.Database.scalars(stmt).first()
 
     ### Adding/Removing Bans ###
     def AddBan(self, TargetId:int, BannerName:str, BannerId:int) -> BanLookup:
-        try:
-            if (self.DoesBanExist(TargetId)):
-                return BanLookup.Duplicate
-        except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Got error {str(ex)}")
-            return BanLookup.DBError
-        
-        data = [(TargetId, BannerName, BannerId, datetime.now())]
-        self.Database.executemany("INSERT INTO banslist VALUES(?, ?, ?, ?)", data)
+        if (self.DoesBanExist(TargetId)):
+            return BanLookup.Duplicate
+
+        ban = Ban(
+            discord_user_id = TargetId,
+            assigner_discord_user_id = BannerId,
+            assigner_discord_user_name = BannerName
+        )
+
+        self.Database.add(ban)
         self.Database.commit()
-        
+
         return BanLookup.Good
     
-    def RemoveBan(self, TargetId:int):
-        try:
-            if (not self.DoesBanExist(TargetId)):
-                return BanLookup.NotExist
-        except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Got error {str(ex)}")
-            return BanLookup.DBError
+    def RemoveBan(self, TargetId:int) -> BanLookup:
+        if (not self.DoesBanExist(TargetId)):
+            return BanLookup.NotExist
         
-        self.Database.execute(f"DELETE FROM banslist where Id={TargetId}")
+        stmt = select(Ban).where(Ban.discord_user_id==TargetId)
+        ban = self.Database.scalars(stmt).first()
+
+        self.Database.delete(ban)
         self.Database.commit()
-        
+
         return BanLookup.Good
     
     ### Getting Server Information ###
-    def GetAllServersOfOwner(self, OwnerId:int):
-        ServersOwnedQuery = self.Database.execute(f"SELECT Activated, Id FROM servers WHERE OwnerId={OwnerId}")
-        return ServersOwnedQuery.fetchall()
-    
+    def GetAllServersOfOwner(self, OwnerId:int) -> list[Server]:
+        stmt = select(Server).where(Server.owner_discord_user_id==OwnerId)
+        servers = self.Database.scalars(stmt).all()
+        
+        if (not len(servers)):
+            Logger.Log(LogLevel.Warn, f"Failed to load servers for given discord user id of: {OwnerId}!")
+        
+        return list(servers)
+        
     def GetOwnerOfServer(self, ServerId:int) -> int:
-        ServersOwnedQuery = self.Database.execute(f"SELECT OwnerId FROM servers WHERE Id={ServerId}")
-        return ServersOwnedQuery.fetchone()[0]
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+
+        if (server is None):
+            Logger.Log(LogLevel.Warn, f"Tried to load owner for non existant server: {ServerId}!")
+            return None
+
+        return int(server.owner_discord_user_id)
     
     def GetBotIdForServer(self, ServerId:int) -> int:
-        ServerIdQuery = self.Database.execute(f"SELECT Instance FROM servers WHERE Id={ServerId}")
-        return ServerIdQuery.fetchone()[0]
-    
-    def GetAllBans(self, NumLastActions:int=0):
-        LimitStr:str = ""
-        if (NumLastActions > 0):
-            LimitStr = f" LIMIT {NumLastActions}"
-        BansListQuery = self.Database.execute(f"SELECT Id, BannerName FROM banslist ORDER BY ROWID DESC{LimitStr}")
-        return BansListQuery.fetchall()
-    
-    def GetAllServers(self, ActivatedOnly:bool=False, OfBotInstance:int=-1):
-        SearchFilter:str = ""
-        if (ActivatedOnly):
-            SearchFilter = " WHERE Activated=1"
-            if (OfBotInstance > -1):
-                SearchFilter = f"{SearchFilter} AND Instance={OfBotInstance}"
-        elif (OfBotInstance > -1):
-            SearchFilter = f" WHERE Instance={OfBotInstance}"
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+
+        if (server is None):
+            Logger.Log(LogLevel.Warn, f"Tried to load bot instance for non existant server: {ServerId}!")
+            return None
+
+        return int(server.bot_instance_id)
+
+    def GetAllBans(self, NumLastActions:int=0) -> list[Ban]:
+        stmt = select(Ban).order_by(desc(Ban.created_at))
         
-        AllServersQuery = self.Database.execute(f"SELECT Id, OwnerId, Activated, Instance FROM servers{SearchFilter}")
-        return AllServersQuery.fetchall()
+        if (NumLastActions):
+            stmt = stmt.limit(NumLastActions)
+        
+        return list(self.Database.scalars(stmt).all())
     
-    def GetAllActivatedServers(self, OfInstance:int=-1):
+    def GetAllServers(self, ActivationState:bool=False, OfInstance:int=-1) -> list[Server]:
+        stmt = select(Server)
+
+        if (ActivationState):
+            stmt = stmt.where(Server.activation_state==ActivationState)
+
+        if (OfInstance > -1):
+            stmt = stmt.where(Server.bot_instance_id==OfInstance)
+
+        return list(self.Database.scalars(stmt).all())
+    
+    def GetAllActivatedServers(self, OfInstance:int=-1) -> list[Server]:
         return self.GetAllServers(True, OfInstance)
     
-    def GetAllDeactivatedServers(self):
-        AllServersQuery = self.Database.execute(f"SELECT Id, OwnerId, Activated, Instance FROM servers WHERE Activated=0")
-        return AllServersQuery.fetchall()
+    def GetAllDeactivatedServers(self) -> list[Server]:
+        stmt = select(Server).where(Server.activation_state==False)
+
+        return list(self.Database.scalars(stmt).all())

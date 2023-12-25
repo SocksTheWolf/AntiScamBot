@@ -8,7 +8,6 @@ from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
-from datetime import datetime
 
 __all__ = ["DiscordBot"]
 
@@ -54,8 +53,6 @@ class DiscordBot(discord.Client):
 
     def __del__(self):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
-        if (self.Database is not None):
-            self.Database.Close()
             
     async def setup_hook(self):
         CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
@@ -361,10 +358,9 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         # Figure out who banned them
         if (UserBanned):
             # BannerName, BannerId, Date
-            UserData.add_field(name="Banned By", value=f"{BanData[0]}", inline=False)
+            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_id}", inline=False)
             # Create a date time format (all of the database timestamps are in iso format)
-            DateTime:datetime = datetime.fromisoformat(BanData[2])
-            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(BanData.updated_at)}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):
             UserData.colour = discord.Colour.dark_orange()
@@ -394,9 +390,9 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
                 else:
                     ActionsAppliedThisLoop += 1
 
-            UserId:int = int(Ban[0])
+            UserId:int = int(Ban.discord_user_id)
             UserToBan = discord.Object(UserId)
-            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban[1]}", True)
+            BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban.assigner_discord_user_name}", True)
             # See if the ban did go through.
             if (BanResponse[0] == False):
                 BanResponseFlag:BanResult = BanResponse[1]
@@ -412,8 +408,8 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
     async def ReprocessInstance(self, LastActions:int):
         BanQueryResult = self.Database.GetAllBans(LastActions)
         for Ban in BanQueryResult:
-            UserId:int = int(Ban[0])
-            AuthorizerName:str = Ban[1]
+            UserId:int = Ban.discord_user_id
+            AuthorizerName:str = Ban.assigner_discord_user_name
             await self.ProcessActionOnUser(UserId, AuthorizerName, True)
     
     def ScheduleReprocessInstance(self, LastActions:int):
@@ -453,7 +449,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
                 else:
                     ActionsAppliedThisLoop += 1
                 
-            ServerId:int = ServerData[0]
+            ServerId:int = int(ServerData.discord_server_id)
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, IsBan)
