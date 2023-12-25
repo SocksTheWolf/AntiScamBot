@@ -88,7 +88,7 @@ if __name__ == '__main__':
         QueryResults = ScamGuardBot.Database.GetAllServers(False)
         for BotServers in QueryResults:
             IsActivated:bool = bool(BotServers.activation_state)
-            ReplyStr += f"#{RowNum}: Inst {BotServers.activator_discord_user_id}, Server {BotServers.discord_server_id}, Owner {BotServers.owner_discord_user_id}, Activated {str(IsActivated)}\n"
+            ReplyStr += f"#{RowNum}: Inst {BotServers.bot_instance_id}, Server {BotServers.discord_server_id}, Owner {BotServers.owner_discord_user_id}, Activated {str(IsActivated)}\n"
             RowNum += 1
             if (IsActivated):
                 ActivatedServers += 1
