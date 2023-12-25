@@ -258,8 +258,14 @@ class DiscordBot(discord.Client):
             Logger.SetNotificationCallback(self.PostNotification)
 
         self.Database.ReconcileServers(self.guilds, self.BotID)
-        self.HandleRelayMessages.start()
-        self.PostLogMessages.start()
+        
+        # If our task is not already running, start it. 
+        # We do this check because on_ready could be called again on reconnections.
+        if (not self.HandleRelayMessages.is_running()):
+            self.HandleRelayMessages.start()
+            
+        if (not self.HandleRelayMessages.is_running()):
+            self.PostLogMessages.start()
 
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has started! Is Development? {ConfigData.IsDevelopment()}")
     

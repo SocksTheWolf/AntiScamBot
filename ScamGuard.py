@@ -17,6 +17,7 @@ class ScamGuard(DiscordBot):
     AnnouncementChannel = None
     ServerHandler:RelayServer = None
     HasLooped:bool = False
+    HasStartedInstances:bool = False
     SubProcess={}
 
     ### Initialization ###
@@ -84,18 +85,28 @@ class ScamGuard(DiscordBot):
     ### Discord Eventing ###
     async def on_ready(self):
         await super().on_ready()
+        await self.StartAllInstances()
+
+    ### Starting instances ###
+    async def StartAllInstances(self):
+        # Prevent us from restarting instances when on_ready may run again.
+        if (self.HasStartedInstances):
+            return
         
         # Spin up all the subinstances of the other bot clients
         AllInstances = Config.GetAllSubTokens()
         for InstanceID in AllInstances:
-            ToNum:int = int(InstanceID)
-            Logger.Log(LogLevel.Debug, f"Attempting to load {ToNum}")
-            if (ToNum == 0):
-                continue
+            await self.StartInstance(int(InstanceID))
             
-            Logger.Log(LogLevel.Log, f"Spinning up instance #{ToNum}")
-            self.SubProcess[ToNum] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), ToNum))
-            self.SubProcess[ToNum].start()
+        self.HasStartedInstances = True
+            
+    async def StartInstance(self, InstanceID:int):
+        if (InstanceID == 0):
+            return
+        
+        Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
+        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), InstanceID))
+        self.SubProcess[InstanceID].start()
 
     ### Command Processing & Utils ###    
     async def PublishAnnouncement(self, Message:str|discord.Embed):

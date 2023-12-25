@@ -61,11 +61,20 @@ class RelayServer:
     async def TickRelay(self):
         if (self.ShouldStop):
             return
+        
+        # Split the exceptions here to try to trace down what can cause an EOF (I assume it's recv's wait)
         try:
             self.ListenForConnections()
+        except Exception as exlisten:
+            Logger.Log(LogLevel.Error, f"Encountered error while handling listening, stopping server! Exception type: {type(exlisten)} | message: {str(exlisten)} | trace: {traceback.format_stack()}")
+            self.ShouldStop = True
+            return
+        
+        # If it is this that is throwing an exception, we'll probably need to do cleanup of the connection array. 
+        try:
             self.HandleRecv()
         except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
+            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server recv, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
             self.ShouldStop = True
 
     def ListenForConnections(self):
