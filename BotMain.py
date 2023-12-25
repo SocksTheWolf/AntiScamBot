@@ -264,7 +264,7 @@ class DiscordBot(discord.Client):
         if (not self.HandleRelayMessages.is_running()):
             self.HandleRelayMessages.start()
             
-        if (not self.HandleRelayMessages.is_running()):
+        if (not self.PostLogMessages.is_running()):
             self.PostLogMessages.start()
 
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has started! Is Development? {ConfigData.IsDevelopment()}")
