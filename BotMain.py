@@ -8,7 +8,6 @@ from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
-from datetime import datetime
 
 __all__ = ["DiscordBot"]
 
@@ -361,8 +360,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
             # BannerName, BannerId, Date
             UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_id}", inline=False)
             # Create a date time format (all of the database timestamps are in iso format)
-            DateTime:datetime = datetime.fromisoformat(BanData.updated_at)
-            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(DateTime)}", inline=False)
+            UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(BanData.updated_at)}", inline=False)
             UserData.colour = discord.Colour.red()
         elif (not HasUserData):
             UserData.colour = discord.Colour.dark_orange()
