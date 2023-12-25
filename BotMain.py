@@ -357,7 +357,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         
         # Figure out who banned them
         if (UserBanned):
-            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_id}", inline=False)
+            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_name}", inline=False)
             # Create a date time format (all of the database timestamps are in iso format)
             UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(BanData.created_at)}", inline=False)
             # Push a last updated field if the time stamps aren't the same
