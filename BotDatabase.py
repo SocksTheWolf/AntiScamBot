@@ -3,7 +3,7 @@ from BotEnums import BanLookup
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
-from BotDatabaseSchema import Ban, Server
+from BotDatabaseSchema import Ban, Server, Report
 from sqlalchemy import create_engine, select, URL, asc, desc
 from sqlalchemy.orm import Session
 
@@ -282,6 +282,43 @@ class ScamBotDatabase():
         self.Database.commit()
 
         return BanLookup.Good
+    
+    ### Thread tracking for reports ###
+    def AddThreadTracking(self, TargetUser:int, ThreadId:int):
+        if (self.IsThreadTracked(TargetUser, ThreadId)):
+            return
+        
+        report = Report(
+            reported_user_id = TargetUser,
+            thread_id = ThreadId
+        )
+        self.Database.add(report)
+        self.Database.commit()
+        
+    def RemoveThreadTracking(self, TargetUser:int, ThreadId:int) -> bool:
+        if (not self.IsThreadTracked(TargetUser, ThreadId)):
+            return False
+        
+        stmt = select(Report).where((Report.reported_user_id==TargetUser) & (Report.thread_id==ThreadId))
+        result = self.Database.scalars(stmt).first()
+        
+        if (result is not None):
+            self.Database.delete(result)
+            self.Database.commit()
+            return True
+        
+        return False
+        
+    def IsThreadTracked(self, TargetUser:int, ThreadId:int) -> bool:
+        if (ThreadId <= 0 or TargetUser <= 0):
+            return False
+        
+        stmt = select(Report).where((Report.reported_user_id==TargetUser) & (Report.thread_id==ThreadId))
+        result = self.Database.scalars(stmt).first()
+        if (result is None):
+            return False
+        
+        return True
     
     ### Getting Server Information ###
     def GetAllServersOfOwner(self, OwnerId:int) -> list[Server]:

@@ -4,10 +4,10 @@ from sqlalchemy import create_engine, select, text, URL, desc
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session
 from datetime import datetime
-from BotDatabaseSchema import Base, Migration, Ban, Server
+from BotDatabaseSchema import Base, Migration, Ban, Server, Report
 
 class DatabaseMigrator:
-    DATABASE_VERSION=3
+    DATABASE_VERSION=4
     VersionMap={}
     DatabaseCon=None
     
@@ -92,7 +92,7 @@ class DatabaseMigrator:
         session.commit()
 
         # create all the new tables
-        Base.metadata.create_all(self.DatabaseCon)
+        Base.metadata.create_all(self.DatabaseCon, tables=[Migration, Ban, Server])
 
         # insert newly formatted data
         session.bulk_save_objects(newBanList)
@@ -114,6 +114,23 @@ class DatabaseMigrator:
         session.commit()
 
         return True
+    
+    def upgrade_version3to4(self) -> bool:
+        session = Session(self.DatabaseCon)
+        
+        # Just only create the Report table, 
+        Base.metadata.create_all(self.DatabaseCon, tables=[Report])
+        
+        # store completed migration version
+        dbVersion = Migration(
+            database_version = self.DATABASE_VERSION
+        )
+        session.add(dbVersion)
+        session.execute(text(f"PRAGMA user_version = 4"))
+
+        session.commit()
+        return True
+        
 
 def SetupDatabases():
     Logger.Log(LogLevel.Notice, "Loading database for scam bot setup")

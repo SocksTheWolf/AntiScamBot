@@ -2,7 +2,7 @@ from Logger import Logger, LogLevel
 from BotEnums import BanLookup
 from Config import Config
 from CommandHelpers import TargetIdTransformer, ServerIdTransformer, CommandErrorHandler
-from discord import app_commands, Interaction, Member, Embed, Object, Webhook
+from discord import app_commands, Interaction, Member, Embed, Object, Webhook, Thread
 from BotSetup import SetupDatabases
 from ScamGuard import ScamGuard
 from ConfirmBanView import ConfirmBan
@@ -180,6 +180,47 @@ if __name__ == '__main__':
         
         ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
         await interaction.response.send_message(embed = ResponseEmbed)
-    
+        
+    @ScamGuardBot.Commands.command(name="scamtrack", description="Tracks a thread for a given user", guild=CommandControlServer)
+    @app_commands.describe(target='The discord id for the user of the current thread')
+    async def ScamThreadTrack(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
+        if (target <= -1):
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+            return
+        
+        # Make sure that the data is valid, and this is of a thread type.
+        if (interaction.channel is None or interaction.channel_id is None or type(interaction.channel) != Thread):
+            await interaction.response.send_message("This command can only be ran in threads!", ephemeral=True, delete_after=5.0)
+            return
+        
+        # Pull the thread id and see if it's already been added
+        ThreadID:int = interaction.channel_id
+        if (ScamGuardBot.Database.IsThreadTracked(target, ThreadID)):
+            await interaction.response.send_message("This thread is already tracked!", ephemeral=True, delete_after=5.0)
+            return
+        
+        # Add the thread to track, and reply to the user
+        ScamGuardBot.Database.AddThreadTracking(target, ThreadID)
+        await interaction.response.send_message(f"Registered this thread for user {target}")
+        
+    @ScamGuardBot.Commands.command(name="scamuntrack", description="Untracks a thread for a given user", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["ApproverRole"])
+    @app_commands.describe(target='The discord id for the user of the current thread')
+    async def ScamThreadUntrack(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
+        if (target <= -1):
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+            return
+        
+        # Make sure that the data is valid, and this is of a thread type.
+        if (interaction.channel is None or interaction.channel_id is None or type(interaction.channel) != Thread):
+            await interaction.response.send_message("This command can only be ran in threads!", ephemeral=True, delete_after=5.0)
+            return
+
+        # Remove the thread to track and respond appropriately.
+        if (ScamGuardBot.Database.RemoveThreadTracking(target, interaction.channel_id)):
+            await interaction.response.send_message(f"Unregistered this thread for user {target}")
+        else:
+            await interaction.response.send_message(f"This thread was not being tracked for {target}", ephemeral=True, delete_after=5.0)
+        
     SetupDatabases()
     ScamGuardBot.run(ConfigData.GetToken())
