@@ -28,13 +28,16 @@ class RelayMessage:
 
 class RelayServer:
     Connections=[]
-    ConnectionsToInstances={}
+    InstancesToConnections={}
     FileLocation:str = ""
     ShouldStop:bool = False
+    HasDirtyConnection:bool = False
     ControlBotId:int = -1
+    BotInstance = None
     
-    def __init__(self, InControlBotId:int):
+    def __init__(self, InControlBotId:int, InBotInstance=None):
         self.ControlBotId = InControlBotId
+        self.BotInstance = InBotInstance
         if (os.name == "posix"):
             self.ListenSocket = Listener(None, "AF_UNIX", backlog=10)
             self.FileLocation = self.ListenSocket.address
@@ -53,29 +56,71 @@ class RelayServer:
         
     def __del__(self):
         self.ShouldStop = True
-        # TODO: We could be handling sending death notes to all other processes
         
     def GetFileLocation(self):
         return self.FileLocation
+    
+    def GetInstanceForConnection(self, Connection) -> int:
+        for key, value in enumerate(self.InstancesToConnections):
+            if (value == Connection):
+                return key
+            
+        return -1
+       
+    async def CleanConnections(self):
+        Logger.Log(LogLevel.Notice, "Starting error correction of dirty connections")
+        ConnectionsToRestart:list[int] = []
+        for idx, Connection in enumerate(self.Connections):
+            # Check to see if the connection is dead. 
+            # We do this by checking if the connection is closed, or not readable/writable
+            # If the connection does not give us an error, then it is still good.
+            if (not (Connection.closed or not Connection.readable or not Connection.writable)):
+                Logger.Log(LogLevel.Verbose, f"Connection index {idx} was skipped because it had no bad state flags")
+                continue
+            
+            ConInstance:int = self.GetInstanceForConnection(Connection)
+            # Check to see if we have a connection here that was established, we will try to restart it.
+            if (ConInstance != -1):
+                ConnectionsToRestart.append(ConInstance)
+                del self.InstancesToConnections[ConInstance]
+                
+            # None out the connection. It is dead to us.
+            self.Connections[idx] = None
+        
+        # Clean out the connections that have been blanked out from the above loop.
+        self.Connections[:] = [x for x in self.Connections if x is not None]
+        
+        Logger.Log(LogLevel.Log, f"There are now {len(self.Connections)} connections after cleanup and {len(ConnectionsToRestart)} connections to restart")
+        
+        # Restart any instances here.
+        if (self.BotInstance is not None):
+            for InstanceNum in ConnectionsToRestart:
+                await self.BotInstance.StartInstance(InstanceNum)
+        
+        # Clear the dirty flag so we can continue execution
+        self.HasDirtyConnection = False
 
     async def TickRelay(self):
         if (self.ShouldStop):
             return
         
-        # Split the exceptions here to try to trace down what can cause an EOF (I assume it's recv's wait)
+        # Restart any dirty connections
+        if (self.HasDirtyConnection):
+            await self.CleanConnections()
+            return
+
         try:
             self.ListenForConnections()
-        except Exception as exlisten:
-            Logger.Log(LogLevel.Error, f"Encountered error while handling listening, stopping server! Exception type: {type(exlisten)} | message: {str(exlisten)} | trace: {traceback.format_stack()}")
+        except Exception as ex:
+            Logger.Log(LogLevel.Error, f"Encountered error while handling connections, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
             self.ShouldStop = True
             return
-        
-        # If it is this that is throwing an exception, we'll probably need to do cleanup of the connection array. 
+
         try:
             self.HandleRecv()
-        except Exception as ex:
-            Logger.Log(LogLevel.Error, f"Encountered error while handling relay server recv, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
-            self.ShouldStop = True
+        except EOFError:
+            Logger.Log(LogLevel.Error, "An instance has encountered an EOFError, will mark to restart any dead connections")
+            self.HasDirtyConnection = True
 
     def ListenForConnections(self):
         AcceptEvents = self.AcceptListener.select(0)
@@ -93,14 +138,15 @@ class RelayServer:
         for Connection in ConnectionsReady:
             # Read through all messages that we have for this connection
             while (Connection.poll(0)):
-                RawMessage = Connection.recv()
+                RawMessage = Connection.recv()                
+                # Check to see if the message is valid.                
                 if (not RelayMessage.IsValid(RawMessage)):
                     continue
                 Message:RelayMessage = RawMessage
                 match Message.Type:
                     case RelayMessageType.Hello:
-                        if (not Message.Sender in self.ConnectionsToInstances):  
-                            self.ConnectionsToInstances[Message.Sender] = Connection
+                        if (not Message.Sender in self.InstancesToConnections):  
+                            self.InstancesToConnections[Message.Sender] = Connection
                             Logger.Log(LogLevel.Notice, f"Established connection for {Message.Sender}")
                         else:
                             Logger.Log(LogLevel.Warn, f"Got a hello message from an known sender {Message.Sender}")
@@ -109,7 +155,7 @@ class RelayServer:
                         # Resend this message to literally everyone
                         for ClientConnection in self.Connections:
                             # Skip the main bot instance, there's no reason for it to get messages.
-                            if (ClientConnection == self.ConnectionsToInstances[self.ControlBotId]):
+                            if (ClientConnection == self.InstancesToConnections[self.ControlBotId]):
                                 continue
                             ClientConnection.send(Message)
                     case _:
@@ -117,7 +163,7 @@ class RelayServer:
                             Logger.Log(LogLevel.Warn, "Message went to a bad destination!")
                             continue
                         
-                        DestConnection = self.ConnectionsToInstances[Message.Destination]
+                        DestConnection = self.InstancesToConnections[Message.Destination]
                         DestConnection.send(Message)
        
 class RelayClient:
@@ -138,7 +184,7 @@ class RelayClient:
 
     def Disconnect(self):
         if (self.Connection is not None):
-            Logger.Log(LogLevel.Debug, f"Closing connection for instance {self.BotID}")
+            Logger.Log(LogLevel.Log, f"Closing connection for instance {self.BotID}")
             self.Connection.close()
             self.Connection = None
         
@@ -218,7 +264,13 @@ class RelayClient:
         
         # While we have active messages on this socket
         while (self.Connection.poll(0)):
-            RawMessage = self.Connection.recv()
+            RawMessage = None
+            try:
+                RawMessage = self.Connection.recv()
+            except Exception as recvex:
+                Logger.Log(LogLevel.Error, f"Encountered an error with {self.BotID} recv! {type(recvex)} | message: {str(recvex)} | trace: {traceback.format_stack()}")
+                break
+                
             if (not RelayMessage.IsValid(RawMessage)):
                 LogLevel.Log(LogLevel.Debug, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
                 break

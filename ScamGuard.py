@@ -22,7 +22,7 @@ class ScamGuard(DiscordBot):
 
     ### Initialization ###
     def __init__(self, AssignedBotID:int):
-        self.ServerHandler = RelayServer(AssignedBotID)
+        self.ServerHandler = RelayServer(AssignedBotID, self)
         super().__init__(self.ServerHandler.GetFileLocation(), AssignedBotID)
         
     async def setup_hook(self):
@@ -103,6 +103,13 @@ class ScamGuard(DiscordBot):
     async def StartInstance(self, InstanceID:int):
         if (InstanceID == 0):
             return
+        
+        # Clear any instances that already exist.
+        if (self.SubProcess[InstanceID] is not None):
+            ExistingProcess:Process = self.SubProcess[InstanceID]
+            ExistingProcess.kill()
+            ExistingProcess.close()
+            self.SubProcess[InstanceID] = None
         
         Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
         self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), InstanceID))
