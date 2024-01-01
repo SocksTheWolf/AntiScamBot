@@ -87,7 +87,7 @@ class ScamGuard(DiscordBot):
         await super().on_ready()
         await self.StartAllInstances()
 
-    ### Starting instances ###
+    ### Subprocess instances ###
     async def StartAllInstances(self):
         # Prevent us from restarting instances when on_ready may run again.
         if (self.HasStartedInstances):
@@ -104,16 +104,19 @@ class ScamGuard(DiscordBot):
         if (InstanceID == 0):
             return
         
-        # Clear any instances that already exist.
-        if (self.SubProcess[InstanceID] is not None):
-            ExistingProcess:Process = self.SubProcess[InstanceID]
-            ExistingProcess.kill()
-            ExistingProcess.close()
-            self.SubProcess[InstanceID] = None
+        # Make sure to exit out of any instances if they're already running for this index
+        await self.StopInstanceIfExists(InstanceID)
         
         Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
         self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), InstanceID))
         self.SubProcess[InstanceID].start()
+
+    async def StopInstanceIfExists(self, InstanceID:int):       
+        if (InstanceID in self.SubProcess and self.SubProcess[InstanceID] is not None):
+            ExistingProcess:Process = self.SubProcess[InstanceID]
+            ExistingProcess.kill()
+            ExistingProcess.close()
+            self.SubProcess[InstanceID] = None
 
     ### Command Processing & Utils ###    
     async def PublishAnnouncement(self, Message:str|discord.Embed):
