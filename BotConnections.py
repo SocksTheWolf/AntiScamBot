@@ -28,10 +28,11 @@ class RelayMessage:
 
 class RelayServer:
     Connections=[]
+    # A very dumb way to keep track of error'd connections
+    DeadConnections=[]
     InstancesToConnections={}
     FileLocation:str = ""
     ShouldStop:bool = False
-    HasDirtyConnection:bool = False
     ControlBotId:int = -1
     BotInstance = None
     
@@ -70,25 +71,15 @@ class RelayServer:
     async def CleanConnections(self):
         Logger.Log(LogLevel.Notice, "Starting error correction of dirty connections")
         ConnectionsToRestart:list[int] = []
-        for idx, Connection in enumerate(self.Connections):
-            # Check to see if the connection is dead. 
-            # We do this by checking if the connection is closed, or not readable/writable
-            # If the connection does not give us an error, then it is still good.
-            if (not (Connection.closed or not Connection.readable or not Connection.writable)):
-                Logger.Log(LogLevel.Verbose, f"Connection index {idx} was skipped because it had no bad state flags")
-                continue
-            
+        for Connection in self.DeadConnections:            
             ConInstance:int = self.GetInstanceForConnection(Connection)
             # Check to see if we have a connection here that was established, we will try to restart it.
             if (ConInstance != -1):
                 ConnectionsToRestart.append(ConInstance)
                 del self.InstancesToConnections[ConInstance]
-                
-            # None out the connection. It is dead to us.
-            self.Connections[idx] = None
         
         # Clean out the connections that have been blanked out from the above loop.
-        self.Connections[:] = [x for x in self.Connections if x is not None]
+        self.Connections[:] = [x for x in self.Connections if x not in self.DeadConnections]
         
         Logger.Log(LogLevel.Log, f"There are now {len(self.Connections)} connections after cleanup and {len(ConnectionsToRestart)} connections to restart")
         
@@ -97,30 +88,25 @@ class RelayServer:
             for InstanceNum in ConnectionsToRestart:
                 await self.BotInstance.StartInstance(InstanceNum)
         
-        # Clear the dirty flag so we can continue execution
-        self.HasDirtyConnection = False
+        # Clear the dirty array so we can continue execution
+        self.DeadConnections = []
 
     async def TickRelay(self):
         if (self.ShouldStop):
             return
         
         # Restart any dirty connections
-        if (self.HasDirtyConnection):
+        if (len(self.DeadConnections) > 0):
             await self.CleanConnections()
             return
 
         try:
             self.ListenForConnections()
+            self.HandleRecv()
         except Exception as ex:
             Logger.Log(LogLevel.Error, f"Encountered error while handling connections, stopping server! Exception type: {type(ex)} | message: {str(ex)} | trace: {traceback.format_stack()}")
             self.ShouldStop = True
             return
-
-        try:
-            self.HandleRecv()
-        except EOFError:
-            Logger.Log(LogLevel.Error, "An instance has encountered an EOFError, will mark to restart any dead connections")
-            self.HasDirtyConnection = True
 
     def ListenForConnections(self):
         AcceptEvents = self.AcceptListener.select(0)
@@ -138,7 +124,14 @@ class RelayServer:
         for Connection in ConnectionsReady:
             # Read through all messages that we have for this connection
             while (Connection.poll(0)):
-                RawMessage = Connection.recv()                
+                RawMessage = None
+                # Check to see if we were suddenly disconnected for whatever reason
+                try:
+                    RawMessage = Connection.recv()
+                except EOFError:
+                    self.DeadConnections.append(Connection)
+                    break
+                
                 # Check to see if the message is valid.                
                 if (not RelayMessage.IsValid(RawMessage)):
                     continue
