@@ -88,9 +88,9 @@ class ScamGuard(DiscordBot):
         await self.StartAllInstances()
 
     ### Subprocess instances ###
-    async def StartAllInstances(self):
+    async def StartAllInstances(self, BypassCheck:bool=False):
         # Prevent us from restarting instances when on_ready may run again.
-        if (self.HasStartedInstances):
+        if (self.HasStartedInstances and not BypassCheck):
             return
         
         # Spin up all the subinstances of the other bot clients
@@ -114,7 +114,7 @@ class ScamGuard(DiscordBot):
     async def StopInstanceIfExists(self, InstanceID:int):       
         if (InstanceID in self.SubProcess and self.SubProcess[InstanceID] is not None):
             ExistingProcess:Process = self.SubProcess[InstanceID]
-            ExistingProcess.kill()
+            ExistingProcess.terminate()
             ExistingProcess.close()
             self.SubProcess[InstanceID] = None
 

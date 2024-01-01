@@ -67,8 +67,16 @@ class RelayServer:
                 return key
             
         return -1
+    
+    async def RestartAllConnections(self):
+        Logger.Log(LogLevel.Notice, "Restarting all connections and instances.")
+        self.Connections = []
+        self.InstancesToConnections = {}
+        self.DeadConnections = []
+        await self.BotInstance.StartAllInstances(True)
        
     async def CleanConnections(self):
+        # This doesn't all work properly, ConnectionsToRestart does not get populated with the correct connection ids
         Logger.Log(LogLevel.Notice, "Starting error correction of dirty connections")
         ConnectionsToRestart:list[int] = []
         for Connection in self.DeadConnections:            
@@ -97,7 +105,7 @@ class RelayServer:
         
         # Restart any dirty connections
         if (len(self.DeadConnections) > 0):
-            await self.CleanConnections()
+            await self.RestartAllConnections()
             return
 
         try:
