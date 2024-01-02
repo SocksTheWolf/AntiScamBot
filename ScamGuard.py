@@ -83,9 +83,9 @@ class ScamGuard(DiscordBot):
             self.AnnouncementChannel = self.get_channel(ConfigData["AnnouncementChannel"])
             
     ### Discord Eventing ###
-    async def on_ready(self):
-        await super().on_ready()
-        await self.StartAllInstances()
+    async def InitializeBotRuntime(self):
+        await super().InitializeBotRuntime()
+        await self.StartAllInstances()       
 
     ### Subprocess instances ###
     async def StartAllInstances(self, BypassCheck:bool=False):

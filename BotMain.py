@@ -239,9 +239,9 @@ class DiscordBot(discord.Client):
         
     def ProcessDeactivationForInstance(self, UserID:int):
         self.AddAsyncTask(self.DeactivateServersWithPermissions(UserID))
-    
-    ### Discord Eventing ###        
-    async def on_ready(self):
+        
+    ### Starting execution ###
+    async def InitializeBotRuntime(self):
         self.ProcessConfig(False)
         # Set status
         if (ConfigData.IsValid("BotActivity", str)):
@@ -268,6 +268,10 @@ class DiscordBot(discord.Client):
             self.PostLogMessages.start()
 
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has started! Is Development? {ConfigData.IsDevelopment()}")
+    
+    ### Discord Eventing ###        
+    async def on_ready(self):
+        self.AddAsyncTask(self.InitializeBotRuntime())
     
     async def on_guild_update(self, PriorUpdate:discord.Guild, NewUpdate:discord.Guild):
         NewOwnerId:int = NewUpdate.owner_id
