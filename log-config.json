@@ -55,7 +55,7 @@
 
 	"root": {
 		"level": "DEBUG",
-		"handlers": ["error_file_handler", "telegram_handler"]
+		"handlers": ["error_file_handler"]
 	},
 
 	"logger_tt": {
