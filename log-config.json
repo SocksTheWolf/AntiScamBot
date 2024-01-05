@@ -3,7 +3,7 @@
 	"disable_existing_loggers": false,
 	"formatters": {
 		"simple": {
-			"format": "[%(asctime)s] [%(name)s:%(lineno)5d %(levelname)9s] %(processName)-24s %(message)s",
+			"format": "[%(asctime)s] %(processName)-24s %(levelname)9s [%(filename)s:%(lineno)d] %(message)s",
 			"datefmt": "%Y-%m-%d %H:%M:%S"
 		},
 		"brief": {
