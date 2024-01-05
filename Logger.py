@@ -1,8 +1,8 @@
 from enum import auto
-from colorama import Fore, Style, init
 from EnumWrapper import CompareEnum
-import datetime, time, asyncio
+import datetime, time, asyncio, sys
 from logger_tt import setup_logging, logger
+import coloredlogs
 
 __all__ = ["LogLevel", "Logger"]
 
@@ -15,19 +15,23 @@ class LogLevel(CompareEnum):
   Notice=auto()
   Silence=auto()
 
-CurrentLoggingLevel = LogLevel.Verbose
+CurrentLoggingLevel = LogLevel.Debug
 CurrentNotificationLevel = LogLevel.Warn
 HasInitialized = False
 NotificationCallback = None
 
-setup_logging(use_multiprocessing=True)
+coloredlogs.DEFAULT_LOG_FORMAT = '[%(asctime)s] %(processName)-24s %(levelname)9s %(message)s'
+coloredlogs.DEFAULT_LEVEL_STYLES = {'critical': {'bold': True, 'color': 'red'}, 'debug': {'color': 'green'}, 'error': {'color': 'red'}, 'info': {}, 'notice': {'color': 'magenta'}, 'spam': {'color': 'green', 'faint': True}, 'success': {'bold': True, 'color': 'green'}, 'verbose': {'color': 'blue'}, 'warning': {'color': 'yellow'}}
+coloredlogs.DEFAULT_FIELD_STYLES = {}
+
+setup_logging(config_path='log-config.json')
+coloredlogs.install(level='VERBOSE')
 
 class Logger():
   @staticmethod
   def Start():
     global HasInitialized
     if (not HasInitialized):
-      init()
       HasInitialized = True
 
   @staticmethod
@@ -52,23 +56,17 @@ class Logger():
     # Set up color logging
     ColorStr = ""
     LoggerFunc = logger.info
-    MessageStr = f"ScamGuard [{str(Level)}]: {Input}"
+    MessageStr = f"[{sys._getframe(1).f_code.co_name}] {Input}"
     if Level == LogLevel.Error:
-      ColorStr = Fore.RED + Style.BRIGHT
       LoggerFunc = logger.error
     elif Level == LogLevel.Warn:
-      ColorStr = Fore.YELLOW + Style.BRIGHT
       LoggerFunc = logger.warn
     elif Level == LogLevel.Verbose:
-      ColorStr = Style.DIM
       LoggerFunc = logger.info
     elif Level == LogLevel.Debug:
-      ColorStr = Style.BRIGHT + Fore.BLACK
       LoggerFunc = logger.debug
-    elif Level == LogLevel.Notice:
-      ColorStr = Fore.GREEN + Style.BRIGHT
 
-    LoggerFunc(Logger.PrintDate() + f"{ColorStr} {MessageStr}" + Style.RESET_ALL)
+    LoggerFunc(f"{MessageStr}")
     
     if (NotificationCallback is not None and Level >= CurrentNotificationLevel):
       try:
