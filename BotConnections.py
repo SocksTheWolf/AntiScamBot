@@ -248,6 +248,11 @@ class RelayClient:
         if (self.BotID != ConfigData.ControlBotID):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.CloseApplication, Destination=InstanceToTarget))
+        
+    def SendPing(self, InstanceToTarget):
+        if (self.BotID != ConfigData.ControlBotID):
+            return
+        self.Connection.send(self.GenerateMessage(RelayMessageType.Ping, Destination=InstanceToTarget))
     
     def SendActivationForServers(self, UserId):
         if (self.BotID != ConfigData.ControlBotID):

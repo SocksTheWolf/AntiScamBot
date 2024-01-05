@@ -50,6 +50,7 @@ class DiscordBot(discord.Client):
         self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessDeactivation, self.ProcessDeactivationForInstance)
+        self.ClientHandler.RegisterFunction(RelayMessageType.Ping, self.PostPongMessage)
 
     def __del__(self):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
@@ -382,6 +383,9 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
 
         UserData.set_footer(text=f"User ID: {TargetId}")
         return UserData
+    
+    async def PostPongMessage(self):
+        Logger.Log(LogLevel.Notice, "I have been pinged!")
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
