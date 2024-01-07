@@ -41,7 +41,13 @@ class DiscordBot(discord.Client):
         self.Commands = discord.app_commands.CommandTree(self)
         self.Commands.on_error = CommandErrorHandler
         self.ClientHandler = RelayClient(RelayFileLocation, self.BotID)
+        self.SetupClientHooks()
+
+    def __del__(self):
+        Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance #{self.BotID} {self}")
         
+    def SetupClientHooks(self):
+        Logger.Log(LogLevel.Verbose, f"Instance #{self.BotID} is setting up function registration")
         # Register functions for handling basic client actions
         self.ClientHandler.RegisterFunction(RelayMessageType.BanUser, self.BanUser)
         self.ClientHandler.RegisterFunction(RelayMessageType.UnbanUser, self.UnbanUser)
@@ -51,9 +57,6 @@ class DiscordBot(discord.Client):
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessDeactivation, self.ProcessDeactivationForInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.Ping, self.PostPongMessage)
-
-    def __del__(self):
-        Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance {self.BotID} {self}")
             
     async def setup_hook(self):
         CommandControlServer=discord.Object(id=ConfigData["ControlServer"])
@@ -101,7 +104,7 @@ class DiscordBot(discord.Client):
     
     @tasks.loop(seconds=1)
     async def PostLogMessages(self):
-        while not self.LoggingMessageQueue.empty():
+        while (not self.LoggingMessageQueue.empty()):
             Message:str = self.LoggingMessageQueue.get_nowait()
             try:
                 if (self.NotificationChannel is not None):
@@ -130,7 +133,7 @@ class DiscordBot(discord.Client):
 
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) configs applied")
         
-    ### Command Processing & Utils ###
+    ### Leaving Servers ###
     def LeaveServer(self, ServerId:int) -> bool:
         BotServerIsIn:int = self.Database.GetBotIdForServer(ServerId)
         # If the bot is in any server we know about
@@ -150,9 +153,6 @@ class DiscordBot(discord.Client):
             await ServerToLeave.leave()
         else:
             Logger.Log(LogLevel.Warning, f"Could not find server with id {ServerId}, id is invalid")        
-        
-    async def PostNotification(self, Message:str):
-        self.LoggingMessageQueue.put(Message)
      
     ### Discord Information Gathering ###       
     async def GetServersWithElevatedPermissions(self, UserID:int, SkipActivated:bool):
@@ -386,6 +386,9 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
     
     async def PostPongMessage(self):
         Logger.Log(LogLevel.Notice, "I have been pinged!")
+        
+    async def PostNotification(self, Message:str):
+        self.LoggingMessageQueue.put(Message)
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:

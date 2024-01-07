@@ -26,7 +26,6 @@ class RelayMessageType(CompareEnum):
   ReprocessInstance=auto()
   ProcessActivation=auto()
   ProcessDeactivation=auto()
-  CloseApplication=auto()
   Ping=auto()
   # TODO: In future to remove the number of writers
   AddedToServer=auto()

@@ -80,7 +80,7 @@ if __name__ == '__main__':
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     @app_commands.describe(instance='Bot Instance ID to ping')
     async def PingInstance(interaction:Interaction, instance:app_commands.Range[int, 0]):
-        ScamGuardBot.AddAsyncTask(ScamGuardBot.ClientHandler.SendPing(instance))
+        ScamGuardBot.ClientHandler.SendPing(instance)
         await interaction.response.send_message(f"Pinged instance {instance}", ephemeral=True)
         
     @ScamGuardBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)

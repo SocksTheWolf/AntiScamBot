@@ -18,5 +18,6 @@
     "RunBackupEveryXHours": 8.0,
     "RemoveDaysOldBackups": 5.0,
     "ScamCheckShowsSharedServers": true,
-    "AutoEmbedScamCheckOnReport": true
+    "AutoEmbedScamCheckOnReport": true,
+    "UsingPosixSockets": false
 }

@@ -4,7 +4,15 @@ from BotEnums import RelayMessageType
 from Config import Config
 import selectors, os, traceback
 
+__all__ = ["RelayMessage", "RelayServer", "RelayClient"]
+
 ConfigData:Config=Config()
+
+def UseUnixSockets() -> bool:
+    # Posix sockets don't require the networking bus, thus are technically more secure.
+    if (ConfigData["UsingPosixSockets"] and os.name == "posix"):
+        return True
+    return False
 
 class RelayMessage:
     Type:RelayMessageType = None
@@ -33,22 +41,31 @@ class RelayServer:
     InstancesToConnections={}
     FileLocation:str = ""
     ShouldStop:bool = False
+    HasPrintedStop:bool = False
     ControlBotId:int = -1
     BotInstance = None
     
     def __init__(self, InControlBotId:int, InBotInstance=None):
         self.ControlBotId = InControlBotId
         self.BotInstance = InBotInstance
-        if (os.name == "posix"):
+        if (UseUnixSockets()):
             self.ListenSocket = Listener(None, "AF_UNIX", backlog=10)
             self.FileLocation = self.ListenSocket.address
         else:
+            NeedsNTHack:bool = False
             # This is a really dumb hack to get around a bug (allow for address reuse)
             # that should probably be fixed in the multiprocessing listener system. 
             # It's been fixed upstream in the main socket library since 2010.
-            os.name = "posix"
+            if (os.name == "nt"):
+                NeedsNTHack = True
+                os.name = "posix"
+            
+            # Create listener socket.
             self.ListenSocket = Listener(("localhost", ConfigData["RelayPort"]), "AF_INET", backlog=10)
-            os.name = "nt"
+            
+            # Switch back above hack if we changed it.
+            if (NeedsNTHack):
+                os.name = "nt"
         
         self.AcceptListener = selectors.DefaultSelector()
         # This is probably the silliest thing that doesn't exist in the listener
@@ -56,6 +73,7 @@ class RelayServer:
         self.AcceptListener.register(self.ListenSocket._listener._socket, selectors.EVENT_READ)
         
     def __del__(self):
+        Logger.Log(LogLevel.Debug, "Shutting down listener service")
         self.ShouldStop = True
         
     def GetFileLocation(self):
@@ -101,6 +119,9 @@ class RelayServer:
 
     async def TickRelay(self):
         if (self.ShouldStop):
+            if (not self.HasPrintedStop):
+                Logger.Log(LogLevel.Error, "Warning: Relay was told to stop")
+                self.HasPrintedStop = True
             return
         
         # Restart any dirty connections
@@ -174,7 +195,8 @@ class RelayClient:
     FunctionRouter={}
     
     def __init__(self, InFileLocation, InBotID:int=-1):
-        if (os.name == "posix"):
+        self.SentHello = False
+        if (UseUnixSockets()):
             self.Connection = Client(InFileLocation, "AF_UNIX")
         else:
             self.Connection = Client(('localhost', ConfigData["RelayPort"]), "AF_INET")
@@ -206,7 +228,11 @@ class RelayClient:
         return RelayMessage(Type, self.BotID, Destination, DataPayload)
     
     def RegisterFunction(self, OnMessageType:RelayMessageType, FunctionToExecute):
-        self.FunctionRouter[OnMessageType] = FunctionToExecute
+        if (not OnMessageType in self.FunctionRouter):
+            Logger.Log(LogLevel.Verbose, f"Registering function type {str(OnMessageType)}")
+            self.FunctionRouter[OnMessageType] = FunctionToExecute
+        else:
+            Logger.Log(LogLevel.Warn, f"Attempted to reregister function for {str(OnMessageType)}")
     
     def SendHello(self):
         if (self.SentHello or self.Connection is None):
@@ -217,7 +243,8 @@ class RelayClient:
         NewMessage:RelayMessage = self.GenerateMessage(RelayMessageType.Hello)
         self.Connection.send(NewMessage)
         self.SentHello = True
-        
+    
+    # TODO: Make these functions automatically generated.
     def SendBan(self, UserId:int, InAuthName:str):
         if (self.BotID != ConfigData.ControlBotID):
             return
@@ -244,11 +271,6 @@ class RelayClient:
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessInstance, Destination=InstanceId, NumToRetry=InNumToRetry))
     
-    def SendCloseApplication(self, InstanceToTarget):
-        if (self.BotID != ConfigData.ControlBotID):
-            return
-        self.Connection.send(self.GenerateMessage(RelayMessageType.CloseApplication, Destination=InstanceToTarget))
-        
     def SendPing(self, InstanceToTarget):
         if (self.BotID != ConfigData.ControlBotID):
             return
@@ -278,7 +300,7 @@ class RelayClient:
                 break
                 
             if (not RelayMessage.IsValid(RawMessage)):
-                LogLevel.Log(LogLevel.Debug, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
+                LogLevel.Log(LogLevel.Warn, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
                 break
             
             RelayedMessage:RelayMessage = RawMessage            
