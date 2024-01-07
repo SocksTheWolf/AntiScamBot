@@ -84,7 +84,10 @@ class DiscordBot(discord.Client):
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
         try:
-            CurrentLoop = asyncio.get_running_loop()
+            CurrentLoop = self.loop
+            if (CurrentLoop is None):
+                Logger.Log(LogLevel.Debug, "Self loop is currently invalid, grabbing current running loop")
+                CurrentLoop = asyncio.get_running_loop()
         except RuntimeError:
             return
 
@@ -384,7 +387,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         UserData.set_footer(text=f"User ID: {TargetId}")
         return UserData
     
-    async def PostPongMessage(self):
+    def PostPongMessage(self):
         Logger.Log(LogLevel.Notice, "I have been pinged!")
         
     async def PostNotification(self, Message:str):
