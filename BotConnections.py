@@ -229,10 +229,10 @@ class RelayClient:
     
     def RegisterFunction(self, OnMessageType:RelayMessageType, FunctionToExecute):
         if (not OnMessageType in self.FunctionRouter):
-            Logger.Log(LogLevel.Verbose, f"Registering function type {str(OnMessageType)}")
+            Logger.Log(LogLevel.Verbose, f"Registering function type {str(OnMessageType)} for {str(self)}")
             self.FunctionRouter[OnMessageType] = FunctionToExecute
         else:
-            Logger.Log(LogLevel.Warn, f"Attempted to reregister function for {str(OnMessageType)}")
+            Logger.Log(LogLevel.Warn, f"Attempted to re-register function for {str(OnMessageType)} for {str(self)}")
     
     def SendHello(self):
         if (self.SentHello or self.Connection is None):

@@ -89,8 +89,10 @@ class DiscordBot(discord.Client):
                 Logger.Log(LogLevel.Debug, "Self loop is currently invalid, grabbing current running loop")
                 CurrentLoop = asyncio.get_running_loop()
         except RuntimeError:
+            Logger.Log(LogLevel.Log, f"Encountered an error while trying to add async task {str(TaskToComplete)}")
             return
 
+        Logger.Log(LogLevel.Log, f"Added task {str(TaskToComplete)} to task queue")
         NewTask = CurrentLoop.create_task(TaskToComplete)
         self.AsyncTasks.add(NewTask)
         NewTask.add_done_callback(self.AsyncTasks.discard)
