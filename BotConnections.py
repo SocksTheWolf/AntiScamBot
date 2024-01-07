@@ -83,7 +83,7 @@ class RelayServer:
         for key, value in enumerate(self.InstancesToConnections):
             if (value == Connection):
                 return key
-            
+
         return -1
     
     async def RestartAllConnections(self):
@@ -91,31 +91,7 @@ class RelayServer:
         self.Connections = []
         self.InstancesToConnections = {}
         self.DeadConnections = []
-        await self.BotInstance.StartAllInstances(True)
-       
-    async def CleanConnections(self):
-        # This doesn't all work properly, ConnectionsToRestart does not get populated with the correct connection ids
-        Logger.Log(LogLevel.Notice, "Starting error correction of dirty connections")
-        ConnectionsToRestart:list[int] = []
-        for Connection in self.DeadConnections:            
-            ConInstance:int = self.GetInstanceForConnection(Connection)
-            # Check to see if we have a connection here that was established, we will try to restart it.
-            if (ConInstance != -1):
-                ConnectionsToRestart.append(ConInstance)
-                del self.InstancesToConnections[ConInstance]
-        
-        # Clean out the connections that have been blanked out from the above loop.
-        self.Connections[:] = [x for x in self.Connections if x not in self.DeadConnections]
-        
-        Logger.Log(LogLevel.Log, f"There are now {len(self.Connections)} connections after cleanup and {len(ConnectionsToRestart)} connections to restart")
-        
-        # Restart any instances here.
-        if (self.BotInstance is not None):
-            for InstanceNum in ConnectionsToRestart:
-                await self.BotInstance.StartInstance(InstanceNum)
-        
-        # Clear the dirty array so we can continue execution
-        self.DeadConnections = []
+        await self.BotInstance.StartAllInstances(BypassCheck=True, RestartMainClient=True)
 
     async def TickRelay(self):
         if (self.ShouldStop):
@@ -182,7 +158,7 @@ class RelayServer:
                             ClientConnection.send(Message)
                     case _:
                         if (Message.Destination < 0):
-                            Logger.Log(LogLevel.Warn, "Message went to a bad destination!")
+                            Logger.Log(LogLevel.Warn, f"Message went to a bad destination! {str(Message.Destination)}")
                             continue
                         
                         DestConnection = self.InstancesToConnections[Message.Destination]

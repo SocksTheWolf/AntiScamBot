@@ -40,13 +40,18 @@ class DiscordBot(discord.Client):
         super().__init__(intents=intents)
         self.Commands = discord.app_commands.CommandTree(self)
         self.Commands.on_error = CommandErrorHandler
-        self.ClientHandler = RelayClient(RelayFileLocation, self.BotID)
-        self.SetupClientHooks()
+        
+        self.SetupClientConnection(RelayFileLocation)
 
     def __del__(self):
         Logger.Log(LogLevel.Notice, f"Closing the discord scam bot instance #{self.BotID} {self}")
         
-    def SetupClientHooks(self):
+    def SetupClientConnection(self, RelayLocation):
+        Logger.Log(LogLevel.Log, f"Instance #{self.BotID} starting relay client")
+        
+        if (self.ClientHandler is None):
+            self.ClientHandler = RelayClient(RelayLocation, self.BotID)
+        
         Logger.Log(LogLevel.Verbose, f"Instance #{self.BotID} is setting up function registration")
         # Register functions for handling basic client actions
         self.ClientHandler.RegisterFunction(RelayMessageType.BanUser, self.BanUser)

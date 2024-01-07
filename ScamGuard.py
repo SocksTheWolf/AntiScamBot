@@ -88,10 +88,14 @@ class ScamGuard(DiscordBot):
         await self.StartAllInstances()       
 
     ### Subprocess instances ###
-    async def StartAllInstances(self, BypassCheck:bool=False):
+    async def StartAllInstances(self, BypassCheck:bool=False, RestartMainClient:bool=False):
         # Prevent us from restarting instances when on_ready may run again.
         if (self.HasStartedInstances and not BypassCheck):
             return
+        
+        if (RestartMainClient):
+            Logger.Log(LogLevel.Log, "Restarting client instance for control bot instance")
+            await self.StartInstance(0)
         
         # Spin up all the subinstances of the other bot clients
         AllInstances = Config.GetAllSubTokens()
@@ -101,14 +105,17 @@ class ScamGuard(DiscordBot):
         self.HasStartedInstances = True
             
     async def StartInstance(self, InstanceID:int):
+        RelayFileHandleLocation = self.ServerHandler.GetFileLocation()
         if (InstanceID == 0):
+            self.ClientHandler = None
+            self.SetupClientConnection(RelayFileHandleLocation)
             return
         
         # Make sure to exit out of any instances if they're already running for this index
         await self.StopInstanceIfExists(InstanceID)
         
         Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
-        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), InstanceID))
+        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(RelayFileHandleLocation, InstanceID))
         self.SubProcess[InstanceID].start()
 
     async def StopInstanceIfExists(self, InstanceID:int):       
