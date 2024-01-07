@@ -84,10 +84,10 @@ class DiscordBot(discord.Client):
     ### Event Queueing ###
     def AddAsyncTask(self, TaskToComplete):
         try:
-            CurrentLoop = self.loop
-            if (CurrentLoop is None):
-                Logger.Log(LogLevel.Debug, "Self loop is currently invalid, grabbing current running loop")
-                CurrentLoop = asyncio.get_running_loop()
+            CurrentLoop = asyncio.get_running_loop()
+            #if (CurrentLoop is None):
+            #    Logger.Log(LogLevel.Debug, "Self loop is currently invalid, grabbing current running loop")
+            #    CurrentLoop = 
         except RuntimeError:
             Logger.Log(LogLevel.Log, f"Encountered an error while trying to add async task {str(TaskToComplete)}")
             return
