@@ -189,13 +189,13 @@ class RelayServer:
                         DestConnection.send(Message)
        
 class RelayClient:
-    Connection = None
     BotID:int = -1
-    SentHello:bool = False
-    FunctionRouter={}
     
     def __init__(self, InFileLocation, InBotID:int=-1):
+        self.Connection = None
         self.SentHello = False
+        self.FunctionRouter = {}
+        
         if (UseUnixSockets()):
             self.Connection = Client(InFileLocation, "AF_UNIX")
         else:

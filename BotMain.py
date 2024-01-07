@@ -18,13 +18,13 @@ class DiscordBot(discord.Client):
     NotificationChannel = None
     ReportChannel = None
     ReportChannelTag = None
-    BotID:int = None
-    ClientHandler:RelayClient = None
-    Database:ScamBotDatabase = None
-    AsyncTasks = set()
-    LoggingMessageQueue=SimpleQueue()
-        
+    BotID:int = -1
+
     def __init__(self, RelayFileLocation, AssignedBotID:int=-1):
+        self.Database:ScamBotDatabase = None
+        self.ClientHandler:RelayClient = None
+        self.AsyncTasks = set()
+        self.LoggingMessageQueue = SimpleQueue()
         self.Database = ScamBotDatabase()
         self.BotID = AssignedBotID
         intents = discord.Intents.none()
