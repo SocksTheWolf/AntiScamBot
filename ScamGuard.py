@@ -109,6 +109,7 @@ class ScamGuard(DiscordBot):
         if (InstanceID == 0):
             self.ClientHandler = None
             self.SetupClientConnection(RelayFileHandleLocation)
+            self.ClientHandler.SendHello()
             return
         
         # Make sure to exit out of any instances if they're already running for this index
