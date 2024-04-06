@@ -7,12 +7,12 @@
             <li>Selecting {{ site.bot_name }} account (or one of its fallback instances [Everything will be under the role of "THE BOT" in the TAG Server]) in the Discord and clicking "Add To Server":
                 <img src="{{ '/assets/botaccount.png' | relative_url }}" />
             </li>
-            <li>Install via this <a href="https://discord.com/api/oauth2/authorize?client_id={{ site.discord_client_id }}">Discord app link</a>.</li>
+            <li>Install via this <a href="https://discord.com/api/oauth2/authorize?client_id={{ site.discord_client_id }}&permissions=274877925382&scope=bot%20applications.commands">Discord app link</a>.</li>
         </ul>
 		<span class="install-note"><b>RECOMMENDED</b>: Place the newly created {{ site.bot_name }} role one level <u>below</u> your server's moderator role <b>OR</b> one level <u>above</u> your regular members role. This helps prevent Discord permission mismatches that may occasionally occur.
 		<br />
 		An example of the placement can be seen in the video below:
-		<div class="embed-container">
+		<div class="embed-container centered">
 		  <iframe
 			  src="https://www.youtube.com/embed/XYaQi3hM9ug"
 			  width="700"
