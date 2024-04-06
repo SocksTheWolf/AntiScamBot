@@ -172,9 +172,14 @@ if __name__ == '__main__':
         Sender:Member = interaction.user
         SendersId:int = Sender.id
         
+        # Hold onto these objects, as activate is one of the most expensive commands if
+        # we are running off a database that is mostly made of up unactivated servers.
+        await interaction.response.defer(thinking=True)
+        ResponseHook:Webhook = interaction.followup
+        
         ScamGuardBot.ClientHandler.SendDeactivationForServers(SendersId)
         await ScamGuardBot.DeactivateServersWithPermissions(SendersId)
-        await interaction.response.send_message("Enqueued processing for deactivation for servers you own/moderate in")
+        await ResponseHook.send("Enqueued processing for deactivation for servers you own/moderate in")
 
     # Control server version of scamcheck
     @ScamGuardBot.Commands.command(name="scamcheck", description="In the control server, check to see if a discord id is banned", guild=CommandControlServer)
