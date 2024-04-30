@@ -2,7 +2,7 @@ from Logger import Logger, LogLevel
 from BotEnums import BanResult, RelayMessageType
 from Config import Config
 from BotConnections import RelayClient
-import discord, asyncio, json
+import discord, asyncio, json, aiohttp, io
 from discord.ext import tasks
 from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
@@ -314,7 +314,9 @@ class DiscordBot(discord.Client):
         if (self.ReportChannel is None or self.ReportChannelTag is None):
             return
         
+        ImageFormats = ("image/png", "image/jpeg", "image/jpg", "image/bmp", "image/webp")
         PostEmbeds:list[discord.Embed] = []
+        PostFiles:list[discord.File] = []
         if (ConfigData["AutoEmbedScamCheckOnReport"]):
             PostEmbeds.append(await self.CreateBanEmbed(ReportData['ReportedUserId']))
         
@@ -331,25 +333,33 @@ Type Of Scam: {ReportData['TypeOfScam']}
         
 Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]
 """
-        
         # Format all the image embeds into the list properly
-        NumEmbeds:int = len(PostEmbeds)
-        for Evidence in ReportData["Evidence"]:
-            if (NumEmbeds >= 10):
-                break
-            
-            if (Evidence.startswith("https")):
-                NewEmbed:discord.Embed = discord.Embed()
-                NewEmbed.set_image(url=Evidence)
-                PostEmbeds.append(NewEmbed)
-                NumEmbeds += 1
+        NumEvidences:int = len(PostFiles)
         
+        async with aiohttp.ClientSession() as session:
+            for Evidence in ReportData["Evidence"]:
+                if (NumEvidences >= 10):
+                    break
+                
+                if (Evidence.startswith("https")):
+                    async with session.get(Evidence) as response:
+                        if response.status != 200:
+                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) could not download file {Evidence}")
+                            continue
+                        ContentType = response.headers['content-type']
+                        if ContentType not in ImageFormats:
+                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) was given {Evidence} but that is of type {ContentType} which is not an image")
+                            continue
+                        EvidenceData = io.BytesIO(await response.read())
+                        NewFile:discord.File = discord.File(EvidenceData, f'Evidence{NumEvidences}.png')
+                        PostFiles.append(NewFile)
+                        NumEvidences += 1
         try:
             await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
                                          reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
-                                         embeds=PostEmbeds)
+                                         embeds=PostEmbeds, files=PostFiles)
         except discord.Forbidden:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
