@@ -35,6 +35,10 @@ Eventually when the main bot is verified, the fallback bots will move their assi
 
 Anything under the "THE BOT" role in the TAG server is allowed to be added.
 
+### When I activate the bot, why is it suddenly banning hundreds of accounts?
+
+{{ site.bot_name }} imports all the bans of scammers that it knows about. This can be several hundreds of accounts, but not to worry, due to the way {{ site.bot_name }} processes bans, these accounts do not have to be in your server. So while it looks like your entire discord community is getting banned, it is not.
+
 ### Is {{ site.bot_name }} open source?
 
 Yes! You can see the [project source code here](https://github.com/SocksTheWolf/AntiScamBot).
