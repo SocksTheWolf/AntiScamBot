@@ -510,7 +510,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} as a {ScamStr} performed in {NumServersPerformed}/{NumServers} servers")
         
     # Handles banning/unbanning an user in each individual server
-    async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> (bool, BanResult):
+    async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> tuple[bool, BanResult]:
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id
         ServerOwnerId:int = Server.owner_id

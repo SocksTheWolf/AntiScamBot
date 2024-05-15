@@ -57,12 +57,13 @@ class DatabaseMigrator:
 
         newBanList = []
         for bans in banlist:
+            currentTime = datetime.timestamp(datetime.strptime(bans[3], '%Y-%m-%d %H:%M:%S.%f'))
             newBan = Ban(
                 discord_user_id = bans[0],
                 assigner_discord_user_id = bans[2],
                 assigner_discord_user_name = bans[1],
                 # convert old (local python) datetime to utc (in database) datetime
-                created_at = datetime.utcfromtimestamp(datetime.timestamp(datetime.strptime(bans[3], '%Y-%m-%d %H:%M:%S.%f')))
+                created_at = datetime.utcfromtimestamp(currentTime)
             )
             newBanList.append(newBan)
         banlist.close()
