@@ -25,7 +25,9 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Ban Members`: To execute the bans
 
-* `Embed Links`: To give you information when you run `/scamcheck`
+* `Embed Links`: To give you information when you run `/scamguard check`
+
+* `Manage Webhooks`: To allow subscribing to the ban notification feed if you choose during setup.
 
 ### I am not able to add the bot, it says the bot needs to be verified?
 
