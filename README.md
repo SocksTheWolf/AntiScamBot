@@ -8,7 +8,7 @@ To stop this from happening, this bot shares a ban list of known scammers to any
 
 This bot is powered via community reporting, trusted verification, and complete transparency in all actions.
 
-You can read more on [the website here](https://theantiscamgroup.com)!
+You can read more on [the website here](https://scamguard.app/)!
 
 ---
 
