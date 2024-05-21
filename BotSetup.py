@@ -119,6 +119,8 @@ class DatabaseMigrator:
     def upgrade_version3to4(self) -> bool:
         session = Session(self.DatabaseCon)
         session.execute(text("ALTER TABLE servers ADD message_channel INTEGER default 0"))
+        session.execute(text("ALTER TABLE servers ADD has_webhooks INTEGER default 0"))
+        session.execute(text("ALTER TABLE servers ADD kick_sus_users INTEGER default 0"))
         session.execute(text(f"PRAGMA user_version = 4"))
         session.commit()
         return True

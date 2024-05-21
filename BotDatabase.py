@@ -128,6 +128,18 @@ class ScamBotDatabase():
         serverToChange.message_channel = ChannelId
         self.Database.add(serverToChange)
         self.Database.commit()
+        
+    def SetWebhookFlag(self, ServerId:int, WantsWebhooks:bool):
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        serverToChange = self.Database.scalars(stmt).first()
+        
+        if (serverToChange is None):
+            Logger.Log(LogLevel.Warn, f"Bot attempted to set channel updates to {ServerId}, but server doesn't exist in db!")
+            return
+        
+        serverToChange.has_webhooks = 1 if WantsWebhooks else 0
+        self.Database.add(serverToChange)
+        self.Database.commit()
            
     def RemoveServerEntry(self, ServerId:int, BotId:int):
         stmt = select(Server).where((Server.discord_server_id==ServerId) & (Server.bot_instance_id==BotId))
@@ -261,9 +273,14 @@ class ScamBotDatabase():
 
         return True
     
-    # Returns the banner's name, the id and the date
+    # Returns ban information
     def GetBanInfo(self, TargetId:int) -> Ban:
         stmt = select(Ban).where(Ban.discord_user_id==TargetId)
+        return self.Database.scalars(stmt).first()
+    
+    # Returns server information
+    def GetServerInfo(self, ServerId:int) -> Server:
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
         return self.Database.scalars(stmt).first()
 
     ### Adding/Removing Bans ###
