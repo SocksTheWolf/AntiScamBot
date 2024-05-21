@@ -1,10 +1,9 @@
-from datetime import datetime
 from BotEnums import BanLookup
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
 from BotDatabaseSchema import Ban, Server
-from sqlalchemy import create_engine, select, URL, asc, desc
+from sqlalchemy import create_engine, select, URL, desc, func
 from sqlalchemy.orm import Session
 
 class ScamBotDatabase():
@@ -116,6 +115,18 @@ class ScamBotDatabase():
         server.owner_discord_user_id = NewOwnerId
 
         self.Database.add(server)
+        self.Database.commit()
+        
+    def AddChannelInformation(self, ServerId:int, ChannelId:int):
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        serverToChange = self.Database.scalars(stmt).first()
+        
+        if (serverToChange is None):
+            Logger.Log(LogLevel.Warn, f"Bot attempted to set channel updates to {ServerId}, but server doesn't exist in db!")
+            return
+        
+        serverToChange.message_channel = ChannelId
+        self.Database.add(serverToChange)
         self.Database.commit()
            
     def RemoveServerEntry(self, ServerId:int, BotId:int):
@@ -312,6 +323,20 @@ class ScamBotDatabase():
             return None
 
         return int(server.bot_instance_id)
+    
+    def GetChannelIdForServer(self, ServerId:int) -> int:
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+
+        if (server is None):
+            Logger.Log(LogLevel.Warn, f"Tried to load bot instance for non existant server: {ServerId}!")
+            return None
+
+        ReturnValue:int = int(server.message_channel)
+        if (ReturnValue == 0):
+            return None
+        
+        return ReturnValue
 
     def GetAllBans(self, NumLastActions:int=0) -> list[Ban]:
         stmt = select(Ban).order_by(desc(Ban.created_at))
@@ -339,3 +364,16 @@ class ScamBotDatabase():
         stmt = select(Server).where(Server.activation_state==False)
 
         return list(self.Database.scalars(stmt).all())
+    
+    ### Stats ###
+    def GetNumBans(self) -> int:
+        stmt = select(func.count()).select_from(Ban)
+        return self.Database.scalars(stmt).first()
+    
+    def GetNumActivatedServers(self) -> int:
+        stmt = select(func.count()).select_from(Server).where(Server.activation_state==True)
+        return self.Database.scalars(stmt).first()
+    
+    def GetNumServers(self) -> int:
+        stmt = select(func.count()).select_from(Server)
+        return self.Database.scalars(stmt).first()

@@ -7,7 +7,7 @@ from datetime import datetime
 from BotDatabaseSchema import Base, Migration, Ban, Server
 
 class DatabaseMigrator:
-    DATABASE_VERSION=3
+    DATABASE_VERSION=4
     VersionMap={}
     DatabaseCon=None
     
@@ -114,6 +114,13 @@ class DatabaseMigrator:
 
         session.commit()
 
+        return True
+    
+    def upgrade_version3to4(self) -> bool:
+        session = Session(self.DatabaseCon)
+        session.execute(text("ALTER TABLE servers ADD message_channel INTEGER default 0"))
+        session.execute(text(f"PRAGMA user_version = 4"))
+        session.commit()
         return True
 
 def SetupDatabases():
