@@ -8,6 +8,7 @@ from BotDatabase import ScamBotDatabase
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
+from ServerActivation import ScamGuardServerSetup
 
 __all__ = ["DiscordBot"]
 
@@ -16,8 +17,12 @@ ConfigData:Config=Config()
 class DiscordBot(discord.Client):
     # Discord Channel that serves for notifications on bot activity/errors/warnings
     NotificationChannel = None
+    ActivationChannel = None
+    # Channel to send updates as to when someone is banned/unbanned
+    AnnouncementChannel = None
     ReportChannel = None
     ReportChannelTag = None
+    ServerSetupHelper = None
     BotID:int = -1
 
     def __init__(self, RelayFileLocation, AssignedBotID:int=-1):
@@ -26,16 +31,22 @@ class DiscordBot(discord.Client):
         self.AsyncTasks = set()
         self.LoggingMessageQueue = SimpleQueue()
         self.Database = ScamBotDatabase()
+        self.ServerSetupHelper = ScamGuardServerSetup(self)
         self.BotID = AssignedBotID
         intents = discord.Intents.none()
         intents.guilds = True
         intents.bans = True
+        
+        if (ConfigData["AllowWebhookInstall"]):
+            intents.webhooks = True
         
         # bring in these intents so we can get an idea of shared servers scamcheck returns.
         # Do note, if these are enabled, the bot will take about 1 min to start up.
         if (ConfigData["ScamCheckShowsSharedServers"]):
             intents.members = True
             intents.presences = True
+        elif (ConfigData["AllowSuspiciousUserKicks"]):
+            intents.members = True
 
         super().__init__(intents=intents)
         self.Commands = discord.app_commands.CommandTree(self)
@@ -60,6 +71,7 @@ class DiscordBot(discord.Client):
         self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessBans, self.ScheduleReprocessBans)
         self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
+        self.ClientHandler.RegisterFunction(RelayMessageType.ProcessServerActivation, self.ProcessServerActivationForInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.ProcessDeactivation, self.ProcessDeactivationForInstance)
         self.ClientHandler.RegisterFunction(RelayMessageType.Ping, self.PostPongMessage)
             
@@ -131,6 +143,12 @@ class DiscordBot(discord.Client):
         if (ConfigData.IsValid("NotificationChannel", int)):
             self.NotificationChannel = self.get_channel(ConfigData["NotificationChannel"])
             
+        if (ConfigData.IsValid("ActivationChannel", int)):
+            self.ActivationChannel = self.get_channel(ConfigData["ActivationChannel"])
+            
+        if (ConfigData.IsValid("AnnouncementChannel", int)):
+            self.AnnouncementChannel = self.get_channel(ConfigData["AnnouncementChannel"])
+            
         if (ConfigData.IsValid("ReportChannel", int)):
             self.ReportChannel = self.get_channel(ConfigData["ReportChannel"])
             for tag in self.ReportChannel.available_tags:
@@ -156,7 +174,7 @@ class DiscordBot(discord.Client):
     async def ForceLeaveServer(self, ServerId:int):
         ServerToLeave:discord.Guild = self.get_guild(ServerId)
         if (ServerToLeave is not None):
-            Logger.Log(LogLevel.Notice, f"We have left the server {ServerToLeave.name}[{ServerId}]")
+            Logger.Log(LogLevel.Notice, f"We have left the server {self.GetServerInfoStr(ServerToLeave)}")
             await ServerToLeave.leave()
         else:
             Logger.Log(LogLevel.Warning, f"Could not find server with id {ServerId}, id is invalid")        
@@ -235,6 +253,14 @@ class DiscordBot(discord.Client):
                 self.AddAsyncTask(self.ReprocessBans(ServerId))
         return NumServersWithPermissions
     
+    async def ActivateServerInstance(self, UserID:int, ServerID:int):
+        if (self.Database.GetBotIdForServer(ServerID) != self.BotID):
+            return
+        
+        Logger.Log(LogLevel.Notice, f"Activing ServerID {ServerID} from user {UserID}")
+        self.Database.SetBotActivationForOwner([ServerID], True, self.BotID, ActivatorId=UserID)
+        self.AddAsyncTask(self.ReprocessBans(ServerID))
+        
     async def DeactivateServersWithPermissions(self, UserID:int) -> int:
         ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, False)
         NumServersWithPermissions:int = len(ServersWithPermissions)
@@ -244,6 +270,9 @@ class DiscordBot(discord.Client):
     
     def ProcessActivationForInstance(self, UserID:int):
         self.AddAsyncTask(self.ActivateServersWithPermissions(UserID))
+        
+    def ProcessServerActivationForInstance(self, UserId:int, ServerId:int):
+        self.AddAsyncTask(self.ActivateServerInstance(UserId, ServerId))
         
     def ProcessDeactivationForInstance(self, UserID:int):
         self.AddAsyncTask(self.DeactivateServersWithPermissions(UserID))
@@ -285,7 +314,7 @@ class DiscordBot(discord.Client):
         NewOwnerId:int = NewUpdate.owner_id
         if (PriorUpdate.owner_id != NewOwnerId):
             self.Database.SetNewServerOwner(NewUpdate.id, NewOwnerId, self.BotID)
-            Logger.Log(LogLevel.Notice, f"Detected that the server {PriorUpdate.name}[{NewUpdate.id}] is now owned by {NewOwnerId}")
+            Logger.Log(LogLevel.Notice, f"Detected that the server {self.GetServerInfoStr(PriorUpdate)} is now owned by {NewOwnerId}")
             
     async def on_guild_join(self, server:discord.Guild):
         OwnerName:str = "Admin"
@@ -294,12 +323,12 @@ class DiscordBot(discord.Client):
             
         # Prevent ourselves from being added to a server we are already in.
         if (self.Database.IsInServer(server.id)):
-            Logger.Log(LogLevel.Notice, f"Bot #{self.BotID} was attempted to be added to server {server.name}[{server.id}] but already in there")
+            Logger.Log(LogLevel.Notice, f"Bot #{self.BotID} was attempted to be added to server {self.GetServerInfoStr(server)} but already in there")
             await server.leave()
             return
 
         self.Database.SetBotActivationForOwner([server.id], False, self.BotID, OwnerId=server.owner_id)
-        Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has joined server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
+        Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has joined server {self.GetServerInfoStr(server)} of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_remove(self, server:discord.Guild):
         OwnerName:str = "Admin"
@@ -307,7 +336,7 @@ class DiscordBot(discord.Client):
             OwnerName = server.owner.display_name
         
         self.Database.RemoveServerEntry(server.id, self.BotID)
-        Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has been removed from server {server.name}[{server.id}] of owner {OwnerName}[{server.owner_id}]")
+        Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has been removed from server {self.GetServerInfoStr(server)} of owner {OwnerName}[{server.owner_id}]")
         
     ### Report Handling ###
     async def PostScamReport(self, ReportData):
@@ -323,37 +352,47 @@ class DiscordBot(discord.Client):
         ReasoningString:str = ""
         if (len(ReportData["Reasoning"])):
             ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
+            
+        ReportUserId = ReportData['ReportedUserId']
         
         # Format the message that is going to be posted!
         ReportContent:str = f"""
-        User ID: `{ReportData['ReportedUserId']}`
+        User ID: `{ReportUserId}`
 Username: {ReportData['ReportedUserName']}
 Type Of Scam: {ReportData['TypeOfScam']}
 {ReasoningString}
         
 Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}] from {ReportData['ReportedServer']}[{ReportData['ReportedServerId']}]
+
+Failed Copied Evidence Links:
+
 """
         # Format all the image embeds into the list properly
         NumEvidences:int = len(PostFiles)
         
         async with aiohttp.ClientSession() as session:
+            HadCopyFailure:bool = False
             for Evidence in ReportData["Evidence"]:
                 if (NumEvidences >= 10):
                     break
                 
                 if (Evidence.startswith("https")):
                     async with session.get(Evidence) as response:
-                        if response.status != 200:
-                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) could not download file {Evidence}")
+                        if (response.status != 200):
+                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) could not download file {Evidence} for report {ReportUserId}")
+                            ReportContent += f"* {Evidence}\n"
+                            HadCopyFailure = True
                             continue
                         ContentType = response.headers['content-type']
                         if ContentType not in ImageFormats:
-                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) was given {Evidence} but that is of type {ContentType} which is not an image")
+                            Logger.Log(LogLevel.Warn, f"Bot (#{self.BotID}) was given {Evidence} for {ReportUserId} but that is of type {ContentType} which is not an image")
                             continue
                         EvidenceData = io.BytesIO(await response.read())
                         NewFile:discord.File = discord.File(EvidenceData, f'Evidence{NumEvidences}.png')
                         PostFiles.append(NewFile)
                         NumEvidences += 1
+            if (not HadCopyFailure):
+                ReportContent += "None"
         try:
             await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
                                          content=ReportContent,
@@ -366,6 +405,28 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
             Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")
 
     ### Utils ###
+    def GetServerInfoStr(self, Server:discord.Guild) -> str:
+        return f"{Server.name}[{Server.id}]"
+    
+    def CreateBaseEmbed(self, Title:str) -> discord.Embed:
+        ReturnEmbed:discord.Embed = discord.Embed(title=Title, colour=discord.Colour.from_rgb(0, 0, 0))
+        if (ConfigData.IsValid("AppEmbedThumbnail", str)):
+            ReturnEmbed.set_thumbnail(url=ConfigData["AppEmbedThumbnail"])
+        
+        ReturnEmbed.set_author(name="ScamGuard", url="https://scamguard.app")
+        return ReturnEmbed
+    
+    def CreateInfoEmbed(self) -> discord.Embed:
+        NumServers:int = self.Database.GetNumServers()
+        NumActivated:int = self.Database.GetNumActivatedServers()
+        ResponseEmbed:discord.Embed = self.CreateBaseEmbed("ScamGuard Info")
+        ResponseEmbed.add_field(name="About", inline=False, value="ScamGuard is a free bot application that helps prevent scammers from entering your servers. It is managed by [SocksTheWolf](https://socksthewolf.com)")
+        ResponseEmbed.add_field(name="Links", value="[Website](https://scamguard.app)\n[GitHub](https://github.com/SocksTheWolf/AntiScamBot)")
+        ResponseEmbed.add_field(name="Help", value="[FAQ](https://scamguard.app/faq)\n[Support Server](https://scamguard.app/discord)")
+        ResponseEmbed.add_field(name="Terms", value="[TOS](https://scamguard.app/terms)\n[Privacy Policy](https://scamguard.app/privacy)")
+        ResponseEmbed.set_footer(text=f"Scammers Defeated: {self.Database.GetNumBans()} | Servers: {NumActivated}/{NumServers}")
+        return ResponseEmbed
+        
     async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
         BanData = self.Database.GetBanInfo(TargetId)
         UserBanned:bool = (BanData is not None)
@@ -410,7 +471,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
         Server:discord.Guild = self.get_guild(ServerId)
-        ServerInfoStr:str = f"{Server.name}[{Server.id}]"
+        ServerInfoStr:str = self.GetServerInfoStr(Server)
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
@@ -433,6 +494,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
             # See if the ban did go through.
             if (BanResponse[0] == False):
                 BanResponseFlag:BanResult = BanResponse[1]
+                self.AddAsyncTask(self.PostBanFailureInformation(Server, UserId, BanResponseFlag, True))
                 if (BanResponseFlag == BanResult.LostPermissions):
                     Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr}")
                     BanReturn = BanResult.LostPermissions
@@ -499,10 +561,10 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
                             # TODO: This might be a potential fluke
                             break
                         elif (ResultFlag == BanResult.ServerOwner):
-                            # TODO: More logging
+                            Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {self.GetServerInfoStr(DiscordServer)} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
                             continue
-                    # elif (ResultFlag == BanResult.LostPermissions):
-                        # TODO: Mark this server as no longer active?
+                    elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error):
+                        self.AddAsyncTask(self.PostBanFailureInformation(DiscordServer, TargetId, ResultFlag, IsBan))
             else:
                 # TODO: Potentially remove the server from the list?
                 Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
@@ -514,12 +576,9 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id
         ServerOwnerId:int = Server.owner_id
-        ServerInfo:str = f"{Server.name}[{Server.id}]"
+        ServerInfo:str = self.GetServerInfoStr(Server)
         try:
-            BanStr:str = "ban"
-            if (not IsBan):
-                BanStr = "unban"
-            
+            BanStr:str = "ban" if IsBan else "unban"            
             Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action on {BanId} in {ServerInfo} owned by {ServerOwnerId}")
             if (BanId == ServerOwnerId):
                 Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {ServerInfo} as it is the owner!")
@@ -532,6 +591,7 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
                 else:
                     await Server.unban(User, reason=Reason)
             else:
+                #self.AddAsyncTask(self.PostBanFailureInformation(Server, BanId, BanResult.LostPermissions, IsBan))
                 Logger.Log(LogLevel.Debug, "Action was dropped as we are currently in development mode")
             return (True, BanResult.Processed)
         except(discord.NotFound):
@@ -547,3 +607,45 @@ Reported Remotely By: {ReportData['ReportingUserName']}[{ReportData['ReportingUs
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
+    
+    # Handles messaging to server moderators if a ban fails.
+    async def PostBanFailureInformation(self, Server:discord.Guild, UserId:int, Reason:BanResult, IsBan:bool):
+        if (ConfigData["CanSendServerErrorMessages"] == False):
+            return
+        
+        ChannelIDToPost = self.Database.GetChannelIdForServer(Server.id)
+        if (ChannelIDToPost == None):
+            return
+        
+        ServerIDStr:str = self.GetServerInfoStr(Server)
+        DiscordChannel = self.get_channel(ChannelIDToPost)
+        if (DiscordChannel is None):
+            Logger.Log(LogLevel.Error, f"Could not resolve the channel {ChannelIDToPost} for server {ServerIDStr}")
+            return
+        
+        ErrorMsg:str = ""
+        ResolutionMsg:str = ""
+        if (Reason == BanResult.LostPermissions):
+            ErrorMsg = "ScamGuard does not have significant permissions to ban this user"
+            ResolutionMsg = "This usually happens if the user in question has grabbed roles that are higher than the bot's.\n\nYou can usually fix this by changing the order as seen in [this video](https://youtu.be/XYaQi3hM9ug), or giving ScamGuard a moderation role."
+        elif (Reason == BanResult.Error):
+            ErrorMsg = "ScamGuard encountered an unknown error"
+            ResolutionMsg = "This can happen when the Discord API has a hiccup, a ban will retry again soon."
+        else:
+            return
+        
+        BanStr:str = "ban" if IsBan else "unban"
+        User:discord.User = await self.LookupUser(UserId, Server)
+        FailureEmbed:discord.Embed = self.CreateBaseEmbed(f"WARNING: Failed to {BanStr} user!")
+        FailureEmbed.color = discord.Colour.dark_red()
+        if (User is not None):
+            FailureEmbed.add_field(name="User", value=User.mention)
+        
+        FailureEmbed.add_field(name="User ID", value=f"{UserId}")
+        FailureEmbed.add_field(name="Is Ban", value=f"{IsBan}")
+        FailureEmbed.add_field(inline=False, name="Error Code", value=ErrorMsg)
+        FailureEmbed.add_field(inline=False, name="Resolution", value=ResolutionMsg)
+        FailureEmbed.add_field(inline=False, name="Help Links", value="[Support Server](https://scamguard.app/discord) | [FAQ](https://scamguard.app/faq)")
+        FailureEmbed.set_footer(text="scamguard.app")
+        await DiscordChannel.send(embed=FailureEmbed)
+        Logger.Log(LogLevel.Notice, f"A ban failure message was sent to {ServerIDStr} for the user id {UserId}")
