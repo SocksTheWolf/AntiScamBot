@@ -5,6 +5,7 @@ import shutil, time, os
 from BotDatabaseSchema import Ban, Server
 from sqlalchemy import create_engine, select, URL, desc, func
 from sqlalchemy.orm import Session
+from BotServerSettings import BotSettingsPayload
 
 class ScamBotDatabase():
     Database = None
@@ -117,7 +118,7 @@ class ScamBotDatabase():
         self.Database.add(server)
         self.Database.commit()
         
-    def AddChannelInformation(self, ServerId:int, ChannelId:int):
+    def SetFromServerSettings(self, ServerId:int, ServerSettings:BotSettingsPayload):
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         serverToChange = self.Database.scalars(stmt).first()
         
@@ -125,19 +126,9 @@ class ScamBotDatabase():
             Logger.Log(LogLevel.Warn, f"Bot attempted to set channel updates to {ServerId}, but server doesn't exist in db!")
             return
         
-        serverToChange.message_channel = ChannelId
-        self.Database.add(serverToChange)
-        self.Database.commit()
-        
-    def SetWebhookFlag(self, ServerId:int, WantsWebhooks:bool):
-        stmt = select(Server).where(Server.discord_server_id==ServerId)
-        serverToChange = self.Database.scalars(stmt).first()
-        
-        if (serverToChange is None):
-            Logger.Log(LogLevel.Warn, f"Bot attempted to set channel updates to {ServerId}, but server doesn't exist in db!")
-            return
-        
-        serverToChange.has_webhooks = 1 if WantsWebhooks else 0
+        serverToChange.message_channel = ServerSettings.GetMessageID()
+        serverToChange.has_webhooks = 1 if ServerSettings.WantsWebhooks else 0
+        serverToChange.kick_sus_users = 1 if ServerSettings.KickSusUsers else 0
         self.Database.add(serverToChange)
         self.Database.commit()
            
