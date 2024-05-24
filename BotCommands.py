@@ -88,14 +88,3 @@ class GlobalScamCommands(app_commands.Group):
         
         ResponseEmbed:Embed = self.GetInstance().CreateInfoEmbed()
         await interaction.response.send_message(embed=ResponseEmbed, silent=True)
-        
-        
-    @app_commands.command(name="settings", description="ScamGuard Settings")
-    @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 5.0)
-    async def HelpScamGuard_Global(self, interaction:Interaction):
-        if (interaction.guild_id == Config()["ControlServer"]):
-            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
-            return
-        
-        await interaction.response.send_message("This has not been implemented yet!", ephemeral=True)
