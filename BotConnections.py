@@ -157,7 +157,7 @@ class RelayServer:
                                 continue
                             ClientConnection.send(Message)
                     case _:
-                        if (Message.Destination < 0):
+                        if (Message.Destination < 0 or Message.Destination >= len(self.InstancesToConnections)):
                             Logger.Log(LogLevel.Warn, f"Message went to a bad destination! {str(Message.Destination)}")
                             continue
                         
