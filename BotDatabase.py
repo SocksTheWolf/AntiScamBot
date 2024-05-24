@@ -312,7 +312,7 @@ class ScamBotDatabase():
         
         return list(servers)
         
-    def GetOwnerOfServer(self, ServerId:int) -> int:
+    def GetOwnerOfServer(self, ServerId:int) -> int|None:
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         server = self.Database.scalars(stmt).first()
 
@@ -322,7 +322,7 @@ class ScamBotDatabase():
 
         return int(server.owner_discord_user_id)
     
-    def GetBotIdForServer(self, ServerId:int) -> int:
+    def GetBotIdForServer(self, ServerId:int) -> int|None:
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         server = self.Database.scalars(stmt).first()
 
@@ -332,7 +332,7 @@ class ScamBotDatabase():
 
         return int(server.bot_instance_id)
     
-    def GetChannelIdForServer(self, ServerId:int) -> int:
+    def GetChannelIdForServer(self, ServerId:int) -> int|None:
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         server = self.Database.scalars(stmt).first()
 
