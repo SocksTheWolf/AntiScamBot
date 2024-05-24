@@ -51,7 +51,7 @@ class ScamGuardServerSetup():
         DB = self.BotInstance.Database
         ServerInstance:int = DB.GetBotIdForServer(Payload.GetServerID())
         
-        DB.SetFromServerSettings(ServerID, Payload)        
+        DB.SetFromServerSettings(ServerID, Payload)
         if (Payload.WantsWebhooks):
             await self.BotInstance.InstallWebhook(ServerID)
         
