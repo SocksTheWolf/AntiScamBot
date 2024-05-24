@@ -95,7 +95,7 @@ class SelfDeletingView(ui.View):
     # Boolean to prevent multi-presses whenever discord ui lags.
     HasInteracted:bool = False
     
-    def __init__(self, ViewTimeout:float|None=None):
+    def __init__(self, ViewTimeout:float|None=180):
          super().__init__(timeout=ViewTimeout)
          
     async def on_timeout(self):
