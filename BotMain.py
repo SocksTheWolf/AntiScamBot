@@ -403,6 +403,60 @@ Failed Copied Evidence Links:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")
+            
+    ### Webhook Management ###
+    async def InstallWebhook(self, ServerId:int):
+        ChannelID:int = self.Database.GetChannelIdForServer(ServerId)
+        MessageChannel:discord.TextChannel =  self.get_channel(ChannelID)
+        
+        # Check to see if a webhook is already installed.
+        if (MessageChannel != None):
+            try:
+                CurrentWebhooks = await MessageChannel.webhooks()
+                for Webhook in CurrentWebhooks:
+                    # The webhook is already installed, do not attempt to install again.
+                    if (Webhook.type == discord.WebhookType.channel_follower and Webhook.source_channel.id == self.AnnouncementChannel.id):
+                        return
+            except discord.Forbidden:
+                Logger.Log(LogLevel.Warn, f"Unable to check the currently installed webhooks to the channel {ChannelID} in server {ServerId} to see if it was already installed.")
+        else:
+            Logger.Log(LogLevel.Warn, f"Attempted to install a webhook for an invalid message channel object. Server: {ServerId}, ChannelId: {ChannelID}")
+            return
+        
+        try:
+            await self.AnnouncementChannel.follow(destination=MessageChannel, reason="ScamGuard Ban Notification Setup")
+        except discord.Forbidden:
+            await MessageChannel.send("ScamGuard was unable to install the ban notification webhook. You can try again later, or manually install from the TAG Server")
+        except discord.HTTPException:
+            Logger.Log(LogLevel.Warn, f"")
+            
+    async def DeleteWebhook(self, ServerId:int):
+        ChannelID:int = self.Database.GetChannelIdForServer(ServerId)
+        MessageChannel:discord.TextChannel = self.get_channel(ChannelID)
+        FoundWebhook:discord.Webhook = None
+        
+        # Check to see if a webhook is already installed.
+        if (MessageChannel != None):
+            try:
+                CurrentWebhooks = await MessageChannel.webhooks()
+                for Webhook in CurrentWebhooks:
+                    # The webhook is already installed, grab a reference to it.
+                    if (Webhook.type == discord.WebhookType.channel_follower and Webhook.source_channel.id == self.AnnouncementChannel.id):
+                        FoundWebhook = Webhook
+                        break
+            except discord.Forbidden:
+                Logger.Log(LogLevel.Warn, f"Unable to handle enumerating webhooks for {MessageChannel.id} in {ServerId} to delete the webhook")
+        
+        # If we didn't find any webhooks, then stop processing.
+        if (FoundWebhook is None):
+            return
+        
+        try:
+            await FoundWebhook.delete(reason="ScamGuard Setting Change")
+        except discord.Forbidden:
+            await MessageChannel.send("ScamGuard does not have the appropriate permissions to delete the Ban Notification Webhook, you will have to do it manually.")
+        except discord.HTTPException:
+            await MessageChannel.send("Unable to delete the Ban Notification Webhook, you will have to do it manually.")
 
     ### Utils ###
     def GetServerInfoStr(self, Server:discord.Guild) -> str:
@@ -594,7 +648,7 @@ Failed Copied Evidence Links:
                 #self.AddAsyncTask(self.PostBanFailureInformation(Server, BanId, BanResult.LostPermissions, IsBan))
                 Logger.Log(LogLevel.Debug, "Action was dropped as we are currently in development mode")
             return (True, BanResult.Processed)
-        except(discord.NotFound):
+        except discord.NotFound:
             if (not IsBan):
                 Logger.Log(LogLevel.Verbose, f"User {BanId} is not banned in server")
                 return (True, BanResult.NotBanned)

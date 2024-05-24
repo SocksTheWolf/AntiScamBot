@@ -3,6 +3,7 @@ from Logger import Logger, LogLevel
 
 class YesNoSelector(ui.Select):
     CurrentSelection:str = ""
+    CachedValue:str = ""
     
     def __init__(self, RowPos=None):
         options = [
@@ -15,6 +16,12 @@ class YesNoSelector(ui.Select):
     
     def HasValue(self) -> bool:
         return self.CurrentSelection != ""
+    
+    def HasValueChanged(self) -> bool:
+        if (self.CachedValue != "" and self.CachedValue != self.CurrentSelection):
+            return True
+        
+        return False
         
     def GetValue(self) -> None | bool:
         if (self.CurrentSelection == ""):
@@ -40,8 +47,9 @@ class YesNoSelector(ui.Select):
     
     # Updates the current placeholder if a value is set already
     def SetCurrentValue(self, CurValue:bool) -> str:
-        ValueStr:str = "Yes" if CurValue else "No"
-        self.placeholder = f"[Current Setting: {ValueStr}] {self.GetPlaceholder()}"
+        self.CurrentSelection = "Yes" if CurValue else "No"
+        self.CachedValue = self.CurrentSelection
+        self.placeholder = f"[Current Setting: {self.CurrentSelection}] {self.GetPlaceholder()}"
         
         if (self.SetNotRequiredIfValueSet()):
             self.SetRequired(False)
