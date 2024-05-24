@@ -1,4 +1,4 @@
-from discord import ui, ButtonStyle, Interaction, Colour, Embed, Guild
+from discord import ui, ButtonStyle, Interaction, Colour, Embed, Guild, TextChannel
 from Config import Config
 from Logger import Logger, LogLevel
 from BotServerSettings import ServerSettingsView, BotSettingsPayload
@@ -53,7 +53,7 @@ class ScamGuardServerSetup():
         
         DB.SetFromServerSettings(ServerID, Payload)        
         if (Payload.WantsWebhooks):
-            await self.BotInstance.AnnouncementChannel.follow(destination=Payload.MessageChannel, reason="ScamGuard Setup")
+            await self.BotInstance.InstallWebhook(ServerID)
         
         self.BotInstance.ClientHandler.SendActivationForServerInstance(UserID, ServerID, ServerInstance)
         await self.BotInstance.ActivateServerInstance(UserID, ServerID)
@@ -105,18 +105,16 @@ class ServerActivationApproval(SelfDeletingView):
     async def on_cancel(self, interaction:Interaction):
         ServerID:int = self.Payload.GetServerID()
         Bot = interaction.client
-        DB = interaction.client.Database
         
         await interaction.response.send_message(f"Activation denied for server {ServerID}.")
         
-        ChannelIDToPost:int = DB.GetChannelIdForServer()
-        DiscordChannel = Bot.get_channel(ChannelIDToPost)
+        DiscordChannel:TextChannel = self.Payload.MessageChannel
         ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server)
         
         if (DiscordChannel is None):
-            Logger.Log(LogLevel.Error, f"Could not resolve the channel {ChannelIDToPost} for server {ServerIDStr} to post activation deny message in")
+            Logger.Log(LogLevel.Error, f"Could not resolve the channel {self.Payload.GetMessageID()} for server {ServerIDStr} to post activation deny message in")
             return
         
         # Do not send a message if the server admins sent the activation command a few times already.
-        if (not DB.IsActivatedInServer(ServerID)):
+        if (not interaction.client.Database.IsActivatedInServer(ServerID)):
             await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
