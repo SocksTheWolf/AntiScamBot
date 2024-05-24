@@ -4,7 +4,7 @@ description: The Terms of Service for the ScamGuard Discord bot
 redirect_from: /terms-of-service
 ---
 
-# Application Conditions
+## Application Conditions
 
 This terms of service document applies to each of the following:
 
@@ -13,7 +13,7 @@ This terms of service document applies to each of the following:
 
 By performing one of these actions, you here by agree to these terms of service and observe that this document may change after a notice in the [control/support server](/discord).
 
-# Terms of Usage
+## Terms of Usage
 
 1. You are not to use the bot nor its lookup abilities to attempt to harass/stalk/deliberately annoy users.
 2. You will not attempt to fetch/modify the bot's internal database of bans.

@@ -5,9 +5,7 @@ redirect_from: /privacy-policy
 previous: /
 ---
 
-# Privacy Policy
-
-The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy. 
+The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy.
 
 ## What is collected?
 
@@ -16,6 +14,7 @@ The usage of the bot requires the following data collected:
 * A numeric value that represents a Discord Server ("Server ID")
 * A numeric value that represents the Owner ID of the Server ("Owner ID")
 * A value that represents if the bot is "activated" in a server with the "Server ID" ("Activated").
+* A few other settings related to ScamGuard configuration when you first activate it.
 
 If you are a trusted approver, the following information is stored when you ban an user in the TAG server:
 

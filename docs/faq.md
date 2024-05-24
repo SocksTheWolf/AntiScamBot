@@ -4,7 +4,8 @@ description: Answers regarding ScamGuard, what it does and other things!
 previous: /
 ---
 
-## The Bot, {{ site.bot_name }}
+## {{ site.bot_name }} Info
+
 ---
 
 ### What is this project in a nutshell?
@@ -23,11 +24,11 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Send Messages`: To send responses to commands that are executed.
 
-* `Ban Members`: To execute the bans
+* `Ban Members`: To execute the bans on scammers.
 
-* `Embed Links`: To give you information when you run `/scamguard check`
+* `Embed Links`: To give you information when you run `/scamguard check` and other commands.
 
-* `Manage Webhooks`: To allow subscribing to the ban notification feed if you choose during setup.
+* `Manage Webhooks`: To allow for subscribing to the ban notification feed if you so choose during setup.
 
 ### I am not able to add the bot, it says the bot needs to be verified?
 
@@ -40,6 +41,17 @@ Anything under the "THE BOT" role in the TAG server is allowed to be added.
 ### When I activate the bot, why is it suddenly banning hundreds of accounts?
 
 {{ site.bot_name }} imports all the bans of scammers that it knows about. This can be several hundreds of accounts, but not to worry, due to the way {{ site.bot_name }} processes bans, these accounts do not have to be in your server. So while it looks like your entire discord community is getting banned, it is not.
+
+### Someone messaged me saying they're unable to get into my server, is that ScamGuard's doing?
+
+This is usually a _very rare_ occurance.
+
+You can run a `/scamguard check` against their user id to see if they're registered as a scammer in {{ site.bot_name }}. If it comes back as false, then the user was likely marked as a suspicious IP by Discord.
+This can happen if a scammer previously had their IP address (as IP addresses often recycle to various people) and made several accounts, or violated their TOS.
+
+Sometimes, when a scam account is banned, Discord will also flag the IP the account had when it was banned in your server too.
+
+Legitimate users can get around this Discord behavior by joining the server on mobile instead.
 
 ### Is {{ site.bot_name }} open source?
 
@@ -58,6 +70,7 @@ You can [view our privacy policy right here](/privacy)!
 Yes, you can [view that page here](/terms)!
 
 ## Commission Scammers
+
 ---
 
 ### What is a commission scammer?
@@ -71,6 +84,7 @@ They will always solicit you first. Do not give these scammers your money.
 When these scammers first ran rampant, they would always open their dms with the message "hey^^". It was really easy to tell if someone was fake because of it.
 
 ## The Process
+
 ---
 
 ### How does {{ site.bot_name }} know who is a commission scammer?
@@ -79,7 +93,7 @@ User reports. Vetters go through the user report and then trigger a ban on the u
 
 ### What about abuse?
 
-So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to {{ site.bot_name }}. 
+So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to {{ site.bot_name }}.
 
 ### How do I know if someone was banned by {{ site.bot_name }}?
 
@@ -101,11 +115,12 @@ Reports are not visible until then.
 
 ### What about mistakes?
 
-{{ site.bot_name }} can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, {{ site.bot_name }} can only unban users marked that it banned originally). 
+{{ site.bot_name }} can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, {{ site.bot_name }} can only unban users marked that it banned originally).
 
-You can also just simply unban the user. 
+You can also just simply unban the user.
 
 ## The Group
+
 ---
 
 ### What is "The Antiscam Group"?
