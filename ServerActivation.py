@@ -55,7 +55,7 @@ class ScamGuardServerSetup():
     async def SendActivationRequest(self, Payload:BotSettingsPayload):
         # If the server is already activated then do nothing more.
         if (self.BotInstance.Database.IsActivatedInServer(Payload.GetServerID())):
-            Logger.Log(LogLevel.Warn, f"User {Payload.GetUserID()} attempted to activate {Payload.Server.name}[{Payload.GetServerID()}] but it's already activated")
+            Logger.Log(LogLevel.Warn, f"User {Payload.GetUserID()} attempted to activate {self.BotInstance.GetServerInfoStr(Payload.Server)} but it's already activated")
             return
         
         # If we don't require moderation for activation approval
@@ -87,7 +87,7 @@ class ServerActivationApproval(SelfDeletingView):
         self.Parent = Parent
         self.Payload = InPayload
         
-        super().__init__()
+        super().__init__(ViewTimeout=None)
         
     @ui.button(label="Approve", style=ButtonStyle.success, row=4)
     async def setup(self, interaction: Interaction, button: ui.Button):
@@ -98,3 +98,15 @@ class ServerActivationApproval(SelfDeletingView):
         
     async def on_cancel(self, interaction:Interaction):
         await interaction.response.send_message(f"Activation denied for server {self.Payload.GetServerID()}.")
+        Bot = interaction.client
+        DB = interaction.client.Database
+        
+        ChannelIDToPost:int = DB.GetChannelIdForServer(self.Payload.GetServerID())
+        DiscordChannel = Bot.get_channel(ChannelIDToPost)
+        ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server)
+        
+        if (DiscordChannel is None):
+            Logger.Log(LogLevel.Error, f"Could not resolve the channel {ChannelIDToPost} for server {ServerIDStr} to post activation deny message in")
+            return
+        
+        await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
