@@ -12,6 +12,12 @@ ConfigData:Config=Config()
 if __name__ == '__main__':
     CommandControlServer=Object(id=ConfigData["ControlServer"])
     ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
+    
+    @ScamGuardBot.Commands.command(name="info", description="ScamGuard Info", guild=CommandControlServer)
+    @app_commands.checks.cooldown(1, 3.0)
+    async def PrintScamInfo(interaction:Interaction):
+        ReturnEmbed = ScamGuardBot.CreateInfoEmbed()
+        await interaction.response.send_message(embed=ReturnEmbed, silent=True)
 
     @ScamGuardBot.Commands.command(name="backup", description="Backs up the current database", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
@@ -88,7 +94,7 @@ if __name__ == '__main__':
     async def PrintServers(interaction:Interaction):
         ReplyStr:str = "I am in the following servers:\n"
         RowNum:int = 1
-        NumBans:int = len(ScamGuardBot.Database.GetAllBans())
+        NumBans:int = ScamGuardBot.Database.GetNumBans()
         ActivatedServers:int = 0
         await interaction.response.defer(thinking=True)
         ResponseHook:Webhook = interaction.followup
@@ -124,7 +130,7 @@ if __name__ == '__main__':
             BanEmbed:Embed = await ScamGuardBot.CreateBanEmbed(targetid)
             BanView:ConfirmBan = ConfirmBan(targetid, ScamGuardBot)
             await interaction.response.defer(ephemeral=True, thinking=True)
-            BanView.Hook = await interaction.followup.send(embed=BanEmbed, view=BanView, wait=True, ephemeral=True)
+            await BanView.Send(interaction, [BanEmbed])
         else:
             Logger.Log(LogLevel.Log, f"The given id {targetid} is already banned.")
             await interaction.response.send_message(f"{targetid} already exists in the ban database")
@@ -139,7 +145,7 @@ if __name__ == '__main__':
 
         Sender:Member = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
-        Result = await ScamGuardBot.PrepareUnban(targetid, Sender)
+        Result = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
         ResponseMsg:str = ""
         if (Result is not BanLookup.Unbanned):
             if (Result is BanLookup.NotExist):
