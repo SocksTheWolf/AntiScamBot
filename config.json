@@ -24,5 +24,6 @@
     "UsingPosixSockets": false,
     "RequireActivationApproval": true,
     "CanSendServerErrorMessages": true,
-    "AllowSuspiciousUserKicks": false
+    "AllowSuspiciousUserKicks": false,
+    "AllowWebhookInstall": true
 }
