@@ -144,12 +144,10 @@ class ScamGuard(DiscordBot):
     ### Ban Handling ###
     async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool) -> BanLookup:
         DatabaseAction:BanLookup = None
-        AnnouncementTitle:str = ""
+        ActionTaken:str = "Ban" if PerformBan else "Unban"
         if (PerformBan):
-            AnnouncementTitle = "Ban in Progress"
             DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id)
         else:
-            AnnouncementTitle = "Unban in Progress"
             DatabaseAction = self.Database.RemoveBan(TargetId)
         
         if (DatabaseAction != BanLookup.Good):
@@ -159,7 +157,7 @@ class ScamGuard(DiscordBot):
         
         # Send a message to the announcement channel
         NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
-        NewAnnouncement.title = AnnouncementTitle
+        NewAnnouncement.title = f"{ActionTaken} in Progress"
         await self.PublishAnnouncement(NewAnnouncement)
         
         return BanLookup.Banned if PerformBan else BanLookup.Unbanned

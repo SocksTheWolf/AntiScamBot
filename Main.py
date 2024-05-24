@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
         Sender:Member = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
-        Result = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
+        Result:BanLookup = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
         ResponseMsg:str = ""
         if (Result is not BanLookup.Unbanned):
             if (Result is BanLookup.NotExist):

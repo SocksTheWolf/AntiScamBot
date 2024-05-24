@@ -29,7 +29,7 @@ class ConfirmBan(SelfDeletingView):
             return
         
         self.HasInteracted = True
-        Result = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True)
+        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True)
         if (Result is not BanLookup.Banned):
             if (Result == BanLookup.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"
