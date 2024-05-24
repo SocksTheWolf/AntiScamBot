@@ -25,5 +25,6 @@
     "RequireActivationApproval": true,
     "CanSendServerErrorMessages": true,
     "AllowSuspiciousUserKicks": false,
-    "AllowWebhookInstall": true
+    "AllowWebhookInstall": true,
+    "ConflictingBots": [849084039763591179, 235148962103951360]
 }

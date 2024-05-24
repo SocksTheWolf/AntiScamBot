@@ -1,4 +1,4 @@
-from discord import ui, ButtonStyle, Interaction, Colour, Embed
+from discord import ui, ButtonStyle, Interaction, Colour, Embed, Guild
 from Config import Config
 from Logger import Logger, LogLevel
 from BotServerSettings import ServerSettingsView, BotSettingsPayload
@@ -9,12 +9,20 @@ class ScamGuardServerSetup():
     
     def __init__(self, Bot) -> None:
         self.BotInstance = Bot
+        
+    async def CheckForBotConflicts(self, InServer:Guild) -> bool:
+        BotConflicts = Config()["ConflictingBots"]
+        for DiscordBotId in BotConflicts:
+            if (await self.BotInstance.LookupUser(DiscordBotId, InServer) is not None):
+                return True
+            
+        return False
     
     async def OpenServerSetupModel(self, interaction:Interaction):
         await interaction.response.defer(ephemeral=True, thinking=True)
         NumBans:int = self.BotInstance.Database.GetNumBans()
         
-        InformationEmbed:Embed = self.BotInstance.CreateBaseEmbed("ScamGuard Activation")
+        InformationEmbed:Embed = self.BotInstance.CreateBaseEmbed("ScamGuard Setup Welcome")
         InformationEmbed.add_field(name="Setup Info", inline=False, value="When you click on the 'Confirm Settings' button, ScamGuard will send an activation request to handle your server setup.\nWhen complete, ScamGuard will start importing bans")
         InformationEmbed.add_field(name="Number of Bans", inline=False, value=f"ScamGuard will import ~{NumBans} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't the number of people in your server, it is establishing a firewall to prevent scammers from entering.")
         InformationEmbed.add_field(name="Commands", inline=False, value="Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report scammers that ScamGuard hasn't seen yet.")
@@ -26,11 +34,9 @@ class ScamGuardServerSetup():
         InformationEmbed.add_field(name="IMPORTANT:", value="", inline=False)
         InformationEmbed.add_field(name="Roles", inline=False, value="Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, you can watch this video for how to position the roles properly to avoid any problems: https://youtu.be/XYaQi3hM9ug")
         
-        # Check to see if WizeBot is in the server, and warn about it. This is Wizebot's id.
-        GetWizebot = await self.BotInstance.LookupUser(849084039763591179, interaction.guild)
-        GetCarlbot = await self.BotInstance.LookupUser(235148962103951360, interaction.guild)
-        if (GetWizebot is not None or GetCarlbot is not None):
-            InformationEmbed.add_field(name="WizeBot", inline=False, value="It is detected that you have Wizebot/Carlbot in your server, you will need to whitelist ScamGuard in the WizeBot dashboard! Conflicts can arise between the two bots otherwise!!!")
+        # Check to see if WizeBot/Carlbot is in the server, and warn about it.
+        if (await self.CheckForBotConflicts(interaction.guild)):
+            InformationEmbed.add_field(name="WizeBot & Carlbot", inline=False, value="It is detected that you have Wizebot/Carlbot in your server, you will need to whitelist ScamGuard in the WizeBot dashboard! Conflicts can arise between the two bots otherwise!!!")
         
         InformationEmbed.add_field(name="", value="", inline=False)
         InformationEmbed.add_field(name="Important Links", inline=False, value="[Support](https://scamguard.app/discord) | [Terms Of Service](https://scamguard.app/terms) | [Privacy Policy](https://scamguard.app/privacy)")
@@ -97,11 +103,13 @@ class ServerActivationApproval(SelfDeletingView):
         await self.StopInteractions()
         
     async def on_cancel(self, interaction:Interaction):
-        await interaction.response.send_message(f"Activation denied for server {self.Payload.GetServerID()}.")
+        ServerID:int = self.Payload.GetServerID()
         Bot = interaction.client
         DB = interaction.client.Database
         
-        ChannelIDToPost:int = DB.GetChannelIdForServer(self.Payload.GetServerID())
+        await interaction.response.send_message(f"Activation denied for server {ServerID}.")
+        
+        ChannelIDToPost:int = DB.GetChannelIdForServer()
         DiscordChannel = Bot.get_channel(ChannelIDToPost)
         ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server)
         
@@ -109,4 +117,6 @@ class ServerActivationApproval(SelfDeletingView):
             Logger.Log(LogLevel.Error, f"Could not resolve the channel {ChannelIDToPost} for server {ServerIDStr} to post activation deny message in")
             return
         
-        await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
+        # Do not send a message if the server admins sent the activation command a few times already.
+        if (not DB.IsActivatedInServer(ServerID)):
+            await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
