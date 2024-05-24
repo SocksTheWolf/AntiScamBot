@@ -44,12 +44,12 @@ Anything under the "THE BOT" role in the TAG server is allowed to be added.
 
 ### Someone messaged me saying they're unable to get into my server, is that ScamGuard's doing?
 
-This is usually a _very rare_ occurance.
+This is an _extremely rare_ occurance.
 
 You can run a `/scamguard check` against their user id to see if they're registered as a scammer in {{ site.bot_name }}. If it comes back as false, then the user was likely marked as a suspicious IP by Discord.
 This can happen if a scammer previously had their IP address (as IP addresses often recycle to various people) and made several accounts, or violated their TOS.
 
-Sometimes, when a scam account is banned, Discord will also flag the IP the account had when it was banned in your server too.
+Sometimes, when a scam account is banned, Discord will also flag the IP the account when you get the ban imported by the bot. This is considered a feature by Discord.
 
 Legitimate users can get around this Discord behavior by joining the server on mobile instead.
 
