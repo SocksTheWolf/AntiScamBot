@@ -1,6 +1,7 @@
 from discord import ui, Guild, ButtonStyle, Interaction, Member, TextChannel, Permissions
 from ModalHelpers import YesNoSelector, SelfDeletingView, ModChannelSelector
 from BotDatabaseSchema import Server
+from Logger import Logger, LogLevel
 from Config import Config
 
 class BotSettingsPayload:
@@ -95,7 +96,7 @@ class ServerSettingsView(SelfDeletingView):
         self.ChannelSelect = ModChannelSelector(RowPos=0)
         # If we don't have a message channel selected, force this setting here.
         if (not self.Payload.HasMessageChannel()):
-            self.ChannelSelect.min_values = 1
+            self.ChannelSelect.SetRequired()
         
         self.add_item(self.ChannelSelect)
         
@@ -115,16 +116,35 @@ class ServerSettingsView(SelfDeletingView):
         
     @ui.button(label="Confirm Settings", style=ButtonStyle.success, row=4)
     async def setup(self, interaction: Interaction, button: ui.Button):
-        # Check to see if the webhook selector has a value set
+        # Couple of quick reference settings
+        DB = interaction.client.Database
+        ServerId:int = self.Payload.GetServerID()
         ConfigData:Config = Config()
-        ChannelSelectRequired:bool = self.ChannelSelect.min_values == 1
         
+        # State settings
+        MadeWebhookSelection:bool = self.WebhookSelector.HasValue()
+        ChannelSelectRequired:bool = self.ChannelSelect.min_values == 1
+        ChannelSelectChanged:bool = False
+        
+        # Check if we can install webhooks
         if (ConfigData["AllowWebhookInstall"]):
-            if (self.WebhookSelector.GetValue() != None):
+            if (MadeWebhookSelection):
                 self.Payload.WantsWebhooks = self.WebhookSelector.GetValue()
             elif self.WebhookSelector.IsRequired():
                 await interaction.response.send_message("Please choose an option for ban notifications!", ephemeral=True, delete_after=10.0)
                 return
+
+        # Check to see if the channel option has changed. This code specifically will allow it for the user to not change the setting and still
+        # use the old values
+        if (not ChannelSelectRequired):
+            CurrentChannelSetting:int|None = DB.GetChannelIdForServer(ServerId)
+            # Grab what the user selected if they have any selections
+            NewChannelSetting:int|None = self.ChannelSelect.values[0].id if self.ChannelSelect.values else None
+            # If this is not required, and the user has made a selection and the selection is not the current setting, then do an update.
+            if (NewChannelSetting is not None and CurrentChannelSetting != NewChannelSetting):
+                Logger.Log(LogLevel.Debug, f"Channel Selection has changed from {CurrentChannelSetting} to {NewChannelSetting}")
+                ChannelSelectRequired = True
+                ChannelSelectChanged = True
 
         # Resolve the selected channel to send messages into
         if (ChannelSelectRequired):
@@ -132,15 +152,23 @@ class ServerSettingsView(SelfDeletingView):
                 return
             
             ChannelToHookInto:TextChannel = self.ChannelSelect.values[0].resolve()
-            
             if (self.Payload.WantsWebhooks):
+                # If the channel selection option has changed from the original setting, delete the original webhook
+                if (ChannelSelectChanged):
+                    Logger.Log(LogLevel.Debug, "Deleting old webhook reference")
+                    await interaction.client.DeleteWebhook(ServerId)
+
                 BotMember:Member = interaction.guild.get_member(interaction.client.user.id)
                 PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
                 
                 # Check to see if we can manage webhooks in that channel, if the user wants us to add ban notifications
                 if (not PermissionsObj.manage_webhooks):
-                    await interaction.response.send_message(f"ScamGuard needs permissions to add a webhook into the channel {ChannelToHookInto.mention}, please give it manage webhook permissions", ephemeral=True, delete_after=60.0)
+                    await interaction.response.send_message(f"ScamGuard needs permissions to add a webhook into the channel {ChannelToHookInto.mention}, please give it manage webhook permissions", 
+                                                            ephemeral=True, delete_after=80.0)
                     return
+            # The user wanted webhooks but doesn't want them any more, delete the webhook from the channel.
+            elif (self.WebhookSelector.HasValueChanged() and self.Payload.HasMessageChannel()):
+                await interaction.client.DeleteWebhook(ServerId)
                 
             self.Payload.MessageChannel = ChannelToHookInto
         
@@ -151,10 +179,10 @@ class ServerSettingsView(SelfDeletingView):
         
         # Respond to the user and kill the interactions
         MessageResponse:str = ""
-        if (not interaction.client.Database.IsActivatedInServer(self.Payload.Server.id)):
+        if (not interaction.client.Database.IsActivatedInServer(ServerId)):
             MessageResponse = "Enqueued your server for activation. This will take a few minutes to import all the bans."
         else:
             MessageResponse = "Settings changes enqueued for application!"
             
-        await interaction.response.send_message(MessageResponse, ephemeral=True, delete_after=10.0)
+        await interaction.response.send_message(MessageResponse, ephemeral=True, delete_after=30.0)
         await self.StopInteractions()
