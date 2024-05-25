@@ -410,7 +410,7 @@ Failed Copied Evidence Links:
         MessageChannel:discord.TextChannel =  self.get_channel(ChannelID)
         
         # Check to see if a webhook is already installed.
-        if (MessageChannel != None):
+        if (MessageChannel is not None):
             try:
                 CurrentWebhooks = await MessageChannel.webhooks()
                 for Webhook in CurrentWebhooks:
@@ -436,7 +436,7 @@ Failed Copied Evidence Links:
         FoundWebhook:discord.Webhook = None
         
         # Check to see if a webhook is already installed.
-        if (MessageChannel != None):
+        if (MessageChannel is not None):
             try:
                 CurrentWebhooks = await MessageChannel.webhooks()
                 for Webhook in CurrentWebhooks:
