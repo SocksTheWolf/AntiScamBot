@@ -69,7 +69,7 @@ class YesNoSelector(ui.Select):
 # An override for channel selectors so that they do not show "This Interaction Failed" inappropriately
 class ModChannelSelector(ui.ChannelSelect):
     def __init__(self, RowPos:int|None=None):
-        super().__init__(row=RowPos, max_values=1, channel_types=[ChannelType.text], placeholder="ScamGuard Channel for Mod Messages")
+        super().__init__(row=RowPos, min_values=0, max_values=1, channel_types=[ChannelType.text], placeholder="ScamGuard Channel for Mod Messages")
         
     async def IsValid(self, interaction:Interaction, Silent:bool=False) -> bool:
         if (not self.values and self.min_values > 0):
@@ -95,6 +95,9 @@ class ModChannelSelector(ui.ChannelSelect):
         
     async def callback(self, interaction:Interaction):
         await self.IsValid(interaction, False)
+        
+    def SetRequired(self):
+        self.min_values = 1
 
 # This is an UI view that will allow for deletion after interaction.
 class SelfDeletingView(ui.View):

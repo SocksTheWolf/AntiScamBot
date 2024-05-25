@@ -446,6 +446,8 @@ Failed Copied Evidence Links:
                         break
             except discord.Forbidden:
                 Logger.Log(LogLevel.Warn, f"Unable to handle enumerating webhooks for {MessageChannel.id} in {ServerId} to delete the webhook")
+        else:
+            return
         
         # If we didn't find any webhooks, then stop processing.
         if (FoundWebhook is None):
