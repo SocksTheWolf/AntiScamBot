@@ -462,6 +462,21 @@ Failed Copied Evidence Links:
     def GetServerInfoStr(self, Server:discord.Guild) -> str:
         return f"{Server.name}[{Server.id}]"
     
+    def PostPongMessage(self):
+        Logger.Log(LogLevel.Notice, "I have been pinged!")
+        
+    async def PostNotification(self, Message:str):
+        self.LoggingMessageQueue.put(Message)
+        
+    async def ApplySettings(self, NewSettings):
+        ServerID:int = NewSettings.GetServerID()
+        self.Database.SetFromServerSettings(ServerID, NewSettings)
+        if (NewSettings.WantsWebhooks):
+            await self.InstallWebhook(ServerID)
+        else:
+            await self.DeleteWebhook(ServerID)
+    
+    ### Embeds ###
     def CreateBaseEmbed(self, Title:str) -> discord.Embed:
         ReturnEmbed:discord.Embed = discord.Embed(title=Title, colour=discord.Colour.from_rgb(0, 0, 0))
         if (ConfigData.IsValid("AppEmbedThumbnail", str)):
@@ -469,6 +484,11 @@ Failed Copied Evidence Links:
         
         ReturnEmbed.set_author(name="ScamGuard", url="https://scamguard.app")
         return ReturnEmbed
+    
+    def AddSettingsEmbedInfo(self, AddToEmbed:discord.Embed):
+        AddToEmbed.add_field(name="Settings", value="", inline=False)
+        AddToEmbed.add_field(name="Mod Message Channel", inline=False, value="Granting ScamGuard access to a channel that only moderators can see is highly recommended as the information passed there is usually important to mods. Messages are not sent very frequently.")
+        AddToEmbed.add_field(name="Ban Notifications", inline=False, value="If you would like to subscribe to notifications when ScamGuard bans, select Yes when prompted about installing a webhook. It is highly recommended, but not necessary.")
     
     def CreateInfoEmbed(self) -> discord.Embed:
         NumServers:int = self.Database.GetNumServers()
@@ -515,12 +535,6 @@ Failed Copied Evidence Links:
 
         UserData.set_footer(text=f"User ID: {TargetId}")
         return UserData
-    
-    def PostPongMessage(self):
-        Logger.Log(LogLevel.Notice, "I have been pinged!")
-        
-    async def PostNotification(self, Message:str):
-        self.LoggingMessageQueue.put(Message)
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:

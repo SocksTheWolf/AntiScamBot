@@ -27,9 +27,7 @@ class ScamGuardServerSetup():
         InformationEmbed.add_field(name="Number of Bans", inline=False, value=f"ScamGuard will import ~{NumBans} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't the number of people in your server, it is establishing a firewall to prevent scammers from entering.")
         InformationEmbed.add_field(name="Commands", inline=False, value="Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report scammers that ScamGuard hasn't seen yet.")
         InformationEmbed.add_field(name="", value="", inline=False)
-        InformationEmbed.add_field(name="Settings", value="", inline=False)
-        InformationEmbed.add_field(name="Mod Message Channel", inline=False, value="Granting ScamGuard access to a channel that only moderators can see is highly recommended as the information passed there is usually important to mods. Messages are not sent very frequently.")
-        InformationEmbed.add_field(name="Ban Notifications", inline=False, value="If you would like to subscribe to notifications when ScamGuard bans, select Yes when prompted about installing a webhook. It is highly recommended, but not necessary.")
+        self.BotInstance.AddSettingsEmbedInfo(InformationEmbed)
         InformationEmbed.add_field(name="", value="", inline=False)
         InformationEmbed.add_field(name="IMPORTANT:", value="", inline=False)
         InformationEmbed.add_field(name="Roles", inline=False, value="Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, you can watch this video for how to position the roles properly to avoid any problems: https://youtu.be/XYaQi3hM9ug")
@@ -48,12 +46,8 @@ class ScamGuardServerSetup():
     async def PushActivation(self, Payload:BotSettingsPayload):
         ServerID:int = Payload.GetServerID()
         UserID:int = Payload.GetUserID()
-        DB = self.BotInstance.Database
-        ServerInstance:int = DB.GetBotIdForServer(Payload.GetServerID())
-        
-        DB.SetFromServerSettings(ServerID, Payload)
-        if (Payload.WantsWebhooks):
-            await self.BotInstance.InstallWebhook(ServerID)
+        ServerInstance:int = self.BotInstance.Database.GetBotIdForServer(ServerID)
+        await self.BotInstance.ApplySettings(Payload)
         
         self.BotInstance.ClientHandler.SendActivationForServerInstance(UserID, ServerID, ServerInstance)
         await self.BotInstance.ActivateServerInstance(UserID, ServerID)
