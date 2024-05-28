@@ -129,7 +129,7 @@ Commands listed here are grouped by access via execution location.
 |     |     |
 | --- | --- | 
 | Description | Checks to see if a userid is banned |
-| Permissions needed | ban members |
+| Permissions | can ban members |
 
 | Arguments | Type |
 | --- | --- |
@@ -140,13 +140,13 @@ Commands listed here are grouped by access via execution location.
 | --- | --- | 
 | Description | Run ScamGuard setup |
 | Cooldown | once every 5 seconds |
-| Permissions needed | ban members |
+| Permissions | can ban members |
 
 ### `config`
 |     |     |
 | --- | --- | 
 | Description | Configure ScamGuard settings |
-| Permissions needed | ban members |
+| Permissions | can ban members |
 
 ### `info`
 |     |     |
