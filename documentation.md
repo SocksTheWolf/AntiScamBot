@@ -1,13 +1,11 @@
 #  ScamGuard Command Documentation
 
-The commands for the bot can be accessed by running them via `/scamguard command`.
-
 Certain commands have access restrictions consisting of any, or all of the following: cooldown, execution location, role, permission; these are detailed inside each command.
 
 Commands listed here are grouped by access via execution location.
 
 ## Administrative
-> These commands are only available only on the primary command and control server
+> These commands can be accessed via `/scamguard drea` and are only available only on the primary command and control server
 
 ### `info`
 |     |     |
@@ -121,9 +119,8 @@ Commands listed here are grouped by access via execution location.
 | --- | --- |
 | userid | discord userid to check |
 
-
 ## Global
-> These commands can be run on any server where ScamGuard is joined
+> These commands can be run on any external server where ScamGuard is joined
 
 ### `check userid`
 |     |     |
@@ -134,6 +131,28 @@ Commands listed here are grouped by access via execution location.
 | Arguments | Type |
 | --- | --- |
 | userid | discord userid to check |
+
+### `report userid`
+|     |     |
+| --- | --- | 
+| Description | Report a userid |
+| Cooldown | once every 5 seconds |
+| Permissions | can ban members |
+
+| Arguments | Type |
+| --- | --- |
+| userid | discord userid to report |
+
+### `reportuser user`
+|     |     |
+| --- | --- | 
+| Description | Report a user by @user mention |
+| Cooldown | once every 5 seconds |
+| Permissions | can ban members |
+
+| Arguments | Type |
+| --- | --- |
+| user | discord user to check |
 
 ### `setup`
 |     |     |
