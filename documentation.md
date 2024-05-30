@@ -120,9 +120,9 @@ Commands listed here are grouped by access via execution location.
 | userid | discord userid to check |
 
 ## Global
-> These commands can be run on any external server where ScamGuard is joined
+> These commands can be accessed via `/scamguard` and are available on any external server where ScamGuard is joined
 
-### `/check userid`
+### `check userid`
 |     |     |
 | --- | --- | 
 | Description | Checks to see if a userid is banned |
@@ -132,7 +132,7 @@ Commands listed here are grouped by access via execution location.
 | --- | --- |
 | userid | discord userid to check |
 
-### `/report userid`
+### `report userid`
 |     |     |
 | --- | --- | 
 | Description | Report a userid |
@@ -143,7 +143,7 @@ Commands listed here are grouped by access via execution location.
 | --- | --- |
 | userid | discord userid to report |
 
-### `/reportuser user`
+### `reportuser user`
 |     |     |
 | --- | --- | 
 | Description | Report a user by @user mention |
@@ -154,20 +154,20 @@ Commands listed here are grouped by access via execution location.
 | --- | --- |
 | user | discord user to check |
 
-### `/setup`
+### `setup`
 |     |     |
 | --- | --- | 
 | Description | Run ScamGuard setup |
 | Cooldown | once every 5 seconds |
 | Permissions | can ban members |
 
-### `/config`
+### `config`
 |     |     |
 | --- | --- | 
 | Description | Configure ScamGuard settings |
 | Permissions | can ban members |
 
-### `/info`
+### `info`
 |     |     |
 | --- | --- | 
 | Description | Prints info and stats about ScamGuard |
