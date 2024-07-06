@@ -96,19 +96,26 @@ class ServerActivationApproval(SelfDeletingView):
         await self.Parent.PushActivation(self.Payload)
         await self.StopInteractions()
         
-    async def on_cancel(self, interaction:Interaction):
+    @ui.button(label="Deny", style=ButtonStyle.danger, row=4)
+    async def deny_activation(self, interaction:Interaction, button:ui.Button):
+        self.HasInteracted = True
         ServerID:int = self.Payload.GetServerID()
         Bot = interaction.client
-        
-        await interaction.response.send_message(f"Activation denied for server {ServerID}.")
-        
-        DiscordChannel:TextChannel = self.Payload.MessageChannel
         ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server)
         
+        await interaction.response.send_message(f"Activation denied for server {ServerIDStr}.")
+        
+        DiscordChannel:TextChannel = self.Payload.MessageChannel
+
         if (DiscordChannel is None):
             Logger.Log(LogLevel.Error, f"Could not resolve the channel {self.Payload.GetMessageID()} for server {ServerIDStr} to post activation deny message in")
             return
         
         # Do not send a message if the server admins sent the activation command a few times already.
-        if (not interaction.client.Database.IsActivatedInServer(ServerID)):
+        if (not Bot.Database.IsActivatedInServer(ServerID)):
             await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
+            
+    async def on_cancel(self, interaction:Interaction):
+        self.HasInteracted = True
+        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server)
+        await interaction.response.send_message(f"Activation skipped for server {ServerIDStr}.")
