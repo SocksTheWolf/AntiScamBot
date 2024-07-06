@@ -92,7 +92,8 @@ class ServerActivationApproval(SelfDeletingView):
     @ui.button(label="Approve", style=ButtonStyle.success, row=4)
     async def setup(self, interaction: Interaction, button: ui.Button):
         self.HasInteracted = True
-        await interaction.response.send_message(f"Enqueing activation for server {self.Payload.GetServerID()}")
+        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server)
+        await interaction.response.send_message(f"Enqueing activation for server {ServerIDStr}")
         await self.Parent.PushActivation(self.Payload)
         await self.StopInteractions()
         
