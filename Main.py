@@ -10,6 +10,9 @@ from ConfirmBanView import ConfirmBan
 ConfigData:Config=Config()
 
 if __name__ == '__main__':
+    async def has_activation_intents(ctx):
+        return ctx.Bot.intents.members
+        
     CommandControlServer=Object(id=ConfigData["ControlServer"])
     ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
     
@@ -160,6 +163,7 @@ if __name__ == '__main__':
         await interaction.response.send_message(ResponseMsg)
             
     @ScamGuardBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
+    @app_commands.check(has_activation_intents)
     async def ActivateServer(interaction:Interaction):
         Sender:Member = interaction.user
         SendersId:int = Sender.id
@@ -174,6 +178,7 @@ if __name__ == '__main__':
         await ResponseHook.send("Enqueued processing for activation for servers you own/moderate in")
         
     @ScamGuardBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
+    @app_commands.check(has_activation_intents)
     async def DeactivateServer(interaction:Interaction):
         Sender:Member = interaction.user
         SendersId:int = Sender.id
