@@ -11,7 +11,7 @@ ConfigData:Config=Config()
 
 if __name__ == '__main__':
     async def has_activation_intents(ctx):
-        return ctx.Bot.intents.members
+        return ctx.client.intents.members
         
     CommandControlServer=Object(id=ConfigData["ControlServer"])
     ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
@@ -195,7 +195,7 @@ if __name__ == '__main__':
     # Control server version of scamcheck
     @ScamGuardBot.Commands.command(name="scamcheck", description="In the control server, check to see if a discord id is banned", guild=CommandControlServer)
     @app_commands.describe(target='The discord user id to check')
-    @app_commands.checks.cooldown(1, 3.0)
+    @app_commands.checks.cooldown(1, 1.0)
     async def ScamCheck_Control(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
         if (target <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
