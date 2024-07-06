@@ -160,7 +160,10 @@ class DiscordBot(discord.Client):
         
     ### Leaving Servers ###
     def LeaveServer(self, ServerId:int) -> bool:
-        BotServerIsIn:int = self.Database.GetBotIdForServer(ServerId)
+        BotServerIsIn:int|None = self.Database.GetBotIdForServer(ServerId)
+        if (BotServerIsIn is None):
+            return False
+        
         # If the bot is in any server we know about
         if (BotServerIsIn != -1):
             # If the bot id == 0, then it is the control bot.
