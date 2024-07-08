@@ -3,7 +3,7 @@ title: Home
 description: Information about the ScamGuard Discord Bot
 ---
 
-{{ site.bot_name }} is a Discord bot that acts as a firewall for your server. It uses a shared ban list that is built off user submissions and bans users that propigate commission scams on Discord.
+{{ site.bot_name }} is a Discord bot that acts as a firewall for your server! Using a shared ban list built off user submissions, it bans scammers that attempt to deceive your server members on Discord.
 
 With this shared network, we are able to take out and prevent scammers from entering your server to harass your users. When a scammer appears in one server and is reported, all servers using {{ site.bot_name }} will end up also banning the scammer as well.
 
