@@ -3,7 +3,7 @@ title: Report a Scam
 description: Report a Discord scammer to ScamGuard
 ---
 
-Use the form below to submit scamming reports to {{ site.bot_name }}.
+Use the handy form below to submit scamming reports to {{ site.bot_name }}. If you are unable to see the form below, [click here to submit directly](https://app.formbricks.com/s/clyklw7ut0000x4u5ek6sriu0).
 
 <div style="position: relative; height:100vh; overflow:auto;">
   <iframe
