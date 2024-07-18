@@ -5,6 +5,8 @@ redirect_from: /privacy-policy
 previous: /
 ---
 
+> Last Updated: 7/18/2024
+
 The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy.
 
 ## What is collected?
@@ -14,9 +16,9 @@ The usage of the bot requires the following data collected:
 * A numeric value that represents a Discord Server ("Server ID")
 * A numeric value that represents the Owner ID of the Server ("Owner ID")
 * A value that represents if the bot is "activated" in a server with the "Server ID" ("Activated").
-* A few other settings related to ScamGuard configuration when you first activate it.
+* Settings related to {{ site.bot_name }}'s configuration in your server.
 
-If you are a trusted approver, the following information is stored when you ban an user in the TAG server:
+For the TAG approver/review team, the following information is stored when they ban an scammer:
 
 * The approver's Discord username
 * The approver's Discord user id
@@ -48,6 +50,10 @@ Data will be fully removed from the active working database and all backups with
 {% include intents.html %}
 {% endif %}
 
+## What about reporting scams from the website?
+
+Data submitted via the [report page](/report) is handled in transit by Zapier and is [subject to their data policy](https://zapier.com/legal/data-privacy). Form data is eventually stored at rest on the TAG support server, and is under the terms set forth by Discord's Privacy Policy itself.
+
 ## What about...?
 
-For more information, you can check the [Discord Terms Of Service](https://discord.com/terms).
+For more information, you can check the [Discord Privacy Policy](https://discord.com/privacy).

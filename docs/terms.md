@@ -4,6 +4,8 @@ description: The Terms of Service for the ScamGuard Discord bot
 redirect_from: /terms-of-service
 ---
 
+> Last Updated: 11/23/2023
+
 ## Application Conditions
 
 This terms of service document applies to each of the following:
