@@ -5,30 +5,44 @@ on:
       - prod
     paths:
       - '**.py'
+      # Allow for scripts to also trigger deploy as necessary
+      - '**.sh'
+      # Python deps updates
+      - 'requirements.txt'
 
 jobs:
   deploy:
+    env:
+      AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
+      BOTDIRECTORY: ${{ vars.BOT_DIRECTORY }}
     runs-on: ubuntu-latest
     steps:
+    - name: Dependency Update Check
+      uses: actions/checkout@v3
+      uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          deps_updated:
+            - 'requirements.txt'
+
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         log-public-key: false
-    
+
     - name: Update Python Project
       uses: appleboy/ssh-action@master
-      env:
-        AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
       with:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        envs: AUTHKEYNAME
+        envs: AUTHKEYNAME,BOTDIRECTORY
         script: |
           echo "Moving to project directory"
-          cd ~/project/AntiScamBot
+          cd $BOTDIRECTORY
           echo "Setting SSH Agent"
           eval "$(ssh-agent -s)"
           echo "Readding SSH Key"
@@ -41,3 +55,17 @@ jobs:
           echo "Updating directory"
           git pull
           echo "Deploy success"
+
+    - name: Update Python Dependencies
+      if: steps.filter.outputs.deps_updated == 'true'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{secrets.SSH_HOST}}
+        key: ${{secrets.SSH_KEY}}
+        username: ${{secrets.SSH_USERNAME}}
+        envs: BOTDIRECTORY
+        script: |
+          echo "Updating project dependencies"
+          cd $BOTDIRECTORY
+          .runtime/update.sh
+          echo "Finished updating python dependencies"
