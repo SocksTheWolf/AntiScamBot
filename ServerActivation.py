@@ -114,7 +114,7 @@ class ServerActivationApproval(SelfDeletingView):
         
         # Do not send a message if the server admins sent the activation command a few times already.
         if (not Bot.Database.IsActivatedInServer(ServerID)):
-            await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to troubleshoot")
+            await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support")
             
     async def on_cancel(self, interaction:Interaction):
         self.HasInteracted = True
