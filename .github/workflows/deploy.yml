@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout files
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
     
     - name: Update Check
       uses: dorny/paths-filter@v3.0.2
