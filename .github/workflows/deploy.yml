@@ -9,6 +9,8 @@ on:
       - '**.sh'
       # Python deps updates
       - 'requirements.txt'
+      # Whenever this script updates
+      - 'deploy.yml'
 
 jobs:
   deploy:
