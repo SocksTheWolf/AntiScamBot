@@ -30,14 +30,6 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Manage Webhooks`: To allow for subscribing to the ban notification feed if you so choose during setup.
 
-### I am not able to add the bot, it says the bot needs to be verified?
-
-We have submitted {{ site.bot_name }} for verification but this process has been very slow. While the bot is still being verified, you can add one of the many fallback bots.
-
-Eventually when the main bot is verified, the fallback bots will move their assignments onto the main bot instance. We are aware of how frustrating this is. We hope this is solved sooner, but our hands are tied.
-
-Anything under the "THE BOT" role in the TAG server is allowed to be added.
-
 ### When I activate the bot, why is it suddenly banning hundreds of accounts?
 
 {{ site.bot_name }} imports all the bans of scammers that it knows about. This can be several hundreds of accounts, but not to worry, due to the way {{ site.bot_name }} processes bans, these accounts do not have to be in your server. So while it looks like your entire discord community is getting banned, it is not.
@@ -115,7 +107,7 @@ Reports are not visible until then.
 
 ### What about mistakes?
 
-{{ site.bot_name }} can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, {{ site.bot_name }} can only unban users marked that it banned originally).
+{{ site.bot_name }} can revert any mistakes and unban someone if this needs to happen, approvers have a command to reverse any scam bans that the database knows about (it cannot randomly unban any user, {{ site.bot_name }} can only unban users that it banned originally).
 
 You can also just simply unban the user.
 
