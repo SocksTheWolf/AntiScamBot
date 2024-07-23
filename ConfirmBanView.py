@@ -42,6 +42,6 @@ class ConfirmBan(SelfDeletingView):
             ResponseMsg = f"{interaction.user.mention}, the ban for {self.TargetId} is now in progress..."
 
         # Make this message silent as we may include an @ mention in here and do not want to bother the user with notifications
-        await interaction.followup.send(ResponseMsg, silent=True)
+        await interaction.followup.send(ResponseMsg, silent=True, ephemeral=False)
         await self.StopInteractions()
         
