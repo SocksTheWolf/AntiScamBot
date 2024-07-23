@@ -28,7 +28,7 @@ class ConfirmBan(SelfDeletingView):
             Logger.Log(LogLevel.Error, "ConfirmBan view has an invalid ScamBot reference!!")    
             return
         
-        await interaction.response.defer(thinking=True, ephemeral=True)
+        await interaction.response.defer(thinking=True)
         self.HasInteracted = True
         Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True)
         if (Result is not BanLookup.Banned):
@@ -42,6 +42,6 @@ class ConfirmBan(SelfDeletingView):
             ResponseMsg = f"{interaction.user.mention}, the ban for {self.TargetId} is now in progress..."
 
         # Make this message silent as we may include an @ mention in here and do not want to bother the user with notifications
-        await interaction.followup.send(ResponseMsg, silent=True, ephemeral=False)
+        await interaction.followup.send(ResponseMsg, silent=True)
         await self.StopInteractions()
         
