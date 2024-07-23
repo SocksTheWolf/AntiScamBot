@@ -42,7 +42,7 @@ async def CommandErrorHandler(interaction: Interaction, error: app_commands.AppC
         ErrorMsg = f"You are missing the roles necessary to run {InteractionName}"
     elif (ErrorType == app_commands.CheckFailure):
         if (InteractionName == "activate"):
-            ErrorMsg = "To activate the bot, type `/scamguard setup`"
+            ErrorMsg = "To activate the bot, type `/scamguard setup` in your server."
         else:
             ErrorMsg = "To change settings, run `/scamguard config`. To uninstall the bot, simply kick it from your server."
     else:
