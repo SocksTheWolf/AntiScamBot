@@ -17,8 +17,10 @@ jobs:
       BOTDIRECTORY: ${{ vars.BOT_DIRECTORY }}
     runs-on: ubuntu-latest
     steps:
-    - name: Dependency Update Check
+    - name: Checkout files
       uses: actions/checkout@v3
+    
+    - name: Dependency Update Check
       uses: dorny/paths-filter@v2
       id: filter
       with:
