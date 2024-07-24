@@ -33,7 +33,7 @@ jobs:
         log-public-key: false
 
     # If any runtime files updated, then we need to stop all bot instances.
-    - name: Kill bot instances
+    - name: Kill Instances
       id: kill_bot
       if: steps.filter.outputs.deps_update_needed == 'true' || steps.filter.outputs.core_updated == 'true'
       uses: appleboy/ssh-action@master
@@ -45,7 +45,7 @@ jobs:
           cd ~/project/AntiScamBot
           .runtime/kill.sh
           rm nohup.out
-          echo "Bot Killed."
+          echo "Service Killed."
 
     # We want to update the project regardless.
     - name: Update Project
@@ -81,7 +81,7 @@ jobs:
           .runtime/update.sh
           echo "Finished updating python dependencies"
           
-    - name: Restart Bot
+    - name: Restart Instances
       if: | 
         always() && 
         (steps.deps_update.result == 'success' || steps.deps_update.result == 'skipped') &&
@@ -94,6 +94,6 @@ jobs:
         command_timeout: 5s
         script_stop: false
         script: |
-          echo "Restarting bot"
+          echo "Restarting instances"
           cd ~/project/AntiScamBot
           nohup .runtime/run.sh

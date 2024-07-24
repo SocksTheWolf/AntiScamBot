@@ -76,7 +76,7 @@ class Logger():
         return
       
       # This will automatically get added to the task loop.
-      CurrentLoop.create_task(NotificationCallback(MessageStr))
+      CurrentLoop.create_task(NotificationCallback(f"[{str(Level)}]: {MessageStr}"))
       
   @staticmethod
   def SetLogLevel(NewLevel: LogLevel):
