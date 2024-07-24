@@ -22,13 +22,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  safety:
+    environment: github-pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Safety Test
+        run: echo "Testing protection"
+    
   # Clean job
   cleanup:
     runs-on: ubuntu-latest
     permissions: write-all
+    needs: safety
     continue-on-error: true
     steps:
-      - name: 🗑 Cleanup Pages Deployments
+      - name: Cleanup Pages Deployments
         uses: strumwolf/delete-deployment-environment@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}

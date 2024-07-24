@@ -17,6 +17,14 @@ jobs:
       AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
     runs-on: ubuntu-latest
     steps:
+    - name: Cleanup Previous Deployments
+      uses: strumwolf/delete-deployment-environment@v3
+      continue-on-error: true
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        environment: production
+        onlyRemoveDeployments: true
+          
     - name: Checkout files
       uses: actions/checkout@v4
       with:
