@@ -173,4 +173,4 @@ Gemfile
 Gemfile.lock
 _site/
 .jekyll-cache/
-.py
+*.py
