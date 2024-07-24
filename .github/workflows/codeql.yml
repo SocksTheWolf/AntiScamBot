@@ -13,11 +13,11 @@ name: "CodeQL"
 
 on:
   push:
-    branches: [ "main", "prod" ]
+    branches: [ "main" ]
     paths:
       - '**.py'
   pull_request:
-    branches: [ "main", "prod" ]
+    branches: [ "main" ]
   schedule:
     - cron: '37 19 * * 4'
 

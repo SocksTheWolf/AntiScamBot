@@ -22,6 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Prevent web pages from running outside of web branch
   safety:
     environment: github-pages
     runs-on: ubuntu-latest
