@@ -13,14 +13,15 @@ jobs:
     - name: Checkout files
       uses: actions/checkout@v4
       with:
-        fetch-depth: 20
+        fetch-depth: 1
+        ref: ${{ github.ref }}
     
     - name: Update Check
       uses: dorny/paths-filter@v3.0.2
       id: filter
       with:
         list-files: shell
-        base: main
+        base: ${{ github.ref }}
         filters: |
           deps_updated:
             - 'requirements.txt'
