@@ -3,8 +3,16 @@ on:
   push:
     branches:
       - prod
+      
+  workflow_dispatch:
+    inputs:
+        restart_bot:
+            description: 'Restart Bot'
+            required: true
+            type: boolean
 jobs:
   deploy:
+    environment: production
     env:
       AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
     runs-on: ubuntu-latest
@@ -35,7 +43,7 @@ jobs:
     # If any runtime files updated, then we need to stop all bot instances.
     - name: Kill Instances
       id: kill_bot
-      if: steps.filter.outputs.deps_update_needed == 'true' || steps.filter.outputs.core_updated == 'true'
+      if: steps.filter.outputs.deps_update_needed == 'true' || steps.filter.outputs.core_updated == 'true' || inputs.restart_bot == 'true'
       uses: appleboy/ssh-action@master
       with:
         host: ${{secrets.SSH_HOST}}
