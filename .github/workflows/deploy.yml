@@ -7,7 +7,6 @@ jobs:
   deploy:
     env:
       AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
-      BOTDIRECTORY: ${{ vars.BOT_DIRECTORY }}
     runs-on: ubuntu-latest
     steps:
     - name: Checkout files
@@ -45,10 +44,10 @@ jobs:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        envs: AUTHKEYNAME,BOTDIRECTORY
+        envs: AUTHKEYNAME
         script: |
           echo "Moving to project directory"
-          cd $BOTDIRECTORY
+          cd ~/project/AntiScamBot
           echo "Setting SSH Agent"
           eval "$(ssh-agent -s)"
           echo "Readding SSH Key"
@@ -69,9 +68,8 @@ jobs:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        envs: BOTDIRECTORY
         script: |
           echo "Updating project dependencies"
-          cd $BOTDIRECTORY
+          cd ~/project/AntiScamBot
           .runtime/update.sh
           echo "Finished updating python dependencies"
