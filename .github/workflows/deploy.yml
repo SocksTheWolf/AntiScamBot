@@ -3,24 +3,43 @@ on:
   push:
     branches:
       - prod
-    paths:
-      - '**.py'
-
 jobs:
   deploy:
+    env:
+      AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
     runs-on: ubuntu-latest
     steps:
+    - name: Checkout files
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.ref }}
+    
+    - name: Update Check
+      uses: dorny/paths-filter@v3.0.2
+      id: filter
+      with:
+        list-files: shell
+        base: ${{ github.ref }}
+        filters: |
+          deps_updated:
+            - 'requirements.txt'
+            - '.runtime/update.sh'
+          core_updated:
+            - '.runtime/run.sh'
+            - '.github/workflows/deploy.yml'
+            - '**.py'
+
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
-      uses: webfactory/ssh-agent@v0.7.0
+      if: steps.filter.outputs.deps_updated == 'true' || steps.filter.outputs.core_updated == 'true'
+      uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         log-public-key: false
-    
+
     - name: Update Python Project
+      if: steps.filter.outputs.deps_updated == 'true' || steps.filter.outputs.core_updated == 'true'
       uses: appleboy/ssh-action@master
-      env:
-        AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
       with:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
@@ -41,3 +60,16 @@ jobs:
           echo "Updating directory"
           git pull
           echo "Deploy success"
+
+    - name: Update Python Dependencies
+      if: steps.filter.outputs.deps_updated == 'true'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{secrets.SSH_HOST}}
+        key: ${{secrets.SSH_KEY}}
+        username: ${{secrets.SSH_USERNAME}}
+        script: |
+          echo "Updating project dependencies"
+          cd ~/project/AntiScamBot
+          .runtime/update.sh
+          echo "Finished updating python dependencies"

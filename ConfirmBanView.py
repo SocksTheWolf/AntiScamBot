@@ -1,22 +1,25 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanLookup
 from discord import ui, ButtonStyle, Interaction, Member, WebhookMessage
+from ModalHelpers import SelfDeletingView
 
-class ConfirmBan(ui.View):
+class ConfirmBan(SelfDeletingView):
     TargetId:int = None
     ScamBot = None
     Hook:WebhookMessage = None
-    ActionTaken:bool = False
     
     def __init__(self, target:int, bot):
-        super().__init__(timeout=60.0)
+        super().__init__(ViewTimeout=60.0)
         self.TargetId = target
         self.ScamBot = bot
         
-    @ui.button(label="Confirm Ban", style=ButtonStyle.danger)
+    async def on_cancel(self, interaction:Interaction):
+        await interaction.response.send_message("This action was cancelled.", ephemeral=True, delete_after=10.0)
+        
+    @ui.button(label="Confirm Ban", style=ButtonStyle.danger, row=4)
     async def confirm(self, interaction: Interaction, button: ui.Button):
         # Prevent pressing the button multiple times during asynchronous action.
-        if (self.ActionTaken):
+        if (self.HasInteracted):
             return
         
         Sender:Member = interaction.user
@@ -25,8 +28,9 @@ class ConfirmBan(ui.View):
             Logger.Log(LogLevel.Error, "ConfirmBan view has an invalid ScamBot reference!!")    
             return
         
-        self.ActionTaken = True
-        Result = await self.ScamBot.PrepareBan(self.TargetId, Sender)
+        await interaction.response.defer(thinking=True)
+        self.HasInteracted = True
+        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True)
         if (Result is not BanLookup.Banned):
             if (Result == BanLookup.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"
@@ -38,37 +42,6 @@ class ConfirmBan(ui.View):
             ResponseMsg = f"{interaction.user.mention}, the ban for {self.TargetId} is now in progress..."
 
         # Make this message silent as we may include an @ mention in here and do not want to bother the user with notifications
-        await interaction.response.send_message(ResponseMsg, silent=True)
+        await interaction.followup.send(ResponseMsg, silent=True)
         await self.StopInteractions()
         
-    @ui.button(label="Cancel", style=ButtonStyle.gray)
-    async def cancel(self, interaction: Interaction, button: ui.Button):
-        if (self.ActionTaken):
-            return
-        
-        self.ActionTaken = True
-        await interaction.response.send_message("This action was cancelled.", ephemeral=True, delete_after=10.0)
-        await self.StopInteractions()
-        
-    async def on_timeout(self):
-        # prevent last second interactions...
-        self.ActionTaken = True
-        
-        Logger.Log(LogLevel.Log, f"Action confirmation timed out for {self.TargetId}")
-        await self.StopInteractions()
-        
-    async def on_error(self, interaction:Interaction, error:Exception, object:ui.Item):
-        Logger.Log(LogLevel.Error, f"ConfirmBan encountered an error {str(error)}")
-        
-    async def StopInteractions(self):
-        # Remove the original message, which is the embed
-        if (self.Hook is not None):
-            Logger.Log(LogLevel.Debug, "Have message hook, going to cleanup objects quickly.")
-            await self.Hook.delete()
-        else:
-            Logger.Log(LogLevel.Debug, "View hook was none, cannot cleanup messages early...")
-
-        # Clear this view's buttons
-        self.clear_items()
-        # Stop processing this interaction further.
-        self.stop()

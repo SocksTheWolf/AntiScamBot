@@ -40,8 +40,13 @@ async def CommandErrorHandler(interaction: Interaction, error: app_commands.AppC
         ErrorMsg = f"You do not have permissions to use {InteractionName}"
     elif (ErrorType == app_commands.MissingRole):
         ErrorMsg = f"You are missing the roles necessary to run {InteractionName}"
+    elif (ErrorType == app_commands.CheckFailure):
+        if (InteractionName == "activate"):
+            ErrorMsg = "To activate the bot, type `/scamguard setup` in your server."
+        else:
+            ErrorMsg = "To change settings, run `/scamguard config`. To uninstall the bot, simply kick it from your server."
     else:
-        Logger.Log(LogLevel.Error, f"Encountered error running command {InteractionName}: {str(error)}")
+        Logger.Log(LogLevel.Error, f"Encountered error running command /{InteractionName}: {str(error)}")
         ErrorMsg = "An error has occurred while processing your request"
     
     await interaction.response.send_message(ErrorMsg, ephemeral=True, delete_after=5.0)

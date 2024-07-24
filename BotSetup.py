@@ -7,7 +7,7 @@ from datetime import datetime
 from BotDatabaseSchema import Base, Migration, Ban, Server
 
 class DatabaseMigrator:
-    DATABASE_VERSION=3
+    DATABASE_VERSION=4
     VersionMap={}
     DatabaseCon=None
     
@@ -28,16 +28,29 @@ class DatabaseMigrator:
             head, _, _ = VersionKeyStr.partition('to')
             VersionNumber:int = int(head)
             self.VersionMap[VersionNumber] = getattr(self, UpgradeFunc)
+            
+    def PushNewMigrationVersion(self, NewVersion:int):
+        session = Session(self.DatabaseCon)
+        # Versions greater than 3 had the Migration table added to them
+        if (NewVersion >= 3):
+            dbVersion = Migration(
+                database_version = NewVersion
+            )
+            session.add(dbVersion)
+        session.execute(text(f"PRAGMA user_version = {NewVersion}"))
+        session.commit()
         
     def PerformUpgradesFromVersion(self, StartingVersion:int) -> bool:
         for i in range(StartingVersion, self.DATABASE_VERSION):
             # Perform upgrade to version
-            Logger.Log(LogLevel.Debug, f"Performing upgrade to version {i+1}...")
+            NextVersion:int = i+1
+            Logger.Log(LogLevel.Debug, f"Performing upgrade to version {NextVersion}...")
             if (not self.VersionMap[i]()):
-                Logger.Log(LogLevel.Error, f"Unable to perform upgrade to version {i+1}!")
+                Logger.Log(LogLevel.Error, f"Unable to perform upgrade to version {NextVersion}!")
                 return False
-            Logger.Log(LogLevel.Debug, f"Successfully upgraded to version {i+1}")
-            
+            else:
+                self.PushNewMigrationVersion(NextVersion)
+                Logger.Log(LogLevel.Debug, f"Successfully upgraded to version {NextVersion}")  
         return True
     
     def upgrade_version1to2(self) -> bool:
@@ -57,12 +70,13 @@ class DatabaseMigrator:
 
         newBanList = []
         for bans in banlist:
+            currentTime = datetime.timestamp(datetime.strptime(bans[3], '%Y-%m-%d %H:%M:%S.%f'))
             newBan = Ban(
                 discord_user_id = bans[0],
                 assigner_discord_user_id = bans[2],
                 assigner_discord_user_name = bans[1],
                 # convert old (local python) datetime to utc (in database) datetime
-                created_at = datetime.utcfromtimestamp(datetime.timestamp(datetime.strptime(bans[3], '%Y-%m-%d %H:%M:%S.%f')))
+                created_at = datetime.utcfromtimestamp(currentTime)
             )
             newBanList.append(newBan)
         banlist.close()
@@ -103,16 +117,14 @@ class DatabaseMigrator:
         query = text('UPDATE bans set created_at = datetime(created_at)')
         session.execute(query) 
         session.commit()
-
-        # store completed migration version
-        dbVersion = Migration(
-            database_version = self.DATABASE_VERSION
-        )
-        session.add(dbVersion)
-        session.execute(text(f"PRAGMA user_version = 3"))
-
+        return True
+    
+    def upgrade_version3to4(self) -> bool:
+        session = Session(self.DatabaseCon)
+        session.execute(text("ALTER TABLE servers ADD message_channel INTEGER default 0"))
+        session.execute(text("ALTER TABLE servers ADD has_webhooks INTEGER default 0"))
+        session.execute(text("ALTER TABLE servers ADD kick_sus_users INTEGER default 0"))
         session.commit()
-
         return True
 
 def SetupDatabases():

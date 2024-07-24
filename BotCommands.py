@@ -1,6 +1,7 @@
 from CommandHelpers import TargetIdTransformer
 from discord import app_commands, Interaction, Member, User, Embed
 from ScamReportModal import SubmitScamReport
+from BotServerSettings import ServerSettingsView
 from Config import Config
 
 @app_commands.guild_only()
@@ -50,12 +51,12 @@ class GlobalScamCommands(app_commands.Group):
         
         await interaction.response.send_modal(SubmitScamReport(UserToSend))
         
-    @app_commands.command(name="reportuser", description="Report a mentionable member")
+    @app_commands.command(name="reportuser", description="Report a user by a mention selector")
     @app_commands.checks.has_permissions(ban_members=True)
     @app_commands.checks.cooldown(1, 5.0)
     async def ReportScamUser_Global(self, interaction:Interaction, user:Member):
         if (interaction.guild_id == Config()["ControlServer"]):
-            await interaction.response.send_message("You cannot make remote reports from this server!", ephemeral=True, delete_after=5.0)
+            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
             return
         
         # Block any usages of the commands if the server is not activated.
@@ -64,3 +65,47 @@ class GlobalScamCommands(app_commands.Group):
             return
         
         await interaction.response.send_modal(SubmitScamReport(user))
+
+    @app_commands.command(name="setup", description="Set up ScamGuard")
+    @app_commands.checks.has_permissions(ban_members=True)
+    @app_commands.checks.cooldown(1, 5.0)
+    async def SetupScamGuard_Global(self, interaction:Interaction):
+        if (interaction.guild_id == Config()["ControlServer"]):
+            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
+            return
+        
+        # Block any usages of the setup command if the server is activated.
+        if (not self.IsActivated(interaction.guild_id)):
+            await self.GetInstance().ServerSetupHelper.OpenServerSetupModel(interaction)
+        else:
+            await interaction.response.send_message("This server is already activated with ScamGuard!", ephemeral=True, delete_after=15.0)
+            
+            
+    @app_commands.command(name="config", description="Set ScamGuard Settings")
+    @app_commands.checks.has_permissions(ban_members=True)
+    @app_commands.checks.cooldown(1, 5.0)
+    async def ConfigScamGuard_Global(self, interaction:Interaction):
+        if (interaction.guild_id == Config()["ControlServer"]):
+            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
+            return
+        
+        if (not self.IsActivated(interaction.guild_id)):
+            await interaction.response.send_message("You must run `/scamguard setup` and activate first before proceeding", ephemeral=True, delete_after=30.0)
+        else:
+            await interaction.response.defer(thinking=True)
+            BotInstance = self.GetInstance()
+            ResponseEmbed:Embed = BotInstance.CreateBaseEmbed("ScamGuard Settings")
+            BotInstance.AddSettingsEmbedInfo(ResponseEmbed)
+            
+            SettingsView:ServerSettingsView = ServerSettingsView(interaction.client.ApplySettings, interaction)
+            await SettingsView.Send(interaction, [ResponseEmbed])
+
+    @app_commands.command(name="info", description="Info & Stats about ScamGuard")
+    @app_commands.checks.cooldown(1, 5.0)
+    async def HelpScamGuard_Global(self, interaction:Interaction):
+        if (interaction.guild_id == Config()["ControlServer"]):
+            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
+            return
+        
+        ResponseEmbed:Embed = self.GetInstance().CreateInfoEmbed()
+        await interaction.response.send_message(embed=ResponseEmbed, silent=True)

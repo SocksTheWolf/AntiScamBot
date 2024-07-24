@@ -21,7 +21,7 @@ class SubmitScamReport(ui.Modal):
     async def on_submit(self, interaction: Interaction):                
         # Check to see if already banned.
         if (interaction.client.Database.DoesBanExist(self.ReportedUser.id)):
-            await interaction.response.send_message(f"The reported user is already banned!", ephemeral=True, delete_after=10.0)
+            await interaction.response.send_message(f"The reported user has been already banned.", ephemeral=True, delete_after=20.0)
             return
         
         # Split the evidence block into a string list
@@ -41,8 +41,8 @@ class SubmitScamReport(ui.Modal):
         }
         
         interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload))
-        await interaction.response.send_message(f"Sent report about user {self.ReportedUser.id} successfully")
+        await interaction.response.send_message(f"Sent report about user {self.ReportedUser.id} successfully!")
         
     async def on_error(self, interaction: Interaction, exceptionError: Exception):
         Logger.Log(LogLevel.Error, f"Encountered Exception with the scam report modal: {str(exceptionError)}")
-        await interaction.response.send_message(f"Unable to send report about user {self.ReportedUser.id}", ephemeral=True, delete_after=10.0)
+        await interaction.response.send_message(f"Unable to send report about user {self.ReportedUser.id}", ephemeral=True, delete_after=20.0)

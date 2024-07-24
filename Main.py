@@ -10,8 +10,17 @@ from ConfirmBanView import ConfirmBan
 ConfigData:Config=Config()
 
 if __name__ == '__main__':
+    async def has_activation_intents(ctx):
+        return ctx.client.intents.members
+        
     CommandControlServer=Object(id=ConfigData["ControlServer"])
     ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
+    
+    @ScamGuardBot.Commands.command(name="info", description="ScamGuard Info", guild=CommandControlServer)
+    @app_commands.checks.cooldown(1, 3.0)
+    async def PrintScamInfo(interaction:Interaction):
+        ReturnEmbed = ScamGuardBot.CreateInfoEmbed()
+        await interaction.response.send_message(embed=ReturnEmbed, silent=True)
 
     @ScamGuardBot.Commands.command(name="backup", description="Backs up the current database", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
@@ -76,12 +85,19 @@ if __name__ == '__main__':
         Logger.Log(LogLevel.Notice, ReturnStr)
         await interaction.response.send_message(ReturnStr)
         
+    @ScamGuardBot.Commands.command(name="ping", description="Ping an instance", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    @app_commands.describe(instance='Bot Instance ID to ping')
+    async def PingInstance(interaction:Interaction, instance:app_commands.Range[int, 0]):
+        ScamGuardBot.ClientHandler.SendPing(instance)
+        await interaction.response.send_message(f"Pinged instance #{instance}", ephemeral=True, delete_after=2.0)
+        
     @ScamGuardBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
     async def PrintServers(interaction:Interaction):
         ReplyStr:str = "I am in the following servers:\n"
         RowNum:int = 1
-        NumBans:int = len(ScamGuardBot.Database.GetAllBans())
+        NumBans:int = ScamGuardBot.Database.GetNumBans()
         ActivatedServers:int = 0
         await interaction.response.defer(thinking=True)
         ResponseHook:Webhook = interaction.followup
@@ -117,7 +133,7 @@ if __name__ == '__main__':
             BanEmbed:Embed = await ScamGuardBot.CreateBanEmbed(targetid)
             BanView:ConfirmBan = ConfirmBan(targetid, ScamGuardBot)
             await interaction.response.defer(ephemeral=True, thinking=True)
-            BanView.Hook = await interaction.followup.send(embed=BanEmbed, view=BanView, wait=True, ephemeral=True)
+            await BanView.Send(interaction, [BanEmbed])
         else:
             Logger.Log(LogLevel.Log, f"The given id {targetid} is already banned.")
             await interaction.response.send_message(f"{targetid} already exists in the ban database")
@@ -132,7 +148,7 @@ if __name__ == '__main__':
 
         Sender:Member = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
-        Result = await ScamGuardBot.PrepareUnban(targetid, Sender)
+        Result:BanLookup = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
         ResponseMsg:str = ""
         if (Result is not BanLookup.Unbanned):
             if (Result is BanLookup.NotExist):
@@ -147,6 +163,7 @@ if __name__ == '__main__':
         await interaction.response.send_message(ResponseMsg)
             
     @ScamGuardBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
+    @app_commands.check(has_activation_intents)
     async def ActivateServer(interaction:Interaction):
         Sender:Member = interaction.user
         SendersId:int = Sender.id
@@ -161,18 +178,24 @@ if __name__ == '__main__':
         await ResponseHook.send("Enqueued processing for activation for servers you own/moderate in")
         
     @ScamGuardBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
+    @app_commands.check(has_activation_intents)
     async def DeactivateServer(interaction:Interaction):
         Sender:Member = interaction.user
         SendersId:int = Sender.id
         
+        # Hold onto these objects, as activate is one of the most expensive commands if
+        # we are running off a database that is mostly made of up unactivated servers.
+        await interaction.response.defer(thinking=True)
+        ResponseHook:Webhook = interaction.followup
+        
         ScamGuardBot.ClientHandler.SendDeactivationForServers(SendersId)
         await ScamGuardBot.DeactivateServersWithPermissions(SendersId)
-        await interaction.response.send_message("Enqueued processing for deactivation for servers you own/moderate in")
+        await ResponseHook.send("Enqueued processing for deactivation for servers you own/moderate in")
 
     # Control server version of scamcheck
     @ScamGuardBot.Commands.command(name="scamcheck", description="In the control server, check to see if a discord id is banned", guild=CommandControlServer)
     @app_commands.describe(target='The discord user id to check')
-    @app_commands.checks.cooldown(1, 3.0)
+    @app_commands.checks.cooldown(1, 1.0)
     async def ScamCheck_Control(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
         if (target <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)

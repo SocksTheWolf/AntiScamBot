@@ -13,8 +13,6 @@ __all__ = ["ScamGuard"]
 ConfigData:Config=Config()
 
 class ScamGuard(DiscordBot):
-    # Channel to send updates as to when someone is banned/unbanned
-    AnnouncementChannel = None
     ServerHandler:RelayServer = None
     HasLooped:bool = False
     HasStartedInstances:bool = False
@@ -78,9 +76,6 @@ class ScamGuard(DiscordBot):
     ### Config Handling ###
     def ProcessConfig(self, ShouldReload:bool):
         super().ProcessConfig(ShouldReload)
-        
-        if (ConfigData.IsValid("AnnouncementChannel", int)):
-            self.AnnouncementChannel = self.get_channel(ConfigData["AnnouncementChannel"])
             
     ### Discord Eventing ###
     async def InitializeBotRuntime(self):
@@ -88,10 +83,14 @@ class ScamGuard(DiscordBot):
         await self.StartAllInstances()       
 
     ### Subprocess instances ###
-    async def StartAllInstances(self, BypassCheck:bool=False):
+    async def StartAllInstances(self, BypassCheck:bool=False, RestartMainClient:bool=False):
         # Prevent us from restarting instances when on_ready may run again.
         if (self.HasStartedInstances and not BypassCheck):
             return
+        
+        if (RestartMainClient):
+            Logger.Log(LogLevel.Log, "Restarting client instance for control bot instance")
+            await self.StartInstance(0)
         
         # Spin up all the subinstances of the other bot clients
         AllInstances = Config.GetAllSubTokens()
@@ -101,14 +100,18 @@ class ScamGuard(DiscordBot):
         self.HasStartedInstances = True
             
     async def StartInstance(self, InstanceID:int):
+        RelayFileHandleLocation = self.ServerHandler.GetFileLocation()
         if (InstanceID == 0):
+            self.ClientHandler = None
+            self.SetupClientConnection(RelayFileHandleLocation)
+            self.ClientHandler.SendHello()
             return
         
         # Make sure to exit out of any instances if they're already running for this index
         await self.StopInstanceIfExists(InstanceID)
         
         Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
-        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(self.ServerHandler.GetFileLocation(), InstanceID), name=f'Bot-{InstanceID}')
+        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(RelayFileHandleLocation, InstanceID), name=f'Bot-{InstanceID}')
         self.SubProcess[InstanceID].start()
 
     async def StopInstanceIfExists(self, InstanceID:int):       
@@ -138,34 +141,26 @@ class ScamGuard(DiscordBot):
         except discord.HTTPException as ex:
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
-    ### Ban Handling ###            
-    async def PrepareBan(self, TargetId:int, Sender:discord.Member) -> BanLookup:        
-        DatabaseAction:BanLookup = self.Database.AddBan(TargetId, Sender.name, Sender.id)
+    ### Ban Handling ###
+    async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool) -> BanLookup:
+        DatabaseAction:BanLookup = None
+        ActionTaken:str = "Ban" if PerformBan else "Unban"
+        if (PerformBan):
+            DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id)
+        else:
+            DatabaseAction = self.Database.RemoveBan(TargetId)
+        
         if (DatabaseAction != BanLookup.Good):
             return DatabaseAction
         
-        self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, True))
+        self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, PerformBan))
         
         # Send a message to the announcement channel
         NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
-        NewAnnouncement.title="Ban in Progress"
+        NewAnnouncement.title = f"{ActionTaken} in Progress"
         await self.PublishAnnouncement(NewAnnouncement)
         
-        return BanLookup.Banned
-
-    async def PrepareUnban(self, TargetId:int, Sender:discord.Member) -> BanLookup:
-        DatabaseAction:BanLookup = self.Database.RemoveBan(TargetId)
-        if (DatabaseAction != BanLookup.Good):
-            return DatabaseAction
-        
-        self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, False))
-        
-        # Send a message to the announcement channel
-        NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
-        NewAnnouncement.title = "Unban in Progress"
-        await self.PublishAnnouncement(NewAnnouncement)
-        
-        return BanLookup.Unbanned
+        return BanLookup.Banned if PerformBan else BanLookup.Unbanned
     
     async def ReprocessBansForInstance(self, InstanceID:int, LastActions:int):
         if (InstanceID == self.BotID):

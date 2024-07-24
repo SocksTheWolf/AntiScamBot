@@ -4,7 +4,15 @@ from BotEnums import RelayMessageType
 from Config import Config
 import selectors, os, traceback
 
+__all__ = ["RelayMessage", "RelayServer", "RelayClient"]
+
 ConfigData:Config=Config()
+
+def UseUnixSockets() -> bool:
+    # Posix sockets don't require the networking bus, thus are technically more secure.
+    if (ConfigData["UsingPosixSockets"] and os.name == "posix"):
+        return True
+    return False
 
 class RelayMessage:
     Type:RelayMessageType = None
@@ -33,22 +41,31 @@ class RelayServer:
     InstancesToConnections={}
     FileLocation:str = ""
     ShouldStop:bool = False
+    HasPrintedStop:bool = False
     ControlBotId:int = -1
     BotInstance = None
     
     def __init__(self, InControlBotId:int, InBotInstance=None):
         self.ControlBotId = InControlBotId
         self.BotInstance = InBotInstance
-        if (os.name == "posix"):
+        if (UseUnixSockets()):
             self.ListenSocket = Listener(None, "AF_UNIX", backlog=10)
             self.FileLocation = self.ListenSocket.address
         else:
+            NeedsNTHack:bool = False
             # This is a really dumb hack to get around a bug (allow for address reuse)
             # that should probably be fixed in the multiprocessing listener system. 
             # It's been fixed upstream in the main socket library since 2010.
-            os.name = "posix"
+            if (os.name == "nt"):
+                NeedsNTHack = True
+                os.name = "posix"
+            
+            # Create listener socket.
             self.ListenSocket = Listener(("localhost", ConfigData["RelayPort"]), "AF_INET", backlog=10)
-            os.name = "nt"
+            
+            # Switch back above hack if we changed it.
+            if (NeedsNTHack):
+                os.name = "nt"
         
         self.AcceptListener = selectors.DefaultSelector()
         # This is probably the silliest thing that doesn't exist in the listener
@@ -56,6 +73,7 @@ class RelayServer:
         self.AcceptListener.register(self.ListenSocket._listener._socket, selectors.EVENT_READ)
         
     def __del__(self):
+        Logger.Log(LogLevel.Debug, "Shutting down listener service")
         self.ShouldStop = True
         
     def GetFileLocation(self):
@@ -65,7 +83,7 @@ class RelayServer:
         for key, value in enumerate(self.InstancesToConnections):
             if (value == Connection):
                 return key
-            
+
         return -1
     
     async def RestartAllConnections(self):
@@ -73,34 +91,13 @@ class RelayServer:
         self.Connections = []
         self.InstancesToConnections = {}
         self.DeadConnections = []
-        await self.BotInstance.StartAllInstances(True)
-       
-    async def CleanConnections(self):
-        # This doesn't all work properly, ConnectionsToRestart does not get populated with the correct connection ids
-        Logger.Log(LogLevel.Notice, "Starting error correction of dirty connections")
-        ConnectionsToRestart:list[int] = []
-        for Connection in self.DeadConnections:            
-            ConInstance:int = self.GetInstanceForConnection(Connection)
-            # Check to see if we have a connection here that was established, we will try to restart it.
-            if (ConInstance != -1):
-                ConnectionsToRestart.append(ConInstance)
-                del self.InstancesToConnections[ConInstance]
-        
-        # Clean out the connections that have been blanked out from the above loop.
-        self.Connections[:] = [x for x in self.Connections if x not in self.DeadConnections]
-        
-        Logger.Log(LogLevel.Log, f"There are now {len(self.Connections)} connections after cleanup and {len(ConnectionsToRestart)} connections to restart")
-        
-        # Restart any instances here.
-        if (self.BotInstance is not None):
-            for InstanceNum in ConnectionsToRestart:
-                await self.BotInstance.StartInstance(InstanceNum)
-        
-        # Clear the dirty array so we can continue execution
-        self.DeadConnections = []
+        await self.BotInstance.StartAllInstances(BypassCheck=True, RestartMainClient=True)
 
     async def TickRelay(self):
         if (self.ShouldStop):
+            if (not self.HasPrintedStop):
+                Logger.Log(LogLevel.Error, "Warning: Relay was told to stop")
+                self.HasPrintedStop = True
             return
         
         # Restart any dirty connections
@@ -151,7 +148,7 @@ class RelayServer:
                             Logger.Log(LogLevel.Notice, f"Established connection for {Message.Sender}")
                         else:
                             Logger.Log(LogLevel.Warn, f"Got a hello message from an known sender {Message.Sender}")
-                    case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
+                    case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessActivation | RelayMessageType.ProcessServerActivation | RelayMessageType.ProcessDeactivation:
                         Logger.Log(LogLevel.Log, f"Sending command {Message.Type} to {len(self.Connections)} instances...")
                         # Resend this message to literally everyone
                         for ClientConnection in self.Connections:
@@ -160,21 +157,22 @@ class RelayServer:
                                 continue
                             ClientConnection.send(Message)
                     case _:
-                        if (Message.Destination < 0):
-                            Logger.Log(LogLevel.Warn, "Message went to a bad destination!")
+                        if (Message.Destination < 0 or Message.Destination >= len(self.InstancesToConnections)):
+                            Logger.Log(LogLevel.Warn, f"Message went to a bad destination! {str(Message.Destination)}")
                             continue
                         
                         DestConnection = self.InstancesToConnections[Message.Destination]
                         DestConnection.send(Message)
        
 class RelayClient:
-    Connection = None
     BotID:int = -1
-    SentHello:bool = False
-    FunctionRouter={}
     
     def __init__(self, InFileLocation, InBotID:int=-1):
-        if (os.name == "posix"):
+        self.Connection = None
+        self.SentHello = False
+        self.FunctionRouter = {}
+        
+        if (UseUnixSockets()):
             self.Connection = Client(InFileLocation, "AF_UNIX")
         else:
             self.Connection = Client(('localhost', ConfigData["RelayPort"]), "AF_INET")
@@ -196,6 +194,8 @@ class RelayClient:
                 DataPayload={"TargetUser": TargetUserId, "AuthName": AuthName}
             case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
                 DataPayload={"TargetUser": TargetUserId}
+            case RelayMessageType.ProcessServerActivation:
+                DataPayload={"TargetUser": TargetUserId, "TargetServer": TargetServer}
             case RelayMessageType.LeaveServer:
                 DataPayload={"TargetServer": TargetServer}
             case RelayMessageType.ReprocessInstance:
@@ -206,7 +206,11 @@ class RelayClient:
         return RelayMessage(Type, self.BotID, Destination, DataPayload)
     
     def RegisterFunction(self, OnMessageType:RelayMessageType, FunctionToExecute):
-        self.FunctionRouter[OnMessageType] = FunctionToExecute
+        if (not OnMessageType in self.FunctionRouter):
+            Logger.Log(LogLevel.Verbose, f"Registering function type {str(OnMessageType)} for {str(self)}")
+            self.FunctionRouter[OnMessageType] = FunctionToExecute
+        else:
+            Logger.Log(LogLevel.Warn, f"Attempted to re-register function for {str(OnMessageType)} for {str(self)}")
     
     def SendHello(self):
         if (self.SentHello or self.Connection is None):
@@ -217,7 +221,8 @@ class RelayClient:
         NewMessage:RelayMessage = self.GenerateMessage(RelayMessageType.Hello)
         self.Connection.send(NewMessage)
         self.SentHello = True
-        
+    
+    # TODO: Make these functions automatically generated.
     def SendBan(self, UserId:int, InAuthName:str):
         if (self.BotID != ConfigData.ControlBotID):
             return
@@ -244,15 +249,21 @@ class RelayClient:
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessInstance, Destination=InstanceId, NumToRetry=InNumToRetry))
     
-    def SendCloseApplication(self, InstanceToTarget):
+    def SendPing(self, InstanceToTarget):
         if (self.BotID != ConfigData.ControlBotID):
             return
-        self.Connection.send(self.GenerateMessage(RelayMessageType.CloseApplication, Destination=InstanceToTarget))
+        
+        self.Connection.send(self.GenerateMessage(RelayMessageType.Ping, Destination=InstanceToTarget))
     
     def SendActivationForServers(self, UserId):
         if (self.BotID != ConfigData.ControlBotID):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessActivation, TargetUserId=UserId))
+        
+    def SendActivationForServerInstance(self, UserId, ServerId, InstanceToTarget):
+        if (self.BotID != ConfigData.ControlBotID):
+            return
+        self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessServerActivation, TargetUserId=UserId, TargetServer=ServerId, Destination=InstanceToTarget))
     
     def SendDeactivationForServers(self, UserId):
         if (self.BotID != ConfigData.ControlBotID):
@@ -273,7 +284,7 @@ class RelayClient:
                 break
                 
             if (not RelayMessage.IsValid(RawMessage)):
-                LogLevel.Log(LogLevel.Debug, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
+                LogLevel.Log(LogLevel.Warn, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
                 break
             
             RelayedMessage:RelayMessage = RawMessage            
@@ -291,6 +302,8 @@ class RelayClient:
                     Arguments = {"TargetId": RelayedMessage.Data["TargetUser"], "AuthName":RelayedMessage.Data["AuthName"]}
                 case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
                     Arguments = {"UserID": RelayedMessage.Data["TargetUser"]}
+                case RelayMessageType.ProcessServerActivation:
+                    Arguments = {"UserId": RelayedMessage.Data["TargetUser"], "ServerId": RelayedMessage.Data["TargetServer"]}
                 case RelayMessageType.LeaveServer:
                     Arguments = {"ServerId": RelayedMessage.Data["TargetServer"]}
                 case RelayMessageType.ReprocessBans:
