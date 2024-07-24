@@ -12,6 +12,8 @@ jobs:
     steps:
     - name: Checkout files
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 20
     
     - name: Update Check
       uses: dorny/paths-filter@v3.0.2
