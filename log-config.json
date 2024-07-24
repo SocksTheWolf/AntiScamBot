@@ -9,10 +9,6 @@
 		"brief": {
 			"format": "[%(asctime)s] %(processName)-24s %(levelname)9s %(message)s",
 			"datefmt": "%Y-%m-%d %H:%M:%S"
-		},
-		"telegram": {
-			"format": "%(levelname)9s %(message)s",
-			"datefmt": "%Y-%m-%d %H:%M:%S"
 		}
 	},
 
@@ -29,9 +25,10 @@
 			"level": "DEBUG",
 			"formatter": "simple",
 			"filename": "logs/log.txt",
-			"backupCount": 15,
+			"backupCount": 10,
 			"encoding": "utf8",
-			"when": "midnight"
+			"when": "midnight",
+			"delay": false
 		},
 
 		"buffer_stream_handler": {
@@ -68,6 +65,8 @@
 		"use_multiprocessing": true,
 		"limit_line_length": 1000,
 		"analyze_raise_statement": false,
+		"host": "localhost",
+      		"port": 0,
 		"default_logger_formats": {
 			"normal": ["%(name)s", "%(filename)s"],
 			"thread": ["%(message)s", "%(threadName)s %(message)s"],
