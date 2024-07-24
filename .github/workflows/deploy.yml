@@ -90,10 +90,7 @@ jobs:
           echo "Finished updating python dependencies"
           
     - name: Restart Instances
-      if: | 
-        always() && 
-        (steps.deps_update.result == 'success' || steps.deps_update.result == 'skipped') &&
-        steps.kill_bot.result == 'success'
+      if: ${{ always() && (steps.deps_update.result == 'success' || steps.deps_update.result == 'skipped') && steps.kill_bot.result == 'success' }}
       uses: appleboy/ssh-action@master
       with:
         host: ${{secrets.SSH_HOST}}
