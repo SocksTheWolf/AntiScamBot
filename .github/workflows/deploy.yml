@@ -25,10 +25,10 @@ jobs:
         filters: |
           deps_updated:
             - 'requirements.txt'
-            - 'update.sh'
+            - '.runtime/update.sh'
           core_updated:
-            - 'run.sh'
-            - 'deploy.yml'
+            - '.runtime/run.sh'
+            - '.github/workflows/deploy.yml'
             - '**.py'
 
     # Adding the Private key to a Github Actions Workflow
