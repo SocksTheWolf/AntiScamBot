@@ -24,7 +24,7 @@ coloredlogs.DEFAULT_LOG_FORMAT = '[%(asctime)s] %(processName)-24s %(levelname)9
 coloredlogs.DEFAULT_LEVEL_STYLES = {'critical': {'bold': True, 'color': 'red'}, 'debug': {'color': 'green'}, 'error': {'color': 'red'}, 'info': {}, 'notice': {'color': 'magenta'}, 'spam': {'color': 'green', 'faint': True}, 'success': {'bold': True, 'color': 'green'}, 'verbose': {'color': 'blue'}, 'warning': {'color': 'yellow'}}
 coloredlogs.DEFAULT_FIELD_STYLES = {}
 
-setup_logging(config_path='log-config.json')
+setup_logging(config_path='log_config.json')
 coloredlogs.install(level='VERBOSE')
 
 class Logger():
