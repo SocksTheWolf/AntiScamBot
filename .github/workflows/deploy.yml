@@ -52,7 +52,6 @@ jobs:
         script: |
           cd ~/project/AntiScamBot
           .runtime/kill.sh
-          rm nohup.out
           echo "Service Killed."
 
     # We want to update the project regardless.
@@ -102,4 +101,4 @@ jobs:
         script: |
           echo "Restarting instances"
           cd ~/project/AntiScamBot
-          nohup .runtime/run.sh
+          nohup .runtime/run.sh &>/dev/null &
