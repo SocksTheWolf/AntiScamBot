@@ -26,7 +26,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     permissions: write-all
-
+    continue-on-error: true
     steps:
       - name: 🗑 Cleanup Pages Deployments
         uses: strumwolf/delete-deployment-environment@v3
