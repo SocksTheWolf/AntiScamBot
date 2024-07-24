@@ -17,8 +17,8 @@ jobs:
       uses: dorny/paths-filter@v3.0.2
       id: filter
       with:
-        list-files: 'shell'
-        base: 'main'
+        list-files: shell
+        base: main
         filters: |
           deps_updated:
             - 'requirements.txt'
