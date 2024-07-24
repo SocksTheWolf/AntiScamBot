@@ -14,30 +14,41 @@ jobs:
       with:
         ref: ${{ github.ref }}
     
-    - name: Update Check
+    - name: Action Check
       uses: dorny/paths-filter@v3.0.2
       id: filter
       with:
         base: ${{ github.ref }}
         filters: |
-          deps_updated:
+          deps_update_needed:
             - 'requirements.txt'
-            - '.runtime/update.sh'
           core_updated:
-            - '.runtime/run.sh'
-            - '.github/workflows/deploy.yml'
             - '**.py'
 
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
-      if: steps.filter.outputs.deps_updated == 'true' || steps.filter.outputs.core_updated == 'true'
       uses: webfactory/ssh-agent@v0.9.0
       with:
         ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
         log-public-key: false
 
-    - name: Update Python Project
-      if: steps.filter.outputs.deps_updated == 'true' || steps.filter.outputs.core_updated == 'true'
+    # If any runtime files updated, then we need to stop all bot instances.
+    - name: Kill bot instances
+      id: kill_bot
+      if: steps.filter.outputs.deps_update_needed == 'true' || steps.filter.outputs.core_updated == 'true'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{secrets.SSH_HOST}}
+        key: ${{secrets.SSH_KEY}}
+        username: ${{secrets.SSH_USERNAME}}
+        script: |
+          cd ~/project/AntiScamBot
+          .runtime/kill.sh
+          rm nohup.out
+          echo "Bot Killed."
+
+    # We want to update the project regardless.
+    - name: Update Project
       uses: appleboy/ssh-action@master
       with:
         host: ${{secrets.SSH_HOST}}
@@ -45,7 +56,6 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         envs: AUTHKEYNAME
         script: |
-          echo "Moving to project directory"
           cd ~/project/AntiScamBot
           echo "Setting SSH Agent"
           eval "$(ssh-agent -s)"
@@ -53,22 +63,37 @@ jobs:
           ssh-add ~/.ssh/$AUTHKEYNAME
           echo "Checking Git Readability"
           ssh -T git@github.com
-          echo "Killing bot..."
-          .runtime/kill.sh
-          rm nohup.out
           echo "Updating directory"
           git pull
           echo "Deploy success"
 
     - name: Update Python Dependencies
-      if: steps.filter.outputs.deps_updated == 'true'
+      id: deps_update
+      if: steps.filter.outputs.deps_update_needed == 'true'
       uses: appleboy/ssh-action@master
       with:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
+        script_stop: true
         script: |
-          echo "Updating project dependencies"
           cd ~/project/AntiScamBot
           .runtime/update.sh
           echo "Finished updating python dependencies"
+          
+    - name: Restart Bot
+      if: | 
+        always() && 
+        (steps.deps_update.result == 'success' || steps.deps_update.result == 'skipped') &&
+        steps.kill_bot.result == 'success'
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{secrets.SSH_HOST}}
+        key: ${{secrets.SSH_KEY}}
+        username: ${{secrets.SSH_USERNAME}}
+        command_timeout: 5s
+        script_stop: false
+        script: |
+          echo "Restarting bot"
+          cd ~/project/AntiScamBot
+          nohup .runtime/run.sh
