@@ -111,7 +111,7 @@ class ScamGuard(DiscordBot):
         await self.StopInstanceIfExists(InstanceID)
         
         Logger.Log(LogLevel.Log, f"Spinning up instance #{InstanceID}")
-        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(RelayFileHandleLocation, InstanceID))
+        self.SubProcess[InstanceID] = Process(target=CreateBotProcess, args=(RelayFileHandleLocation, InstanceID), name=f'Bot-{InstanceID}')
         self.SubProcess[InstanceID].start()
 
     async def StopInstanceIfExists(self, InstanceID:int):       
