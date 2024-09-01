@@ -5,7 +5,7 @@ redirect_from: /privacy-policy
 previous: /
 ---
 
-> Last Updated: 7/18/2024
+> Last Updated: 08/31/2024
 
 The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy.
 
@@ -30,11 +30,13 @@ This collection of data may expand or modify in the future, but will usually sta
 
 Users in the control server that have the "maintenance" role may view the current list of activated servers, and some of the server ids may be visible in the logs/logging notifications that the bot sends periodically.
 
+Users of the API have access to a small subset of the accounts the service protects against, however this requires an API token to access. None of the server data is accessible.
+
 While external access is protected, this is not guarenteed and the bot owners assume no liability for the unintentional or malicious breach of any data. In the event of unauthorized data access, users in [the control server](/discord) will be alerted.
 
 ## Where is the data stored?
 
-It is currently stored in a sqlite database that the bot has access to. There is no external access to the database.
+It is currently stored in a sqlite database that the bot has access to. Outside of the data provided by the API, there's no external access to the database.
 
 ## Do you store information about users?
 

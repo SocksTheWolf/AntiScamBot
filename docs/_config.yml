@@ -3,6 +3,8 @@ description: The website home to an automated solution to stop commission solici
 author: The Antiscam Group
 logo: /assets/site-logo.png
 url: "https://scamguard.app"
+api_docs: "https://api.scamguard.app"
+contact_url: "https://socksthewolf.com/contact"
 google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
 bot_name: ScamGuard
