@@ -49,3 +49,7 @@ To test the bot on your own Discord server for debugging purposes, here's how yo
 - Server ID: Right click your server icon and click on Copy Server ID
 - Role ID: Go to your Server Settings -> Roles -> "..." button for the role -> Copy Role ID
 - Channel ID: Right click the channel and click on Copy Channel ID
+
+---
+
+If you want to have a publicly accessible API endpoint for your bot instance, you can [clone this project](https://github.com/SocksTheWolf/AntiScamBotAPI).
