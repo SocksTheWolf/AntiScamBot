@@ -30,6 +30,8 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Manage Webhooks`: To allow for subscribing to the ban notification feed if you so choose during setup.
 
+* `View Channels`: To handle sending messages on initial setup.
+
 ### When I activate the bot, why is it suddenly banning hundreds of accounts?
 
 {{ site.bot_name }} imports all the bans of scammers that it knows about. This can be several hundreds of accounts, but not to worry, due to the way {{ site.bot_name }} processes bans, these accounts do not have to be in your server. So while it looks like your entire discord community is getting banned, it is not.
