@@ -345,7 +345,7 @@ class ScamBotDatabase():
         if (not self.DoesBanExist(TargetId)):
             return
         
-        stmt = select(Ban).where(Ban.id==TargetId)
+        stmt = select(Ban).where(Ban.discord_user_id==TargetId)
         if (stmt is None):
             return
         
