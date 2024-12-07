@@ -7,7 +7,7 @@ from datetime import datetime
 from BotDatabaseSchema import Base, Migration, Ban, Server
 
 class DatabaseMigrator:
-    DATABASE_VERSION=4
+    DATABASE_VERSION=5
     VersionMap={}
     DatabaseCon=None
     
@@ -124,6 +124,14 @@ class DatabaseMigrator:
         session.execute(text("ALTER TABLE servers ADD message_channel INTEGER default 0"))
         session.execute(text("ALTER TABLE servers ADD has_webhooks INTEGER default 0"))
         session.execute(text("ALTER TABLE servers ADD kick_sus_users INTEGER default 0"))
+        session.commit()
+        return True
+    
+    def upgrade_version4to5(self) -> bool:
+        session = Session(self.DatabaseCon)
+        session.execute(text("ALTER TABLE bans ADD evidence_thread INTEGER default NULL"))
+        session.execute(text("ALTER TABLE servers ADD can_report INTEGER default 1"))
+        session.execute(text("ALTER TABLE servers ADD should_ban_in INTEGER default 1"))
         session.commit()
         return True
 

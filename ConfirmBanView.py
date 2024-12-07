@@ -9,7 +9,7 @@ class ConfirmBan(SelfDeletingView):
     Hook:WebhookMessage = None
     
     def __init__(self, target:int, bot):
-        super().__init__(ViewTimeout=60.0)
+        super().__init__(ViewTimeout=90.0)
         self.TargetId = target
         self.ScamBot = bot
         
@@ -30,7 +30,7 @@ class ConfirmBan(SelfDeletingView):
         
         await interaction.response.defer(thinking=True)
         self.HasInteracted = True
-        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True)
+        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True, interaction.channel_id)
         if (Result is not BanLookup.Banned):
             if (Result == BanLookup.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"

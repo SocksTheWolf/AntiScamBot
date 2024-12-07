@@ -410,7 +410,7 @@ Failed Copied Evidence Links:
     ### Webhook Management ###
     async def InstallWebhook(self, ServerId:int):
         ChannelID:int = self.Database.GetChannelIdForServer(ServerId)
-        MessageChannel:discord.TextChannel =  self.get_channel(ChannelID)
+        MessageChannel:discord.TextChannel = self.get_channel(ChannelID)
         
         # Check to see if a webhook is already installed.
         if (MessageChannel is not None):
@@ -467,6 +467,9 @@ Failed Copied Evidence Links:
     def GetServerInfoStr(self, Server:discord.Guild) -> str:
         return f"{Server.name}[{Server.id}]"
     
+    def GetControlServerGuild(self) -> discord.Guild:
+        return self.get_guild(ConfigData["ControlServer"])
+    
     def PostPongMessage(self):
         Logger.Log(LogLevel.Notice, "I have been pinged!")
         
@@ -515,6 +518,9 @@ Failed Copied Evidence Links:
         if (HasUserData):
             UserData.add_field(name="Name", value=User.display_name)
             UserData.add_field(name="Handle", value=User.mention)
+            # If currently banned and has an evidence thread, display it.
+            if (UserBanned and BanData.evidence_thread is not None):
+                UserData.add_field(name="Evidence Thread (TAG Server)", value=f"<#{BanData.evidence_thread}>")
             # This will always be an approximation, plus they may be in servers the bot is not in.
             if (ConfigData["ScamCheckShowsSharedServers"]):
                 UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
@@ -572,6 +578,10 @@ Failed Copied Evidence Links:
                     Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr}")
                     BanReturn = BanResult.LostPermissions
                     break
+                elif (BanResponseFlag == BanResult.BansExceeded):
+                    Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr} due to exceed")
+                    BanReturn = BanResult.BansExceeded
+                    break
             else:
                 NumBans += 1
         Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
@@ -608,7 +618,7 @@ Failed Copied Evidence Links:
             ScamStr = "non-scammer"
         
         BanReason=f"Confirmed {ScamStr} by {AuthorizerName}"
-        AllServers = self.Database.GetAllActivatedServers(self.BotID)
+        AllServers = self.Database.GetAllActivatedServersWithBans(self.BotID)
         NumServers:int = len(AllServers)
         
         # Instead of going through all servers it's added to, choose all servers that are activated.
@@ -636,7 +646,7 @@ Failed Copied Evidence Links:
                         elif (ResultFlag == BanResult.ServerOwner):
                             Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {self.GetServerInfoStr(DiscordServer)} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
                             continue
-                    elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error):
+                    elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error or ResultFlag == BanResult.BansExceeded):
                         self.AddAsyncTask(self.PostBanFailureInformation(DiscordServer, TargetId, ResultFlag, IsBan))
             else:
                 # TODO: Potentially remove the server from the list?
@@ -678,6 +688,10 @@ Failed Copied Evidence Links:
             Logger.Log(LogLevel.Error, f"We do not have ban/unban permissions in this server {ServerInfo} owned by {ServerOwnerId}! Err: {str(forbiddenEx)}")
             return (False, BanResult.LostPermissions)
         except discord.HTTPException as ex:
+            if (ex.code == 30035):
+                Logger.Log(LogLevel.Warn, f"Hit the bans exceeded error while trying to perform actions on server {ServerInfo}")
+                return (False, BanResult.BansExceeded)
+            
             Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)
     
@@ -701,7 +715,7 @@ Failed Copied Evidence Links:
         if (Reason == BanResult.LostPermissions):
             ErrorMsg = "ScamGuard does not have significant permissions to ban this user"
             ResolutionMsg = "This usually happens if the user in question has grabbed roles that are higher than the bot's.\n\nYou can usually fix this by changing the order as seen in [this video](https://youtu.be/XYaQi3hM9ug), or giving ScamGuard a moderation role."
-        elif (Reason == BanResult.Error):
+        elif (Reason == BanResult.Error or Reason == BanResult.BansExceeded):
             ErrorMsg = "ScamGuard encountered an unknown error"
             ResolutionMsg = "This can happen when the Discord API has a hiccup, a ban will retry again soon."
         else:

@@ -14,6 +14,7 @@ class BanResult(CompareEnum):
   NotBanned=auto()
   InvalidUser=auto()
   LostPermissions=auto()
+  BansExceeded=auto()
   ServerOwner=auto()
   Error=auto()
   
@@ -34,3 +35,4 @@ class RelayMessageType(CompareEnum):
   AddedToServer=auto()
   RemovedFromServer=auto()
   ServerOwnerChanged=auto()
+  # TODO: Add enqueue messages to fix issue #64

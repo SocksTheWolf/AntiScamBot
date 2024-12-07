@@ -142,11 +142,11 @@ class ScamGuard(DiscordBot):
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
     ### Ban Handling ###
-    async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool) -> BanLookup:
+    async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool, ThreadId:int|None=None) -> BanLookup:
         DatabaseAction:BanLookup = None
         ActionTaken:str = "Ban" if PerformBan else "Unban"
         if (PerformBan):
-            DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id)
+            DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id, ThreadId)
         else:
             DatabaseAction = self.Database.RemoveBan(TargetId)
         

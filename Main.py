@@ -203,6 +203,54 @@ if __name__ == '__main__':
         
         ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(target)
         await interaction.response.send_message(embed = ResponseEmbed)
+        
+    # Control Server command to set evidence threads
+    @ScamGuardBot.Commands.command(name="setthread", description="In the control server, set the evidence thread for the given user id", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["ApproverRole"])
+    async def SetThread_Control(interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
+        if (target <= -1):
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+            return
+        
+        if (not ScamGuardBot.Database.DoesBanExist(target)):
+            await interaction.response.send_message("Cannot set an evidence thread on a non-ban at this time!", ephemeral=True)
+            return
+        
+        ScamGuardBot.Database.SetEvidenceThread(target, interaction.channel_id)
+        await interaction.response.send_message(f"Updated the thread for {target} to <#{interaction.channel_id}>")
+        Logger.Log(LogLevel.Log, f"Thread set for {target} to {interaction.channel_id}")
+    
+    # Togglers for curbing any potential abuse
+    @ScamGuardBot.Commands.command(name="toggleserverban", description="In the control server, sets if the given server should have bans processed on them", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    async def SetBanActionForServer_Control(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], state:bool):
+        if (server <= -1):
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+            return
+        
+        if (not ScamGuardBot.Database.IsInServer(server)):
+            await interaction.response.send_message(f"ScamGuard is not in server {server}!", ephemeral=True, delete_after=5.0)    
+            return
+        
+        ScamGuardBot.Database.ToggleServerBan(server, state)
+        await interaction.response.send_message(f"Server {server} ban ability set to {state}", ephemeral=True, delete_after=10.0)
+        Logger.Log(LogLevel.Log, f"Ban ability set for {server} to {state}")
+        
+    @ScamGuardBot.Commands.command(name="toggleserverreport", description="In the control server, sets if the given server should have bans processed on them", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    async def SetBanActionForServer_Control(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], state:bool):
+        if (server <= -1):
+            await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
+            return
+        
+        if (not ScamGuardBot.Database.IsInServer(server)):
+            await interaction.response.send_message(f"ScamGuard is not in server {server}!", ephemeral=True, delete_after=5.0)    
+            return
+        
+        ScamGuardBot.Database.ToggleServerReport(server, state)
+        await interaction.response.send_message(f"Server {server} report ability set to {state}", ephemeral=True, delete_after=10.0)
+        Logger.Log(LogLevel.Log, f"Report ability set for {server} to {state}")
+    
     
     SetupDatabases()
     ScamGuardBot.run(ConfigData.GetToken())

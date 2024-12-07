@@ -142,6 +142,26 @@ class ScamBotDatabase():
         
         self.Database.delete(server)
         self.Database.commit()
+        
+    def ToggleServerBan(self, ServerId:int, NewStatus:bool):
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+        if (server is None):
+            return
+        
+        server.should_ban_in = NewStatus
+        self.Database.add(server)
+        self.Database.commit()
+        
+    def ToggleServerReport(self, ServerId:int, NewStatus:bool):
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+        if (server is None):
+            return
+        
+        server.can_report = NewStatus
+        self.Database.add(server)
+        self.Database.commit()
 
     def SetBotActivationForOwner(self, Servers:list[int], IsActive:bool, BotId:int, OwnerId:int=-1, ActivatorId:int=-1):
         NumActivationChanges = 0
@@ -254,6 +274,18 @@ class ScamBotDatabase():
             return True
 
         return False
+    
+    def CanServerReport(self, ServerId:int) -> bool:
+        if (not self.IsInServer(ServerId)):
+            return False
+
+        stmt = select(Server).where(Server.discord_server_id==ServerId)
+        server = self.Database.scalars(stmt).first()
+
+        if (server.can_report):
+            return True
+
+        return False
 
     def DoesBanExist(self, TargetId:int) -> bool:
         stmt = select(Ban).where(Ban.discord_user_id==TargetId)
@@ -275,7 +307,7 @@ class ScamBotDatabase():
         return self.Database.scalars(stmt).first()
 
     ### Adding/Removing Bans ###
-    def AddBan(self, TargetId:int, BannerName:str, BannerId:int) -> BanLookup:
+    def AddBan(self, TargetId:int, BannerName:str, BannerId:int, ThreadId:int|None) -> BanLookup:
         if (self.DoesBanExist(TargetId)):
             return BanLookup.Duplicate
 
@@ -284,6 +316,9 @@ class ScamBotDatabase():
             assigner_discord_user_id = BannerId,
             assigner_discord_user_name = BannerName
         )
+        
+        if (ThreadId is not None):
+            ban.evidence_thread = ThreadId
 
         self.Database.add(ban)
         self.Database.commit()
@@ -301,6 +336,22 @@ class ScamBotDatabase():
         self.Database.commit()
 
         return BanLookup.Good
+    
+    ### Updating Ban Data ###
+    def SetEvidenceThread(self, TargetId:int, ThreadId:int):
+        if (TargetId <= 0 or ThreadId <= 0):
+            return
+        
+        if (not self.DoesBanExist(TargetId)):
+            return
+        
+        stmt = select(Ban).where(Ban.id==TargetId)
+        if (stmt is None):
+            return
+        
+        banToChange = self.Database.scalars(stmt).first()
+        banToChange.evidence_thread = ThreadId
+        self.Database.add(banToChange)
     
     ### Getting Server Information ###
     def GetAllServersOfOwner(self, OwnerId:int) -> list[Server]:
@@ -354,7 +405,7 @@ class ScamBotDatabase():
         
         return list(self.Database.scalars(stmt).all())
     
-    def GetAllServers(self, ActivationState:bool=False, OfInstance:int=-1) -> list[Server]:
+    def GetAllServers(self, ActivationState:bool=False, OfInstance:int=-1, FilterBanability:bool=False) -> list[Server]:
         stmt = select(Server)
 
         if (ActivationState):
@@ -362,11 +413,17 @@ class ScamBotDatabase():
 
         if (OfInstance > -1):
             stmt = stmt.where(Server.bot_instance_id==OfInstance)
+            
+        if (FilterBanability):
+            stmt = stmt.where(Server.should_ban_in==1)
 
         return list(self.Database.scalars(stmt).all())
     
     def GetAllActivatedServers(self, OfInstance:int=-1) -> list[Server]:
         return self.GetAllServers(True, OfInstance)
+    
+    def GetAllActivatedServersWithBans(self, OfInstance:int=-1) -> list[Server]:
+        return self.GetAllServers(True, OfInstance, True)
     
     def GetAllDeactivatedServers(self) -> list[Server]:
         stmt = select(Server).where(Server.activation_state==False)

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, DateTime, String
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, null
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
@@ -21,6 +21,7 @@ class Ban(Base):
     assigner_discord_user_name = Column(String(32), nullable=False)
     created_at = Column(DateTime(), server_default=func.now())
     updated_at = Column(DateTime(), server_default=func.now(), onupdate=func.now())
+    evidence_thread = Column(Integer, nullable=True, server_default=null())
 
 class Server(Base):
     __tablename__ = "servers"
@@ -36,3 +37,5 @@ class Server(Base):
     message_channel = Column(Integer, server_default="0")
     has_webhooks = Column(Integer, server_default="0")
     kick_sus_users = Column(Integer, server_default="0")
+    can_report = Column(Integer, server_default="1")
+    should_ban_in = Column(Integer, server_default="1")
