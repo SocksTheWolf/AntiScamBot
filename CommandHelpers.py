@@ -1,5 +1,8 @@
 from Logger import Logger, LogLevel
 from discord import Interaction, app_commands
+import traceback, re
+
+UserIdReg = re.compile("\<\@([0-9]+)\>")
 
 # This transformer allows us to take in a discord id (as the default int is too small)
 # and properly convert it to a value that we can use to observe Discord data
@@ -8,8 +11,15 @@ class BaseIdTransformer(app_commands.Transformer):
         return TargetId
         
     async def transform(self, interaction: Interaction, value: str) -> int:
+        # Capture any mention targets
+        matches = UserIdReg.match(value)
+        if (matches is not None):
+            value = matches.group(1)
+        
+        # Check if the value is numeric
         if (not value.isnumeric()):
             return -1
+        
         ConvertedValue:int = int(value)
         # Prevent any targets on the bot
         if (ConvertedValue == interaction.client.user.id):
@@ -46,7 +56,7 @@ async def CommandErrorHandler(interaction: Interaction, error: app_commands.AppC
         else:
             ErrorMsg = "To change settings, run `/scamguard config`. To uninstall the bot, simply kick it from your server."
     else:
-        Logger.Log(LogLevel.Error, f"Encountered error running command /{InteractionName}: {str(error)}")
+        Logger.Log(LogLevel.Error, f"Encountered error running command /{InteractionName}: {str(error)} {traceback.format_exc()}")
         ErrorMsg = "An error has occurred while processing your request"
     
     await interaction.response.send_message(ErrorMsg, ephemeral=True, delete_after=5.0)

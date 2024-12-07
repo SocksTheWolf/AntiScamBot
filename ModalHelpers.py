@@ -1,5 +1,6 @@
 from discord import ui, Interaction, SelectOption, WebhookMessage, ButtonStyle, Message, TextChannel, ChannelType, Member, Permissions
 from Logger import Logger, LogLevel
+import traceback
 
 class YesNoSelector(ui.Select):
     CurrentSelection:str = ""
@@ -115,7 +116,7 @@ class SelfDeletingView(ui.View):
         await self.StopInteractions()
         
     async def on_error(self, interaction:Interaction, error:Exception, object:ui.Item):
-        Logger.Log(LogLevel.Error, f"View interaction encountered an error {str(error)}")
+        Logger.Log(LogLevel.Error, f"View interaction encountered an error {str(error)} {traceback.format_exc()}")
         
     async def on_cancel(self, interaction:Interaction):
         pass
