@@ -4,12 +4,14 @@ from Logger import Logger, LogLevel
 class SubmitScamReport(ui.Modal):
     ReportedUser:Member|User = None
     TypeOfScam = ui.TextInput(label="Type of Scam", required=True, placeholder="Please state the type of scam", max_length=50, min_length=10)
-    Reasoning = ui.TextInput(label="Scam Ban Reasoning",
-                                     placeholder="The reason that this user should be reported",
-                                     max_length=300, required=False)    
-    ScamEvidence = ui.TextInput(label="Evidence of Scam", 
-                                        placeholder="Please insert links to images (space separated up to 9)",
+    Reasoning = ui.TextInput(label="Details",
+                                     placeholder="Provide extra context towards the ban itself here",
+                                     style=TextStyle.paragraph,
+                                     max_length=700, required=False)    
+    ScamEvidence = ui.TextInput(label="Image Evidence", 
+                                        placeholder="Please insert links to images (space separated up to 9). Images speed up the process immensely!",
                                         style=TextStyle.paragraph,
+                                        min_length=1,
                                         max_length=4000,
                                         required=True)
     def __init__(self, InReportUser:Member|User):
@@ -26,6 +28,8 @@ class SubmitScamReport(ui.Modal):
         
         # Split the evidence block into a string list
         EvidenceList:list[str] = self.ScamEvidence.value.split()
+        # Log the original data so we don't lose it
+        Logger.Log(LogLevel.Log, f"Given evidence for report for id {self.ReportedUser.id} is {self.ScamEvidence.value}")
                 
         ScamReportPayload = {
             "ReportingUserName": interaction.user.name,
