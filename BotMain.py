@@ -518,12 +518,13 @@ Failed Copied Evidence Links:
         if (HasUserData):
             UserData.add_field(name="Name", value=User.display_name)
             UserData.add_field(name="Handle", value=User.mention)
-            # If currently banned and has an evidence thread, display it.
-            if (UserBanned and BanData.evidence_thread is not None):
-                UserData.add_field(name="Evidence Thread (TAG Server)", value=f"<#{BanData.evidence_thread}>")
             # This will always be an approximation, plus they may be in servers the bot is not in.
             if (ConfigData["ScamCheckShowsSharedServers"]):
                 UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
+
+            # If currently banned and has an evidence thread, display it.
+            if (UserBanned and BanData.evidence_thread is not None):
+                UserData.add_field(name="Evidence Thread (TAG Server)", value=f"<#{BanData.evidence_thread}>", inline=False)
             UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
             UserData.set_thumbnail(url=User.display_avatar.url)
         
@@ -531,7 +532,7 @@ Failed Copied Evidence Links:
         
         # Figure out who banned them
         if (UserBanned):
-            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_name}", inline=False)
+            UserData.add_field(name="Banned By", value=f"{BanData.assigner_discord_user_name}")
             # Create a date time format (all of the database timestamps are in iso format)
             UserData.add_field(name="Banned At", value=f"{discord.utils.format_dt(BanData.created_at)}", inline=False)
             # Push a last updated field if the time stamps aren't the same
