@@ -34,6 +34,9 @@ class YesNoSelector(ui.Select):
                 return False
         
     async def callback(self, interaction:Interaction):
+        if not self.values:
+            return
+        
         self.CurrentSelection = self.values[0]
         await interaction.response.send_message(f"Set Value to {self.GetValue()}", ephemeral=True, delete_after=0.001, silent=True)
         
