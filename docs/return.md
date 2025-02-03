@@ -1,12 +1,8 @@
 ---
-title: Report Submission
-description: Report Submission Results
-previous: /
+title: Web Report Submission
+description: This text will be dynamically replaced.
 sitemap: false
 ---
-
-<h1 id="header"></h1>
-<br />
-<p id="details"></p><br /><br />
+<p id="details"></p><br />
 
 <a id="btn-back"><button>Go Back</button></a>
