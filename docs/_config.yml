@@ -7,6 +7,7 @@ api_docs: "https://api.scamguard.app"
 contact_url: "https://socksthewolf.com/contact"
 google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
+use_zapier_report: true
 bot_name: ScamGuard
 discord_client_id: 1152057650226401320
 discord_uses_intents: false
