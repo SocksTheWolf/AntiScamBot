@@ -20,7 +20,11 @@
     {% else %}
     <input type="file" id="evidence" name="evidence" accept="image/*" required />
     {% endif %}
-    <small>Please submit screenshot evidence regarding the scammer's actions. Files have a max size of {{ site.max_per_evidence_size }}MB.</small>
+    <small>Please submit screenshot evidence regarding the scammer's actions.
+    {% if site.report_support_multiple_files == true %}
+      Max {{ site.report_max_files }} files of {{ site.report_max_size_per_file }}MB for a total of {{ site.report_max_size }}MB.
+    {% endif %}
+    </small>
 
     <label for="reportername">What is your Discord Handle?</label>
     <input type="text" name="reportername" id="reportername" />
