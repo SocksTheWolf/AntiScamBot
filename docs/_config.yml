@@ -9,6 +9,7 @@ google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
 use_zapier_report: true
 max_per_evidence_size: 2
+report_support_multiple_files: true
 bot_name: ScamGuard
 discord_client_id: 1152057650226401320
 discord_uses_intents: false

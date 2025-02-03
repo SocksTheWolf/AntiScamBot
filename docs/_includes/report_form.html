@@ -15,7 +15,11 @@
       <a href="https://support.discord.com/hc/en-us/articles/4407571667351-How-to-Find-User-IDs-for-Law-Enforcement" target="_blank">visit this Discord article</a>.</small>
 
     <label for="evidence">Evidence Upload <small>(required)</small></label>
+    {% if site.report_support_multiple_files == true %}
     <input type="file" id="evidence" name="evidence" accept="image/*" required multiple />
+    {% else %}
+    <input type="file" id="evidence" name="evidence" accept="image/*" required />
+    {% endif %}
     <small>Please submit screenshot evidence regarding the scammer's actions. Files have a max size of {{ site.max_per_evidence_size }}MB.</small>
 
     <label for="reportername">What is your Discord Handle?</label>
