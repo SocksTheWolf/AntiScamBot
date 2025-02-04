@@ -173,3 +173,4 @@ Gemfile
 Gemfile.lock
 _site/
 .jekyll-cache/
+/docs
