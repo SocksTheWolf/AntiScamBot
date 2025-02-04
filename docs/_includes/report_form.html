@@ -1,15 +1,14 @@
-<meta name="color-scheme" content="light">
-<link rel="stylesheet" href="/assets/css/pico.min.css">
+<link rel="stylesheet" href="/assets/css/pico.css">
+<section class="pico" data-theme="light">
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
-<article data-theme="light">
 <form enctype="multipart/form-data" action="/submitreport" method="POST">
     <label for="scammerusername">Scammer Discord Username <small>(required)</small></label>
-    <input type="text" id="scammerusername" name="scammerusername" required></input>
+    <input type="text" id="scammerusername" name="scammerusername" required />
     <small>This is the text handle underneath their display name in the profile screen. 
       You can get it via the <code>Copy Username</code> option on the user's profile card.</small>
     
     <label for="scammeruserid">Scammer Discord User ID <small>(required)</small></label>
-    <input type="text" id="scammeruserid" name="scammeruserid" maxlength="20" minlength="17" required></input>
+    <input type="text" id="scammeruserid" name="scammeruserid" maxlength="20" minlength="17" required />
     <small>This is the numeric Discord User ID of the scammer. 
       If you don't know how to get it, 
       <a href="https://support.discord.com/hc/en-us/articles/4407571667351-How-to-Find-User-IDs-for-Law-Enforcement" target="_blank">visit this Discord article</a>.</small>
@@ -22,7 +21,7 @@
     {% endif %}
     <small>Please submit screenshot evidence regarding the scammer's actions.
     {% if site.report_support_multiple_files == true %}
-      Max {{ site.report_max_files }} files of {{ site.report_max_size_per_file }}MB for a total of {{ site.report_max_size }}MB.
+      Max {{ site.report_max_files }} files (up to {{ site.report_max_size_per_file }}MB each) for a total of {{ site.report_max_size }}MB.
     {% endif %}
     </small>
 
@@ -38,6 +37,6 @@
     <label>Captcha <small>(required)</small></label>
     <div class="cf-turnstile" data-sitekey="0x4AAAAAAA7RsNNbQGiNcEUi"></div>
     <br />
-    <input type="submit" value="Submit Report"></input>
+    <input type="submit" value="Submit Report" />
 </form>
-</article>
+</section>

@@ -174,3 +174,6 @@ Gemfile.lock
 _site/
 .jekyll-cache/
 *.py
+package-lock.json
+package.json
+/docs/node_modules

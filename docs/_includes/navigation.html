@@ -20,7 +20,6 @@
         {% if entry.url == current_page %}
             {% assign current = ' class="current"' %}
         {% else %}
-            <!-- We have to declare it 'null' to ensure it doesn't propagate. -->
             {% assign current = null %}
         {% endif %}
         {% assign sublinks = entry.sublinks %}
