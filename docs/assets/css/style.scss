@@ -65,6 +65,10 @@ li img {
   margin-left: 3px;
 }
 
+textarea + small {
+    padding-top: 15px;
+}
+
 @media screen and (max-width: 42em) {
     nav li {
         padding: 0 1px;

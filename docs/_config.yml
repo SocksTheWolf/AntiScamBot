@@ -7,7 +7,7 @@ api_docs: "https://api.scamguard.app"
 contact_url: "https://socksthewolf.com/contact"
 google_analytics: "G-3B15EPXBFZ"
 show_downloads: false
-use_zapier_report: true
+use_zapier_report: false
 report_support_multiple_files: true
 report_max_size_per_file: 3
 report_max_files: 4
