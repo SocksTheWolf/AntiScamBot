@@ -6,6 +6,7 @@ url: "https://scamguard.app"
 api_docs: "https://api.scamguard.app"
 contact_url: "https://socksthewolf.com/contact"
 google_analytics: "G-3B15EPXBFZ"
+permalink: /:slug
 show_downloads: false
 use_zapier_report: false
 report_support_multiple_files: true
