@@ -517,7 +517,8 @@ Failed Copied Evidence Links:
         UserData = discord.Embed(title="User Data")
         if (HasUserData):
             UserData.add_field(name="Name", value=User.display_name)
-            UserData.add_field(name="Handle", value=User.mention)
+            UserData.add_field(name="Handle", value=User.name, inline=True)
+            UserData.add_field(name="Mention", value=User.mention)
             # This will always be an approximation, plus they may be in servers the bot is not in.
             if (ConfigData["ScamCheckShowsSharedServers"]):
                 UserData.add_field(name="Shared Servers", value=f"~{len(User.mutual_guilds)}")
