@@ -408,10 +408,10 @@ Failed Copied Evidence Links:
             # Update the user with the ScamGuard thread that was created
             ThreadEmbed:discord.Embed = self.CreateBaseEmbed(f"Report created for {ReportUserName}")
             ThreadEmbed.add_field(name="User Name", value=f"{ReportUserName}")
-            ThreadEmbed.add_field(name="User Handle", value=f"{ReportUserHandle}", inline=True)
-            ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}")
-            ThreadEmbed.add_field(name="Thread Link (for updates)", value=f"{NewThread.thread.mention}")
-            ThreadEmbed.add_field(name="Can't see the thread?", value="Join the [TAG Server](https://scamguard.app/discord)")
+            ThreadEmbed.add_field(name="User Handle", value=f"{ReportUserHandle}")
+            ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}", inline=False)
+            ThreadEmbed.add_field(name="Thread Link (for updates)", value=f"{NewThread.thread.mention}", inline=False)
+            ThreadEmbed.set_footer(text="Can't see the thread? Join the [TAG Server](https://scamguard.app/discord)")
             await ReportData["Webhook"].send(embed=ThreadEmbed, ephemeral=False)
             
         except discord.NotFound:
