@@ -411,7 +411,8 @@ Failed Copied Evidence Links:
             ThreadEmbed.add_field(name="Thread Link", value=f"{NewThread.jump_url}")
             ThreadEmbed.add_field(name="Can't see the thread?", value="Join the [TAG Server](https://scamguard.app/discord)")
             # might want to consider edit_original_message instead of the webhook post.
-            await ReportData["Interaction"].send(embed=ThreadEmbed, ephemeral=False)
+            # this would require us to update discordpy to latest for something like that tho
+            await ReportData["Webhook"].send(embed=ThreadEmbed, ephemeral=False)
             
         except discord.NotFound:
             Logger.Log(LogLevel.Warn, "Unable to update the original command that sent a report with a new embed, the followup has expired.")
