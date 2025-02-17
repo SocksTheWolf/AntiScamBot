@@ -3,22 +3,61 @@
 
 @import "{{ site.theme }}";
 
+/* Main Styles */
+html {
+    background-color: #181a1b;
+}
+
+body {
+    color: #b6b6b6;
+}
+
+.centered {
+    display: block;
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.page-header { padding-bottom: 0rem !important; }
+
 .anchor-tag {
-    color: rgba(254, 153, 74, 0.8);
+    color: rgba(103, 234, 169, 0.2) !important;
     font-size: 20px;
 }
-
-.install-steps li {
-    margin-top: 0.4rem;
+.anchor-tag:hover {
+    color: rgba(103, 234, 169, 0.6) !important;
+    text-decoration: none;
 }
 
+/* Main content */
+.main-content code {
+    background-color: #3c3b3b;
+    color: #a49c90;
+}
+
+.main-content hr {
+    background-color: #535353;
+    color: #535353;
+    border-color: #535353;
+}
+
+.main-content a {
+    color: #56ace6;
+}
+
+.main-content {
+    z-index: 999;
+}
+
+/* Navigation */
 nav ul {
     list-style-type: none;
     margin: 0;
     overflow: hidden;
     display: inline-block;
     padding: 5px 0 0 0;
-    margin-bottom: -25px;
+    margin-bottom: -1.47rem;
 }
   
 nav li {
@@ -35,6 +74,7 @@ nav li a {
     border-bottom-style: none !important;
 }
 
+/* Images in lists */
 li img {
     display: block;
     padding-top: 5px;
@@ -42,38 +82,47 @@ li img {
     padding-left: 30px;
 }
 
-.page-header { padding-bottom: 0rem !important; }
-.toc {margin-left: 5px; border: 0.2px dashed #606c71; padding-left: 5px; }
-.toc h1 {
-    border-bottom: 0.2px dashed #606c71;
-}
-
-.centered {
-    display: block;
-    text-align: center;
-    margin-left: auto;
-    margin-right: auto;
+/* Install stuff */
+.install-steps li:not(:first-child), li ul {
+    margin-top: 0.4rem !important;
 }
 
 .install-note {
 	line-height: 2 !important;
 	padding: 15px !important;
 	display: inline-block;
-	border: dotted;
+	border: double;
 	background-color: rgba(245,222,179,0.75);
+    color: black;
 }
 
+/* For like FAQ */
+.toc {margin-left: 5px; border: 0.2px double #606c71; padding-left: 5px; }
+.toc h1 {
+    border-bottom: 0.2px dashed #606c71;
+}
+
+/* Footer links */
 .site-footer-docs {
   margin-top: 5px;
   display: inline-block;
   margin-left: 3px;
 }
 
+@media screen and (min-width: 64em) {
+    .site-footer {
+      font-size: 0.8rem !important;
+    }
+}
+
+
+/* Handles Reporting */
 textarea + small {
     padding-top: 15px;
 }
 
-@media screen and (max-width: 42em) {
+/* Fixes nav on mobile */
+@media screen and (max-width: 44rem) {
     nav li {
         padding: 0 1px;
     }
@@ -83,8 +132,3 @@ textarea + small {
     }
 }
 
-@media screen and (min-width: 64em) {
-    .site-footer {
-      font-size: 0.8rem !important;
-    }
-}
