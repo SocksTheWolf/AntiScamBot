@@ -357,7 +357,8 @@ class DiscordBot(discord.Client):
             ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
             
         ReportUserId = ReportData['ReportedUserId']
-        ReportUserName = ReportData['ReportedUserName']
+        ReportUserHandle = ReportData['ReportedUserName']
+        ReportUserName = ReportData['ReportedUserGlobalName']
         
         # Format the message that is going to be posted!
         ReportContent:str = f"""
@@ -405,13 +406,12 @@ Failed Copied Evidence Links:
                                          embeds=PostEmbeds, files=PostFiles)
             
             # Update the user with the ScamGuard thread that was created
-            ThreadEmbed:discord.Embed = self.CreateBaseEmbed(f"Report for user {ReportUserId}")
+            ThreadEmbed:discord.Embed = self.CreateBaseEmbed(f"Report created for {ReportUserName}")
             ThreadEmbed.add_field(name="User Name", value=f"{ReportUserName}")
-            ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}", inline=True)
-            ThreadEmbed.add_field(name="Thread Link", value=f"{NewThread.thread.mention}")
+            ThreadEmbed.add_field(name="User Handle", value=f"{ReportUserHandle}", inline=True)
+            ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}")
+            ThreadEmbed.add_field(name="Thread Link (for updates)", value=f"{NewThread.thread.mention}")
             ThreadEmbed.add_field(name="Can't see the thread?", value="Join the [TAG Server](https://scamguard.app/discord)")
-            # might want to consider edit_original_message instead of the webhook post.
-            # this would require us to update discordpy to latest for something like that tho
             await ReportData["Webhook"].send(embed=ThreadEmbed, ephemeral=False)
             
         except discord.NotFound:

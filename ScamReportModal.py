@@ -47,7 +47,6 @@ class SubmitScamReport(ui.Modal):
         
         await interaction.response.defer(thinking=True)
         interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload))
-        await interaction.followup.send(f"Enqueued report about user {self.ReportedUser.id} successfully!")
         
     async def on_error(self, interaction: Interaction, exceptionError: Exception):
         Logger.Log(LogLevel.Error, f"Encountered Exception with the scam report modal: {str(exceptionError)}")
