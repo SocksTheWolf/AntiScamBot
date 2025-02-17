@@ -5,7 +5,7 @@ redirect_from: /privacy-policy
 previous: /
 ---
 
-> Last Updated: 08/31/2024
+> Last Updated: 02/16/2025
 
 The usage of this service/application ("bot") in your server requires the collection of some specific user data. Usage and interaction of {{ site.bot_name }} ("the bot") is considered an agreement to this policy.
 
@@ -54,7 +54,7 @@ Data will be fully removed from the active working database and all backups with
 
 ## What about reporting scams from the website?
 
-Data submitted via the [report page](/report) is handled in transit by Zapier and is [subject to their data policy](https://zapier.com/legal/data-privacy). Form data is eventually stored at rest on the TAG support server, and is under the terms set forth by Discord's Privacy Policy itself.
+Data submitted via the [report page](/report) is handled in transit by Cloudflare before stored at rest on the TAG support server, and such data is under the terms set forth by Discord's Privacy Policy itself. Any uploaded image evidence lasts for about six months in a secure bucket.
 
 ## What about...?
 
