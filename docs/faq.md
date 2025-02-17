@@ -8,11 +8,7 @@ previous: /
 
 ---
 
-### What is this project in a nutshell?
-
-Think of this as a glorified shared ban list with auditing and public logging. Socks currently hosts an instance for free that you can use, by joining [the project Discord](/discord).
-
-### How do I enable it in my server?
+### How do I enable {{ site.bot_name}} in my server?
 
 {% include install_info.html %}
 
@@ -63,45 +59,73 @@ You can [view our privacy policy right here](/privacy)!
 
 Yes, you can [view that page here](/terms)!
 
-## Commission Scammers
-
----
-
-### What is a commission scammer?
-
-Commission scammers are users/bots on Discord who send unsolicited direct messages demanding that you commission the scammer that you do not know to buy their traced/AI/stolen artwork. In some instances, they charge your payment account (Paypal, Boosty, etc) and never deliver anything.
-
-They will always solicit you first. Do not give these scammers your money.
-
 ### Why is the icon of the bot "hey^^"?
 
 When these scammers first ran rampant, they would always open their dms with the message "hey^^". It was really easy to tell if someone was fake because of it.
 
-## The Process
+## How to use
 
 ---
 
-### How does {{ site.bot_name }} know who is a commission scammer?
+This section assumes that you are either in a server that has or you have installed the bot and went through the setup steps.
 
-User reports. Vetters go through the user report and then trigger a ban on the user in question if they are a scammer.
+### How do I report a scam?
 
-### What about abuse?
+Currently we support three different ways of reporting a scam!
 
-So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to {{ site.bot_name }}.
+* Via the `/scamguard report` command the bot has
+* Via the [Discord Server](/discord)
+* Via the [web report system](/report)
 
-### How do I know if someone was banned by {{ site.bot_name }}?
+Reports are not immediately visible to newly joined servers of the server to combat potential abuse.
 
-The name of the person that initiated this action as well as the user that it happened to will be blasted to a subscribable Discord feed via the announcement channel, of which you can get updates as to the going ons. It is recommended you add the feed as a webhook to your server.
+When you report an user, you'll be asked to provide some image evidence, this is important when determining appropriate action.
+
+<span class="install-note">**SUGGESTION**: When you go to ban an user from Discord from your server, use the bot's report function beforehand, that way you can make the ban more impactful, and help protect others too!</span>
+
+### How do I know if someone is already banned?
+
+A couple of different ways!
+
+* Via the server feed (see below) that you can install when setting up the bot
+* Via [the API](/api)
+* Running the command `/scamguard check` with an user id or a discord handle
 
 ![{{ site.bot_name }} Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
 
 All bans will be logged into your server's audit log. You can revert any ban if you wish and {{ site.bot_name }} will not attempt to re-add it unless you explicitly ask it to reimport bans for your server.
 
-### How do I report a scam?
+## Scammers
 
-Join the TAG server! The combat potential abuse, the ability to report is granted on a timer based on how long you are in the server. Users of the bot will be granted access upon successful activation.
+---
 
-Reports are not visible until then.
+### What is a scammer?
+
+Scammers are users/bots on Discord who send unsolicited direct messages demanding that you commission the scammer that you do not know to buy their traced/AI/stolen artwork. In some instances, they charge your payment account (Paypal, Boosty, etc) and never deliver anything.
+
+This is not a complete list, but these are also scams as well:
+
+* Ask you to playtest their game out of the blue (this is usally from someone getting their account compromised)
+* Ask you what you'd do with sudden influxes of cash (the "sugar momma" scam)
+* Direct solicitation of commissions
+* Stolen/traced/obvious AI artwork
+* Fake steam game offers, phishing links
+* Impersonating other users
+* Management/Methods to boost your channel
+
+They will always solicit you first. Do not give these scammers your money.
+
+## The Process
+
+---
+
+### How does {{ site.bot_name }} know who is a scammer?
+
+User reports via the bot or the website! {{ site.bot_name }} has a Trust and Safety team that reviews each user report and takes appropriate action.
+
+### What about abuse?
+
+So currently, this bot requires that someone with a "Trusted" role approves the scammers proposed. If they are approved, the ban will be blasted to all servers that subscribe to {{ site.bot_name }}.
 
 ### Can {{ site.bot_name }} ever ban the server owner or mods?
 
