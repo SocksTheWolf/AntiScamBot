@@ -41,11 +41,12 @@ class SubmitScamReport(ui.Modal):
             "ReportedUserId": self.ReportedUser.id,
             "TypeOfScam": self.TypeOfScam.value,
             "Reasoning": self.Reasoning.value,
-            "Evidence": EvidenceList
+            "Evidence": EvidenceList,
+            "Interaction": interaction
         }
         
         interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload))
-        await interaction.response.send_message(f"Sent report about user {self.ReportedUser.id} successfully!")
+        await interaction.send(f"Enqueued report about user {self.ReportedUser.id} successfully!")
         
     async def on_error(self, interaction: Interaction, exceptionError: Exception):
         Logger.Log(LogLevel.Error, f"Encountered Exception with the scam report modal: {str(exceptionError)}")

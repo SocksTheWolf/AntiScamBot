@@ -357,11 +357,12 @@ class DiscordBot(discord.Client):
             ReasoningString = f"Reasoning: {ReportData['Reasoning']}"
             
         ReportUserId = ReportData['ReportedUserId']
+        ReportUserName = ReportData['ReportedUserName']
         
         # Format the message that is going to be posted!
         ReportContent:str = f"""
         User ID: `{ReportUserId}`
-Username: {ReportData['ReportedUserName']}
+Username: {ReportUserName}
 Type Of Scam: {ReportData['TypeOfScam']}
 {ReasoningString}
         
@@ -397,11 +398,23 @@ Failed Copied Evidence Links:
             if (not HadCopyFailure):
                 ReportContent += "None"
         try:
-            await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
+            NewThread:discord.Thread = await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
                                          reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
                                          embeds=PostEmbeds, files=PostFiles)
+            
+            # Update the user with the ScamGuard thread that was created
+            ThreadEmbed:discord.Embed = self.CreateBaseEmbed(f"Report for user {ReportUserId}")
+            ThreadEmbed.add_field(name="User Name", value=f"{ReportUserName}")
+            ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}", inline=True)
+            ThreadEmbed.add_field(name="Thread Link", value=f"{NewThread.jump_url}")
+            ThreadEmbed.add_field(name="Can't see the thread?", value="Join the [TAG Server](https://scamguard.app/discord)")
+            # might want to consider edit_original_message instead of the webhook post.
+            await ReportData["Interaction"].send(embed=ThreadEmbed, ephemeral=False)
+            
+        except discord.NotFound:
+            Logger.Log(LogLevel.Warn, "Unable to update the original command that sent a report with a new embed, the followup has expired.")
         except discord.Forbidden:
             Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
         except discord.HTTPException as ex:
