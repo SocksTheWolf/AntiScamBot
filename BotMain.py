@@ -398,7 +398,7 @@ Failed Copied Evidence Links:
             if (not HadCopyFailure):
                 ReportContent += "None"
         try:
-            NewThread:discord.Thread = await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
+            NewThread:discord.channel.ThreadWithMessage = await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
                                          reason=f"ScamReportfrom {ReportData['ReportingUserName']}[{ReportData['ReportingUserId']}]",
@@ -408,7 +408,7 @@ Failed Copied Evidence Links:
             ThreadEmbed:discord.Embed = self.CreateBaseEmbed(f"Report for user {ReportUserId}")
             ThreadEmbed.add_field(name="User Name", value=f"{ReportUserName}")
             ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}", inline=True)
-            ThreadEmbed.add_field(name="Thread Link", value=f"{NewThread.jump_url}")
+            ThreadEmbed.add_field(name="Thread Link", value=f"{NewThread.thread.mention}")
             ThreadEmbed.add_field(name="Can't see the thread?", value="Join the [TAG Server](https://scamguard.app/discord)")
             # might want to consider edit_original_message instead of the webhook post.
             # this would require us to update discordpy to latest for something like that tho

@@ -45,7 +45,7 @@ class SubmitScamReport(ui.Modal):
             "Webhook": interaction.followup
         }
         
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(thinking=True)
         interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload))
         await interaction.followup.send(f"Enqueued report about user {self.ReportedUser.id} successfully!")
         
