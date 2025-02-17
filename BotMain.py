@@ -411,7 +411,7 @@ Failed Copied Evidence Links:
             ThreadEmbed.add_field(name="User Handle", value=f"{ReportUserHandle}")
             ThreadEmbed.add_field(name="User ID", value=f"{ReportUserId}", inline=False)
             ThreadEmbed.add_field(name="Thread Link (for updates)", value=f"{NewThread.thread.mention}", inline=False)
-            ThreadEmbed.set_footer(text="Can't see the thread? Join the [TAG Server](https://scamguard.app/discord)")
+            ThreadEmbed.set_footer(text="Can't see the thread? Join the server: https://scamguard.app/discord")
             await ReportData["Webhook"].send(embed=ThreadEmbed, ephemeral=False)
             
         except discord.NotFound:
