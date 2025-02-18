@@ -1,5 +1,5 @@
 from Logger import Logger, LogLevel
-from BotMain import DiscordBot
+from BotBase import DiscordBot
 from Config import Config
 
 def CreateBotProcess(ConnectionLocation, BotID):

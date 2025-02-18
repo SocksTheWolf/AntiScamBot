@@ -1,3 +1,9 @@
+# This is the base class for all of our Discord bots
+# Any code that needs to be referenced by sub-instances and the main instance of ScamGuard should go here
+# Usually for any core shared features. 
+# 
+# This separation was originally due to Discord politics when ScamGuard was first developed.
+# Since then, everything can potentially envelop back into the main instance instead.
 from Logger import Logger, LogLevel
 from BotEnums import BanResult, RelayMessageType
 from Config import Config

@@ -1,7 +1,10 @@
+# The core main instance of ScamGuard, used as the primary instance. This should have code that only needs to be ran by a single instance
+# Such as the host system that shares commands/messages to sub-instances and things like backup.
+# It should not handle any recv instructions from ServerHandler except for requests by sub-instances.
 from Logger import Logger, LogLevel
 from BotEnums import BanResult, BanLookup
 from Config import Config
-from BotMain import DiscordBot
+from BotBase import DiscordBot
 from BotConnections import RelayServer
 import discord
 from discord.ext import tasks
@@ -46,7 +49,9 @@ class ScamGuard(DiscordBot):
             self.PeriodicBackup.change_interval(minutes=0, hours=ConfigData["RunBackupEveryXHours"])
         else:
             self.PeriodicBackup.change_interval(minutes=5, hours=0)
-        
+    
+    # By default, this runs every 5 minutes, however upon loading configurations, this will update the
+    # backup interval to the proper settings
     @tasks.loop(minutes=5)
     async def PeriodicBackup(self):
         # Prevent us from running the backup immediately
