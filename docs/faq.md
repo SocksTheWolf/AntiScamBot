@@ -18,9 +18,13 @@ Because of how Discord handles permissions it needs the following permissions:
 
 * `Create Commands`: For implementing the various application slash commands.
 
-* `Send Messages`: To send responses to commands that are executed.
+* `Send Messages`: To send responses to user commands.
+
+* `Send Messages in Threads`: Same as above.
 
 * `Ban Members`: To execute the bans on scammers.
+
+* `Kick Members`: This is currently unused, but may be used in the future with more features.
 
 * `Embed Links`: To give you information when you run `/scamguard check` and other commands.
 
