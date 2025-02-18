@@ -23,21 +23,21 @@ class ScamGuardServerSetup():
         NumBans:int = self.BotInstance.Database.GetNumBans()
         
         InformationEmbed:Embed = self.BotInstance.CreateBaseEmbed("ScamGuard Setup Welcome")
-        InformationEmbed.add_field(name="Setup Info", inline=False, value="When you click on the 'Confirm Settings' button, ScamGuard will send an activation request to handle your server setup.\nWhen complete, ScamGuard will start importing bans")
-        InformationEmbed.add_field(name="Number of Bans", inline=False, value=f"ScamGuard will import ~{NumBans} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't the number of people in your server, it is establishing a firewall to prevent scammers from entering.")
-        InformationEmbed.add_field(name="Commands", inline=False, value="Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report scammers that ScamGuard hasn't seen yet.")
+        InformationEmbed.add_field(name="Setup Info", inline=False, value="When you click on the 'Confirm Settings' button, ScamGuard will enqueue an activation request to handle your server setup (This may take awhile).\nWhen complete, ScamGuard will start importing bans")
+        InformationEmbed.add_field(name="Number of Bans", inline=False, value=f"ScamGuard will import ~{NumBans} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't always the people already in your server, but instead scammers that could enter, establishing a firewall.")
+        InformationEmbed.add_field(name="Commands", inline=False, value="Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report any scammers that you ban that ScamGuard hasn't taken care of for you.")
         InformationEmbed.add_field(name="", value="", inline=False)
         self.BotInstance.AddSettingsEmbedInfo(InformationEmbed)
         InformationEmbed.add_field(name="", value="", inline=False)
         InformationEmbed.add_field(name="IMPORTANT:", value="", inline=False)
-        InformationEmbed.add_field(name="Roles", inline=False, value="Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, you can watch this video for how to position the roles properly to avoid any problems: https://youtu.be/XYaQi3hM9ug")
+        InformationEmbed.add_field(name="Roles", inline=False, value="Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, please see [this advanced setup guide](https://scamguard.app/install#advanced).")
         
         # Check to see if WizeBot/Carlbot is in the server, and warn about it.
         if (await self.CheckForBotConflicts(interaction.guild)):
-            InformationEmbed.add_field(name="WizeBot & Carlbot", inline=False, value="It is detected that you have Wizebot/Carlbot in your server, you will need to whitelist ScamGuard in the WizeBot dashboard! Conflicts can arise between the two bots otherwise!!!")
+            InformationEmbed.add_field(name="WizeBot & Carlbot", inline=False, value="**WARNING**: Wizebot/Carlbot has been detected in your server, you will need to whitelist ScamGuard in their dashboard, otherwise ScamGuard won't be able to work properly!")
         
         InformationEmbed.add_field(name="", value="", inline=False)
-        InformationEmbed.add_field(name="Important Links", inline=False, value="[Support](https://scamguard.app/discord) | [Terms Of Service](https://scamguard.app/terms) | [Privacy Policy](https://scamguard.app/privacy)")
+        InformationEmbed.add_field(name="Important Links", inline=False, value="[Support](https://scamguard.app/discord) | [How To Use](https://scamguard.app/usage) | [Terms Of Service](https://scamguard.app/terms) | [Privacy Policy](https://scamguard.app/privacy)")
         InformationEmbed.set_footer(text="ScamGuard")
         
         NewSetupView:ServerSettingsView = ServerSettingsView(self.SendActivationRequest, interaction)

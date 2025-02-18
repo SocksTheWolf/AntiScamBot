@@ -509,8 +509,8 @@ Failed Copied Evidence Links:
     
     def AddSettingsEmbedInfo(self, AddToEmbed:discord.Embed):
         AddToEmbed.add_field(name="Settings", value="", inline=False)
-        AddToEmbed.add_field(name="Mod Message Channel", inline=False, value="Granting ScamGuard access to a channel that only moderators can see is highly recommended as the information passed there is usually important to mods. Messages are not sent very frequently.")
-        AddToEmbed.add_field(name="Ban Notifications", inline=False, value="If you would like to subscribe to notifications when ScamGuard bans, select Yes when prompted about installing a webhook. It is highly recommended, but not necessary.")
+        AddToEmbed.add_field(name="Mod Message Channel", inline=False, value="Granting ScamGuard access to a channel for moderators only is highly suggested. Warnings about bot operation conflicts will be posted there. Messages are sent very infrequently.")
+        AddToEmbed.add_field(name="Ban Notifications", inline=False, value="ScamGuard can also post a notification whenever it bans someone from your server, it is highly encouraged to subscribe to this notification, select Yes when prompted about installing a webhook. It is highly recommended, but not necessary.")
     
     def CreateInfoEmbed(self) -> discord.Embed:
         NumServers:int = self.Database.GetNumServers()
@@ -518,7 +518,7 @@ Failed Copied Evidence Links:
         ResponseEmbed:discord.Embed = self.CreateBaseEmbed("ScamGuard Info")
         ResponseEmbed.add_field(name="About", inline=False, value="ScamGuard is a free bot application that helps prevent scammers from entering your servers. It is managed by [SocksTheWolf](https://socksthewolf.com)")
         ResponseEmbed.add_field(name="Links", value="[Website](https://scamguard.app)\n[GitHub](https://github.com/SocksTheWolf/AntiScamBot)")
-        ResponseEmbed.add_field(name="Help", value="[FAQ](https://scamguard.app/faq)\n[Support Server](https://scamguard.app/discord)")
+        ResponseEmbed.add_field(name="Help", value="[FAQ](https://scamguard.app/faq)\n[Usage](https://scamguard.app/usage)\n[Support Server](https://scamguard.app/discord)")
         ResponseEmbed.add_field(name="Terms", value="[TOS](https://scamguard.app/terms)\n[Privacy Policy](https://scamguard.app/privacy)")
         ResponseEmbed.set_footer(text=f"Scammers Defeated: {self.Database.GetNumBans()} | Servers: {NumActivated}/{NumServers}")
         return ResponseEmbed
