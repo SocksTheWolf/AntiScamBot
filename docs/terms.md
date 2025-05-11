@@ -10,7 +10,7 @@ redirect_from: /terms-of-service
 
 This terms of service document applies to each of the following:
 
-* Each and every user of The Antiscam Bot
+* Each and every user of {{ site.bot_name }}
 * All users that maintain a presence in our [support server](/discord)
 * Any users of our [API]({{ site.api_docs }})
 
