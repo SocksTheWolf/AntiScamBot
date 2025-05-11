@@ -92,7 +92,7 @@ When you report an user, you'll be asked to provide some image evidence, this is
 A couple of different ways!
 
 * Via the server feed (see below) that you can install when setting up the bot
-* Via [the API](/api)
+* Via the [API]({{ site.api_docs }})
 * Running the command `/scamguard check` with an user id or a discord handle
 
 ![{{ site.bot_name }} Action Feed Screenshot](/assets/botbanchannel.png){:.centered}
