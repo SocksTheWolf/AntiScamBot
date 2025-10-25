@@ -505,9 +505,9 @@ Failed Copied Evidence Links:
             await self.DeleteWebhook(ServerID)
     
     ### Embeds ###
-    def CreateBaseEmbed(self, Title:str) -> discord.Embed:
+    def CreateBaseEmbed(self, Title:str, ApplyThumbnail:bool=True) -> discord.Embed:
         ReturnEmbed:discord.Embed = discord.Embed(title=Title, colour=discord.Colour.from_rgb(0, 0, 0))
-        if (ConfigData.IsValid("AppEmbedThumbnail", str)):
+        if (ConfigData.IsValid("AppEmbedThumbnail", str) and ApplyThumbnail):
             ReturnEmbed.set_thumbnail(url=ConfigData["AppEmbedThumbnail"])
         
         ReturnEmbed.set_author(name="ScamGuard", url="https://scamguard.app")
@@ -534,8 +534,7 @@ Failed Copied Evidence Links:
         UserBanned:bool = (BanData is not None)
         User:discord.User = await self.LookupUser(TargetId)
         HasUserData:bool = (User is not None)
-        UserData = discord.Embed(title="User Data")
-        UserData.set_author(name="ScamGuard", url="https://scamguard.app")
+        UserData = self.CreateBaseEmbed("User Data", False)
         if (HasUserData):
             UserData.add_field(name="Name", value=User.display_name)
             UserData.add_field(name="Handle", value=User.name, inline=True)
