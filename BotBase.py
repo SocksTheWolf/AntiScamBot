@@ -535,6 +535,7 @@ Failed Copied Evidence Links:
         User:discord.User = await self.LookupUser(TargetId)
         HasUserData:bool = (User is not None)
         UserData = discord.Embed(title="User Data")
+        UserData.set_author(name="ScamGuard", url="https://scamguard.app")
         if (HasUserData):
             UserData.add_field(name="Name", value=User.display_name)
             UserData.add_field(name="Handle", value=User.name, inline=True)
