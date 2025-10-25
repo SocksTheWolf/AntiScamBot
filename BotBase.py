@@ -576,10 +576,12 @@ Failed Copied Evidence Links:
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
         NumBans:int = 0
+        NumFailures:int = 0
         BanQueryResult = self.Database.GetAllBans(LastActions)
         TotalBans:int = len(BanQueryResult)
         ActionsAppliedThisLoop:int = 0
         DoesSleep:bool = ConfigData["UseSleep"]
+        DoesHaltOnFailures:bool = ConfigData["MaxBanFailures"] > 0
         for Ban in BanQueryResult:
             if (DoesSleep):
                 # Put in sleep functionality on this loop, as it could be heavy
@@ -588,12 +590,17 @@ Failed Copied Evidence Links:
                     ActionsAppliedThisLoop = 0
                 else:
                     ActionsAppliedThisLoop += 1
+                    
+            if (DoesHaltOnFailures and NumFailures > ConfigData["MaxBanFailures"]):
+                Logger.Log(LogLevel.Warn, f"Number of ban failures reached {NumFailures} for server {ServerInfoStr}, exiting subprocess.")
+                break
 
             UserId:int = int(Ban.discord_user_id)
             UserToBan = discord.Object(UserId)
             BanResponse = await self.PerformActionOnServer(Server, UserToBan, f"User banned by {Ban.assigner_discord_user_name}", True)
             # See if the ban did go through.
             if (BanResponse[0] == False):
+                NumFailures += 1
                 BanResponseFlag:BanResult = BanResponse[1]
                 self.AddAsyncTask(self.PostBanFailureInformation(Server, UserId, BanResponseFlag, True))
                 if (BanResponseFlag == BanResult.LostPermissions):
