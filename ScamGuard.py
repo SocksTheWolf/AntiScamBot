@@ -149,7 +149,7 @@ class ScamGuard(DiscordBot):
     ### Ban Handling ###
     async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool, ThreadId:int|None=None) -> BanLookup:
         DatabaseAction:BanLookup = None
-        ActionTaken:str = "Ban" if PerformBan else "Unban"
+        
         if (PerformBan):
             DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id, ThreadId)
         else:
@@ -158,14 +158,20 @@ class ScamGuard(DiscordBot):
         if (DatabaseAction != BanLookup.Good):
             return DatabaseAction
         
+        DatabaseAction = BanLookup.Banned if PerformBan else BanLookup.Unbanned
+        self.AddAsyncTask(self.CreateBanAnnouncement(TargetId, DatabaseAction))
         self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, PerformBan))
         
-        # Send a message to the announcement channel
-        NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
-        NewAnnouncement.title = f"{ActionTaken} in Progress"
-        await self.PublishAnnouncement(NewAnnouncement)
-        
-        return BanLookup.Banned if PerformBan else BanLookup.Unbanned
+        return DatabaseAction
+    
+    async def CreateBanAnnouncement(self, TargetId:int, ActionTaken:BanLookup):
+        if ActionTaken is BanLookup.Banned or ActionTaken is BanLookup.Unbanned:       
+            ActionTakenStr:str = "Ban" if ActionTaken is BanLookup.Banned else "Unban"
+            
+            # Send a message to the announcement channel
+            NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
+            NewAnnouncement.title = f"{ActionTakenStr} in Progress"
+            await self.PublishAnnouncement(NewAnnouncement)
     
     async def ReprocessBansForInstance(self, InstanceID:int, LastActions:int):
         if (InstanceID == self.BotID):
