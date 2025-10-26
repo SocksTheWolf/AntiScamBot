@@ -21,7 +21,7 @@
     "RunIdleCleanupEveryXHours": 23,
     "RunBackupEveryXHours": 8,
     "RemoveDaysOldBackups": 5.0,
-    "ScamCheckShowsSharedServers": true,
+    "ScamCheckShowsSharedServers": false,
     "AutoEmbedScamCheckOnReport": true,
     "UsingPosixSockets": false,
     "RequireActivationApproval": true,
