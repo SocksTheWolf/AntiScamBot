@@ -18,7 +18,6 @@ ConfigData:Config=Config()
 
 class ScamGuard(DiscordBot):
     ServerHandler:RelayServer = None
-    ReadyForBackup:bool = False
     HasStartedInstances:bool = False
     SubProcess={}
 
@@ -64,11 +63,6 @@ class ScamGuard(DiscordBot):
     # backup interval to the proper settings
     @tasks.loop(minutes=5)
     async def PeriodicBackup(self):
-        # Prevent us from running the backup immediately on start
-        if (not self.ReadyForBackup):
-            self.ReadyForBackup = True
-            return
-        
         # If we have active async tasks in progress, then delay this task until we are free.
         if (len(self.AsyncTasks) > 0):
             Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try backup again in 5 minutes...")
