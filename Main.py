@@ -261,9 +261,9 @@ if __name__ == '__main__':
         
     @ScamGuardBot.Commands.command(name="inactivecleanup", description="In the control server, cleans up any servers where we don't have correct permissions", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
-    async def CleanupInactiveServers_Control(interaction:Interaction, DryRun:bool):
-        await interaction.response.send_message(f"Attempting to clean up inactive servers now. Dry Run? {DryRun}")
-        await ScamGuardBot.RunPeriodicLeave(DryRun) 
+    async def CleanupInactiveServers_Control(interaction:Interaction, dryrun:bool):
+        await interaction.response.send_message(f"Attempting to clean up inactive servers now. Dry Run? {dryrun}")
+        await ScamGuardBot.RunPeriodicLeave(dryrun) 
     
     SetupDatabases()
     ScamGuardBot.run(ConfigData.GetToken())
