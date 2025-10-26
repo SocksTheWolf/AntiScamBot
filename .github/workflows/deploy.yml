@@ -102,7 +102,7 @@ jobs:
             echo "Stashing changes!"
             git stash
             echo "Resyncing..."
-            gitpull()
+            gitpull
             echo "Remember to handle the unstashing later"
           fi
 
