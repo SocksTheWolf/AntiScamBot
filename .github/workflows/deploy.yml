@@ -115,8 +115,8 @@ jobs:
         host: ${{secrets.SSH_HOST}}
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
-        script_stop: true
         script: |
+          set -e
           cd ~/project/AntiScamBot
           .runtime/update.sh
           echo "Finished updating python dependencies"
@@ -129,8 +129,8 @@ jobs:
         key: ${{secrets.SSH_KEY}}
         username: ${{secrets.SSH_USERNAME}}
         command_timeout: 5s
-        script_stop: false
         script: |
+          set -e
           echo "Restarting instances"
           cd ~/project/AntiScamBot
           nohup .runtime/run.sh &>/dev/null &
