@@ -95,13 +95,16 @@ class ScamGuard(DiscordBot):
             self.RetryTaskInterval(self.PeriodicLeave)
             return
         
-        # If this config is less than or equal to 0, then we don't do this task
+        if (self.PeriodicLeave.minutes != 0.0):
+            self.ConfigIdleInterval()
+        
+        await self.RunPeriodicLeave(False)
+        
+    async def RunPeriodicLeave(self, DryRun:bool):
+        # If this config is less than or equal to 0, then we don't execute the task
         InactiveInstanceWindow:int = ConfigData["InactiveServerDayWindow"]
         if (InactiveInstanceWindow <= 0):
             return
-        
-        if (self.PeriodicLeave.minutes != 0.0):
-            self.ConfigIdleInterval() 
         
         Logger.Log(LogLevel.Notice, "Attempting to clean up old non-activated servers...")
         CurrentTime:datetime = datetime.now() - timedelta(days=float(InactiveInstanceWindow))
@@ -110,7 +113,7 @@ class ScamGuard(DiscordBot):
         for ServerData in AllDisabledServers:
             if (CurrentTime > ServerData.created_at): # type: ignore
                 ServerID:int = int(ServerData.discord_server_id)
-                if self.LeaveServer(ServerID):
+                if DryRun or self.LeaveServer(ServerID):
                     ServersLeft += 1
                     Logger.Log(LogLevel.Log, f"Attempting to leave server {ServerID}")
                 else:

@@ -22,7 +22,7 @@ class BaseIdTransformer(app_commands.Transformer):
         
         ConvertedValue:int = int(value)
         # Prevent any targets on the bot
-        if (ConvertedValue == interaction.client.user.id):
+        if (ConvertedValue == interaction.client.user.id): # type: ignore
             return -1
         return await self.OnTransform(interaction, ConvertedValue)
 
@@ -43,6 +43,10 @@ class ServerIdTransformer(BaseIdTransformer):
 async def CommandErrorHandler(interaction: Interaction, error: app_commands.AppCommandError):
     ErrorType = type(error)
     ErrorMsg:str = ""
+    if (interaction.command is None):
+        Logger.Log(LogLevel.Error, f"Failed to process command error {error}, interaction.command is none")
+        return
+    
     InteractionName:str = interaction.command.name
     if (ErrorType == app_commands.CommandOnCooldown):
         ErrorMsg = f"This command {InteractionName} is currently on cooldown"

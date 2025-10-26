@@ -258,7 +258,12 @@ if __name__ == '__main__':
         ScamGuardBot.Database.ToggleServerReport(server, state)
         await interaction.response.send_message(f"Server {server} report ability set to {state}", ephemeral=True, delete_after=10.0)
         Logger.Log(LogLevel.Log, f"Report ability set for {server} to {state}")
-    
+        
+    @ScamGuardBot.Commands.command(name="inactivecleanup", description="In the control server, cleans up any servers where we don't have correct permissions", guild=CommandControlServer)
+    @app_commands.checks.has_role(ConfigData["MaintainerRole"])
+    async def CleanupInactiveServers_Control(interaction:Interaction, DryRun:bool):
+        await interaction.response.send_message(f"Attempting to clean up inactive servers now. Dry Run? {DryRun}")
+        await ScamGuardBot.RunPeriodicLeave(DryRun) 
     
     SetupDatabases()
     ScamGuardBot.run(ConfigData.GetToken())

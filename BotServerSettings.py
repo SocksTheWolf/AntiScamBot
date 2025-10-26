@@ -42,8 +42,8 @@ class BotSettingsPayload:
         if (ServerInfo.activation_state == 0):
             self.KickSusRequired = self.WebHookRequired = True
         else:
-            self.WantsWebhooks = ServerInfo.has_webhooks
-            self.KickSusUsers = ServerInfo.kick_sus_users
+            self.WantsWebhooks = bool(ServerInfo.has_webhooks)
+            self.KickSusUsers = bool(ServerInfo.kick_sus_users)
         
         # Check to see what the setting is for messaging channel, if it's 0, leave MessageChannel as None
         # else load up the text channel value
