@@ -116,12 +116,13 @@ class ScamGuard(DiscordBot):
                 if (DryRun or self.LeaveServer(ServerID)):
                     ServersLeft += 1
                     Logger.Log(LogLevel.Verbose, f"Attempting to leave server {ServerID}.")
+                    Logger.CLog(DryRun, LogLevel.Log, f"Attempting to leave server {ServerID}.")
                 else:
                     Logger.Log(LogLevel.Warn, f"Could not send leave request for server {ServerID}")
 
                 # Attempt to sleep the big scary rate limits away
                 if (not DryRun):
-                    await asyncio.sleep(ConfigData["SleepAmount"])
+                    await asyncio.sleep(1.0)
         
         Logger.Log(LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
         
