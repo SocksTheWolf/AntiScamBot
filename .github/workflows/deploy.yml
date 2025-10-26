@@ -81,6 +81,13 @@ jobs:
         username: ${{secrets.SSH_USERNAME}}
         envs: AUTHKEYNAME
         script: |
+          gitpull() {
+            if git pull; then
+              return 1
+            else
+              return 0
+            fi
+          }
           cd ~/project/AntiScamBot
           echo "Setting SSH Agent"
           eval "$(ssh-agent -s)"
@@ -89,8 +96,15 @@ jobs:
           echo "Checking Git Readability"
           ssh -T git@github.com
           echo "Updating directory"
-          git pull
-          echo "Deploy success"
+          if gitpull; then
+            echo "Deploy success"
+          else
+            echo "Stashing changes!"
+            git stash
+            echo "Resyncing..."
+            gitpull()
+            echo "Remember to handle the unstashing later"
+          fi
 
     - name: Update Python Dependencies
       id: deps_update
