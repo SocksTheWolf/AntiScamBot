@@ -51,7 +51,8 @@ class Logger():
         ShouldPrint = Conditional() # type: ignore
       else:
         ShouldPrint = bool(Conditional)
-    except:
+    except Exception as ex:
+      logger.debug(f"Encountered error on conditional check {ex}")
       return
     
     if (ShouldPrint):
@@ -74,7 +75,7 @@ class Logger():
     if Level == LogLevel.Error:
       LoggerFunc = logger.error
     elif Level == LogLevel.Warn:
-      LoggerFunc = logger.warn
+      LoggerFunc = logger.warning
     elif Level == LogLevel.Verbose:
       LoggerFunc = logger.info
     elif Level == LogLevel.Debug:
