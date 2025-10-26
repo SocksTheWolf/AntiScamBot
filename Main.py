@@ -117,7 +117,7 @@ if __name__ == '__main__':
         MessageChunkLen:int = 2000
         MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
         for MessageChunk in MessageChunks:
-            await interaction.channel.send(MessageChunk)
+            await interaction.channel.send(MessageChunk) # type: ignore
             
         await ResponseHook.send("Done printing", ephemeral=True)
 

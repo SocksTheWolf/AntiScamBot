@@ -344,7 +344,7 @@ class DiscordBot(discord.Client):
             await server.leave()
             return
 
-        self.Database.SetBotActivationForOwner([server.id], False, self.BotID, OwnerId=server.owner_id)
+        self.Database.SetBotActivationForOwner([server.id], False, self.BotID, OwnerId=server.owner_id or 0)
         Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has joined server {self.GetServerInfoStr(server)} of owner {OwnerName}[{server.owner_id}]")
         
     async def on_guild_remove(self, server:discord.Guild):

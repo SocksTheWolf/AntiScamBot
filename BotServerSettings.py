@@ -39,7 +39,7 @@ class BotSettingsPayload:
     def LoadFromDB(self, BotInstance):
         DB = BotInstance.Database
         ServerInfo:Server = DB.GetServerInfo(self.Server.id)
-        if (ServerInfo.activation_state == 0):
+        if (int(ServerInfo.activation_state) == 0):
             self.KickSusRequired = self.WebHookRequired = True
         else:
             self.WantsWebhooks = bool(ServerInfo.has_webhooks)
@@ -47,7 +47,7 @@ class BotSettingsPayload:
         
         # Check to see what the setting is for messaging channel, if it's 0, leave MessageChannel as None
         # else load up the text channel value
-        if (ServerInfo.message_channel != 0):
+        if (int(ServerInfo.message_channel) != 0):
             self.MessageChannel = BotInstance.get_channel(ServerInfo.message_channel)
 
 class InstallWebhookSelector(YesNoSelector):
