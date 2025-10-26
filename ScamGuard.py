@@ -106,9 +106,9 @@ class ScamGuard(DiscordBot):
         if (self.PeriodicLeave.minutes != 0.0):
             self.ConfigIdleInterval()
 
-        Logger.Log(LogLevel.Notice, f"Attempting to clean up old non-activated servers... Dry run? {DryRun}")
         CurrentTime:datetime = datetime.now() - timedelta(days=float(InactiveInstanceWindow))
         AllDisabledServers = self.Database.GetAllDeactivatedServers()
+        Logger.CLog(len(AllDisabledServers) > 0, LogLevel.Notice, f"Attempting to clean up old non-activated servers... Dry run? {DryRun}")
         ServersLeft:int = 0
         for ServerData in AllDisabledServers:
             if (CurrentTime > ServerData.created_at): # type: ignore
@@ -124,7 +124,7 @@ class ScamGuard(DiscordBot):
                 if (not DryRun):
                     await asyncio.sleep(1.0)
         
-        Logger.Log(LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
+        Logger.CLog(ServersLeft > 0, LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
         
     @PeriodicLeave.before_loop
     async def BeforeLeaveTask(self):
