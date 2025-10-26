@@ -183,8 +183,12 @@ class DiscordBot(discord.Client):
     async def ForceLeaveServer(self, ServerId:int):
         ServerToLeave:discord.Guild|None = self.get_guild(ServerId)
         if (ServerToLeave is not None):
-            Logger.Log(LogLevel.Notice, f"We have left the server {self.GetServerInfoStr(ServerToLeave)}")
-            await ServerToLeave.leave()
+            ServerInfoStr:str = self.GetServerInfoStr(ServerToLeave)
+            try:
+                await ServerToLeave.leave()
+                Logger.Log(LogLevel.Notice, f"We have left the server {ServerInfoStr}")
+            except discord.errors.HTTPException:
+                Logger.Log(LogLevel.Verbose, f"Could not leave server {ServerInfoStr}, we are getting rate limited")
         else:
             Logger.Log(LogLevel.Warn, f"Could not find server with id {ServerId}, id is invalid")        
      

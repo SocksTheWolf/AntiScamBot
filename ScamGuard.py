@@ -7,7 +7,7 @@ from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
 from datetime import datetime, timedelta
-import discord
+import discord, asyncio
 from discord.ext import tasks
 from multiprocessing import Process
 from BotSubprocess import CreateBotProcess
@@ -118,6 +118,9 @@ class ScamGuard(DiscordBot):
                     Logger.Log(LogLevel.Verbose, f"Attempting to leave server {ServerID}.")
                 else:
                     Logger.Log(LogLevel.Warn, f"Could not send leave request for server {ServerID}")
+
+                # Attempt to sleep the big scary rate limits away
+                await asyncio.sleep(ConfigData["SleepAmount"])
         
         Logger.Log(LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
         
