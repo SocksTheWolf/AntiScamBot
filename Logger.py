@@ -45,7 +45,16 @@ class Logger():
 
   @staticmethod
   def CLog(Conditional, Level:LogLevel, Input:str):
-    if (Conditional):
+    ShouldPrint:bool = False
+    try:
+      if (callable(Conditional)):
+        ShouldPrint = Conditional() # type: ignore
+      else:
+        ShouldPrint = bool(Conditional)
+    except:
+      return
+    
+    if (ShouldPrint):
       Logger.Log(Level, Input)
 
   @staticmethod
