@@ -284,7 +284,7 @@ class RelayClient:
                 break
                 
             if (not RelayMessage.IsValid(RawMessage)):
-                LogLevel.Log(LogLevel.Warn, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
+                Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
                 break
             
             RelayedMessage:RelayMessage = RawMessage            

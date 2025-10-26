@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
 
 class ScamBotDatabase():
-    Database = None
+    Database:Session = None # type: ignore
     
     ### Initialization/Teardown ###
     def __init__(self, *args, **kwargs):
@@ -31,7 +31,7 @@ class ScamBotDatabase():
 
     def Close(self):
         if (self.IsConnected()):
-            self.Database.get_bind().dispose()
+            self.Database.get_bind().dispose() # type: ignore
             self.Database = None
             
     def IsConnected(self) -> bool:
@@ -52,7 +52,7 @@ class ScamBotDatabase():
             return False
         
         if (self.IsConnected()):
-            self.Database.commit()
+            self.Database.commit() # type: ignore
             self.Close()
         
         # Copy the database file over here
@@ -113,7 +113,7 @@ class ScamBotDatabase():
             Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to set new owner on non-assigned server: {ServerId}")
             return
         
-        server.owner_discord_user_id = NewOwnerId
+        server.owner_discord_user_id = str(NewOwnerId)
 
         self.Database.add(server)
         self.Database.commit()
@@ -149,7 +149,7 @@ class ScamBotDatabase():
         if (server is None):
             return
         
-        server.should_ban_in = NewStatus
+        server.should_ban_in = int(NewStatus)
         self.Database.add(server)
         self.Database.commit()
         
@@ -159,7 +159,7 @@ class ScamBotDatabase():
         if (server is None):
             return
         
-        server.can_report = NewStatus
+        server.can_report = int(NewStatus)
         self.Database.add(server)
         self.Database.commit()
 
@@ -190,9 +190,12 @@ class ScamBotDatabase():
 
                 stmt = select(Server).where(Server.discord_server_id==ServerId)
                 serverToChange = self.Database.scalars(stmt).first()
+                if (serverToChange is None):
+                    Logger.Log(LogLevel.Warn, f"Attempted to change server info for {ServerId} but DB entry was missing!")
+                    return
                 
                 serverToChange.activation_state = ActiveVal
-                serverToChange.activator_discord_user_id = ActivatorId
+                serverToChange.activator_discord_user_id = str(ActivatorId)
 
                 self.Database.add(serverToChange)
 
@@ -233,7 +236,7 @@ class ScamBotDatabase():
         Logger.Log(LogLevel.Debug, f"Bot #{BotId} server count: {len(AllServersWithThisBot)} with discord in {len(ServersIn)}")
         # Go through all the servers in the database for this bot
         for InServerId in AllServersWithThisBot:
-            ServerId = int(InServerId.discord_server_id)
+            ServerId = int(InServerId.discord_server_id) # type: ignore
             try:
                 # If we are in the server, then we remove the entry from the list of servers
                 # we are in. This is because this list will be used later to remove entries that
@@ -269,8 +272,10 @@ class ScamBotDatabase():
 
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         server = self.Database.scalars(stmt).first()
+        if (server is None):
+            return False
 
-        if (server.activation_state):
+        if (server.activation_state > 0): # type: ignore
             return True
 
         return False
@@ -281,8 +286,10 @@ class ScamBotDatabase():
 
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         server = self.Database.scalars(stmt).first()
+        if (server is None):
+            return False
 
-        if (server.can_report):
+        if (server.can_report): # type: ignore
             return True
 
         return False
@@ -405,11 +412,11 @@ class ScamBotDatabase():
         
         return list(self.Database.scalars(stmt).all())
     
-    def GetAllServers(self, ActivationState:bool=False, OfInstance:int=-1, FilterBanability:bool=False) -> list[Server]:
+    def GetAllServers(self, FilterOnlyActivated:bool=False, OfInstance:int=-1, FilterBanability:bool=False) -> list[Server]:
         stmt = select(Server)
 
-        if (ActivationState):
-            stmt = stmt.where(Server.activation_state==ActivationState)
+        if (FilterOnlyActivated):
+            stmt = stmt.where(Server.activation_state==True)
 
         if (OfInstance > -1):
             stmt = stmt.where(Server.bot_instance_id==OfInstance)
@@ -433,12 +440,12 @@ class ScamBotDatabase():
     ### Stats ###
     def GetNumBans(self) -> int:
         stmt = select(func.count()).select_from(Ban)
-        return self.Database.scalars(stmt).first()
+        return self.Database.scalars(stmt).first() or 0
     
     def GetNumActivatedServers(self) -> int:
         stmt = select(func.count()).select_from(Server).where(Server.activation_state==True)
-        return self.Database.scalars(stmt).first()
+        return self.Database.scalars(stmt).first() or 0
     
     def GetNumServers(self) -> int:
         stmt = select(func.count()).select_from(Server)
-        return self.Database.scalars(stmt).first()
+        return self.Database.scalars(stmt).first() or 0

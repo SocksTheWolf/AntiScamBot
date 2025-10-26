@@ -50,7 +50,7 @@ class YesNoSelector(ui.Select):
         return True if self.min_values == 1 else False
     
     # Updates the current placeholder if a value is set already
-    def SetCurrentValue(self, CurValue:bool) -> str:
+    def SetCurrentValue(self, CurValue:bool):
         self.CurrentSelection = "Yes" if CurValue else "No"
         self.CachedValue = self.CurrentSelection
         self.placeholder = f"[Current Setting: {self.CurrentSelection}] {self.GetPlaceholder()}"
@@ -58,13 +58,13 @@ class YesNoSelector(ui.Select):
         if (self.SetNotRequiredIfValueSet()):
             self.SetRequired(False)
         
-    def GetYesDescription(self) -> str:
+    def GetYesDescription(self) -> str: # type: ignore
         pass
     
-    def GetNoDescription(self) -> str:
+    def GetNoDescription(self) -> str: # type: ignore
         pass
     
-    def GetPlaceholder(self) -> str:
+    def GetPlaceholder(self) -> str: # type: ignore
         pass
     
     def SetNotRequiredIfValueSet(self) -> bool:
@@ -86,7 +86,10 @@ class ModChannelSelector(ui.ChannelSelect):
             return False
         
         # Check channel permissions to see if we can post in there.
-        BotMember:Member = interaction.guild.get_member(interaction.client.user.id)
+        BotMember:Member|None = interaction.guild.get_member(interaction.client.user.id) # type: ignore
+        if (BotMember is None):
+            await interaction.response.send_message(f"ScamGuard is unable to view itself, try again in a few minutes...")
+            return False
         PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
         if (not PermissionsObj.send_messages):
             await interaction.response.send_message(f"ScamGuard is unable to access the channel {ChannelToHookInto.mention}, please give its role `{interaction.guild.self_role.name}` access to `View Channel` & `Send Messages` in {ChannelToHookInto.mention}", ephemeral=True, delete_after=60.0)
@@ -106,7 +109,7 @@ class ModChannelSelector(ui.ChannelSelect):
 # This is an UI view that will allow for deletion after interaction.
 class SelfDeletingView(ui.View):
     # Hook to the message we send, call Send to send the object.
-    Hook:WebhookMessage|Message = None
+    Hook:WebhookMessage|Message|None = None
     # Boolean to prevent multi-presses whenever discord ui lags.
     HasInteracted:bool = False
     

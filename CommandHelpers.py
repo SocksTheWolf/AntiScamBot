@@ -2,7 +2,7 @@ from Logger import Logger, LogLevel
 from discord import Interaction, app_commands
 import traceback, re
 
-UserIdReg = re.compile("\<\@([0-9]+)\>")
+UserIdReg = re.compile("\<\@([0-9]+)\>") # type: ignore
 
 # This transformer allows us to take in a discord id (as the default int is too small)
 # and properly convert it to a value that we can use to observe Discord data

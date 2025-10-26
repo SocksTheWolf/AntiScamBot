@@ -2,7 +2,7 @@ from discord import ui, TextStyle, Interaction, Member, User
 from Logger import Logger, LogLevel
 
 class SubmitScamReport(ui.Modal):
-    ReportedUser:Member|User = None
+    ReportedUser:Member|User|None = None
     TypeOfScam = ui.TextInput(label="Type of Scam", required=True, placeholder="Please state the type of scam", max_length=50, min_length=10)
     Reasoning = ui.TextInput(label="Details",
                                      placeholder="Provide extra context towards the ban itself here",

@@ -17,13 +17,18 @@ class GlobalScamCommands(app_commands.Group):
      
     @app_commands.command(name="check", description="Checks to see if a discord id is banned")
     @app_commands.checks.has_permissions(ban_members=True)
-    @app_commands.checks.cooldown(1, 3.0)
+    @app_commands.checks.cooldown(1, 2.0)
     async def ScamCheck_Global(self, interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
         if (target <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return
         
-        if (self.IsActivated(interaction.guild_id)):
+        InteractionId:int|None = interaction.guild_id
+        if (InteractionId is None):
+            await interaction.response.send_message("This command cannot be ran outside a server")
+            return
+        
+        if (self.IsActivated(InteractionId)):
             ResponseEmbed:Embed = await self.GetInstance().CreateBanEmbed(target)
             await interaction.response.send_message(embed = ResponseEmbed)
         else:
@@ -37,13 +42,18 @@ class GlobalScamCommands(app_commands.Group):
             await interaction.response.send_message("You cannot make remote reports from this server!", ephemeral=True, delete_after=5.0)
             return
         
+        InteractionId:int|None = interaction.guild_id
+        if (InteractionId is None):
+            await interaction.response.send_message("This command cannot be ran outside a server")
+            return
+        
         # Block any usages of the commands if the server is not activated.
-        if (not self.IsActivated(interaction.guild_id)):
+        if (not self.IsActivated(InteractionId)):
             await interaction.response.send_message("You must activate your server to report users", ephemeral=True, delete_after=10.0)
             return
         
         # Check if the server is barred from reporting
-        if (not self.CanReport(interaction.guild_id)):
+        if (not self.CanReport(InteractionId)):
             await interaction.response.send_message("Due to potential abuse, this command is limited in this server, please contact support.", ephemeral=True, delete_after=10.0)
             return
         
@@ -76,8 +86,13 @@ class GlobalScamCommands(app_commands.Group):
             await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
             return
         
+        InteractionId:int|None = interaction.guild_id
+        if (InteractionId is None):
+            await interaction.response.send_message("This command cannot be ran outside a server")
+            return
+        
         # Block any usages of the setup command if the server is activated.
-        if (not self.IsActivated(interaction.guild_id)):
+        if (not self.IsActivated(InteractionId)):
             await self.GetInstance().ServerSetupHelper.OpenServerSetupModel(interaction)
         else:
             await interaction.response.send_message("This server is already activated with ScamGuard! Use `/scamguard config` to change settings", ephemeral=True, delete_after=15.0)
@@ -91,7 +106,12 @@ class GlobalScamCommands(app_commands.Group):
             await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
             return
         
-        if (not self.IsActivated(interaction.guild_id)):
+        InteractionId:int|None = interaction.guild_id
+        if (InteractionId is None):
+            await interaction.response.send_message("This command cannot be ran outside a server")
+            return
+        
+        if (not self.IsActivated(InteractionId)):
             await interaction.response.send_message("You must run `/scamguard setup` and activate first before proceeding", ephemeral=True, delete_after=30.0)
         else:
             await interaction.response.defer(thinking=True)

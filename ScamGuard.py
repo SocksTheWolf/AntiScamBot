@@ -6,6 +6,7 @@ from BotEnums import BanResult, BanLookup
 from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
+from datetime import datetime, timedelta
 import discord
 from discord.ext import tasks
 from multiprocessing import Process
@@ -17,7 +18,7 @@ ConfigData:Config=Config()
 
 class ScamGuard(DiscordBot):
     ServerHandler:RelayServer = None
-    HasLooped:bool = False
+    ReadyForBackup:bool = False
     HasStartedInstances:bool = False
     SubProcess={}
 
@@ -27,9 +28,14 @@ class ScamGuard(DiscordBot):
         super().__init__(self.ServerHandler.GetFileLocation(), AssignedBotID)
         
     async def setup_hook(self):
-        if (ConfigData["RunPeriodicBackups"]):
-            self.UpdateBackupInterval()
+        # TODO: Make a fancy table for this in the future
+        if (ConfigData["RunBackupEveryXHours"] > 0):
+            self.ConfigBackupInterval()
             self.PeriodicBackup.start()
+            
+        if (ConfigData["RunIdleCleanupEveryXHours"] > 0):
+            self.ConfigIdleInterval()
+            self.PeriodicLeave.start()
             
         self.HandleListenRelay.start()
         await super().setup_hook()
@@ -43,31 +49,35 @@ class ScamGuard(DiscordBot):
     async def BeforeListenRelay(self):
         await self.wait_until_ready()
     
-    ### Backup handling ###
-    def UpdateBackupInterval(self, SetToRetry:bool=False):
-        if (SetToRetry == False):
-            self.PeriodicBackup.change_interval(minutes=0, hours=ConfigData["RunBackupEveryXHours"])
-        else:
-            self.PeriodicBackup.change_interval(minutes=5, hours=0)
+    ### Task Interval Handling ###
+    def ConfigBackupInterval(self):
+        self.PeriodicBackup.change_interval(minutes=0.0, hours=float(ConfigData["RunBackupEveryXHours"]))
+
+    def ConfigIdleInterval(self):
+        self.PeriodicLeave.change_interval(minutes=0.0, hours=float(ConfigData["RunIdleCleanupEveryXHours"]))
+        
+    def RetryTaskInterval(self, task):
+        task.change_interval(minutes=5.0, hours=0.0)
     
+    ### Backup handling ###
     # By default, this runs every 5 minutes, however upon loading configurations, this will update the
     # backup interval to the proper settings
     @tasks.loop(minutes=5)
     async def PeriodicBackup(self):
-        # Prevent us from running the backup immediately
-        if (not self.HasLooped):
-            self.HasLooped = True
+        # Prevent us from running the backup immediately on start
+        if (not self.ReadyForBackup):
+            self.ReadyForBackup = True
             return
         
         # If we have active async tasks in progress, then delay this task until we are free.
         if (len(self.AsyncTasks) > 0):
-            Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try again in 5 minutes...")
-            self.UpdateBackupInterval(SetToRetry=True)
+            Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try backup again in 5 minutes...")
+            self.RetryTaskInterval(self.PeriodicBackup)
             return
         
         # If we currently have the minutes value set, then we need to make sure we get back onto the right track
-        if (self.PeriodicBackup.minutes != 0):
-            self.UpdateBackupInterval()
+        if (self.PeriodicBackup.minutes != 0.0):
+            self.ConfigBackupInterval()
         
         Logger.Log(LogLevel.Log, "Periodic Bot DB Backup Started...")    
         self.Database.Backup()
@@ -76,6 +86,47 @@ class ScamGuard(DiscordBot):
     @PeriodicBackup.before_loop
     async def BeforeBackup(self):
         # Wait until the bot is all set up before adding in the backup check
+        await self.wait_until_ready()
+        
+    ### Instance Cleanup ###
+    @tasks.loop(minutes=5)
+    async def PeriodicLeave(self):
+        # If we are processing any async tasks, do not clean up the deactivated table
+        if (len(self.AsyncTasks) > 0):
+            self.RetryTaskInterval(self.PeriodicLeave)
+            return
+        
+        # If the instances code hasn't been able to start, wait for when it's ready again.
+        if (not self.HasStartedInstances):
+            self.RetryTaskInterval(self.PeriodicLeave)
+            return
+        
+        # If this config is less than or equal to 0, then we don't do this task
+        InactiveInstanceWindow:int = ConfigData["InactiveServerDayWindow"]
+        if (InactiveInstanceWindow <= 0):
+            return
+        
+        if (self.PeriodicLeave.minutes != 0.0):
+            self.ConfigIdleInterval() 
+        
+        Logger.Log(LogLevel.Notice, "Attempting to clean up old non-activated servers...")
+        CurrentTime:datetime = datetime.now() - timedelta(days=float(InactiveInstanceWindow))
+        AllDisabledServers = self.Database.GetAllDeactivatedServers()
+        ServersLeft:int = 0
+        for ServerData in AllDisabledServers:
+            if (CurrentTime > ServerData.created_at): # type: ignore
+                ServerID:int = int(ServerData.discord_server_id)
+                if self.LeaveServer(ServerID):
+                    ServersLeft += 1
+                    Logger.Log(LogLevel.Log, f"Attempting to leave server {ServerID}")
+                else:
+                    Logger.Log(LogLevel.Warn, f"Could not send leave request for server {ServerID}")
+        
+        Logger.Log(LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
+        
+    @PeriodicLeave.before_loop
+    async def BeforeLeaveTask(self):
+        # Wait until the bot is all set up before attempting periodic leaves
         await self.wait_until_ready()
 
     ### Config Handling ###
@@ -133,6 +184,9 @@ class ScamGuard(DiscordBot):
             return
         try:
             NewMessage = None
+            if (self.AnnouncementChannel is None):
+                return
+            
             if (type(Message) == discord.Embed):
                 NewMessage = await self.AnnouncementChannel.send(embed=Message)
             else:
@@ -147,8 +201,8 @@ class ScamGuard(DiscordBot):
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
     ### Ban Handling ###
-    async def HandleBanAction(self, TargetId:int, Sender:discord.Member, PerformBan:bool, ThreadId:int|None=None) -> BanLookup:
-        DatabaseAction:BanLookup = None
+    async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, PerformBan:bool, ThreadId:int|None=None) -> BanLookup:
+        DatabaseAction:BanLookup|None = None
         
         if (PerformBan):
             DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id, ThreadId)
@@ -180,9 +234,11 @@ class ScamGuard(DiscordBot):
             self.ClientHandler.SendReprocessInstanceBans(InstanceId=InstanceID, InNumToRetry=LastActions)
 
     async def ReprocessBansForServer(self, ServerId:int, LastActions:int=0) -> BanResult:
-        TargetBotId:int = self.Database.GetBotIdForServer(ServerId)
+        TargetBotId:int|None = self.Database.GetBotIdForServer(ServerId)
         if (TargetBotId == self.BotID):
             return await self.ReprocessBans(ServerId, LastActions)
+        elif (TargetBotId is None):
+            return BanResult.Error
         else:
             self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
             return BanResult.Processed

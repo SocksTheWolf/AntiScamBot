@@ -2,7 +2,7 @@ from Logger import Logger, LogLevel
 from BotEnums import BanLookup
 from Config import Config
 from CommandHelpers import TargetIdTransformer, ServerIdTransformer, CommandErrorHandler
-from discord import app_commands, Interaction, Member, Embed, Object, Webhook
+from discord import app_commands, Interaction, User, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases
 from ScamGuard import ScamGuard
 from ConfirmBanView import ConfirmBan
@@ -53,7 +53,10 @@ if __name__ == '__main__':
             return
         
         if (ScamGuardBot.Database.IsInServer(server)):
-            BotInstance:int = ScamGuardBot.Database.GetBotIdForServer(server)
+            BotInstance:int|None = ScamGuardBot.Database.GetBotIdForServer(server)
+            if (BotInstance is None):
+                await interaction.response.send_message(f"Unable to find the bot instance for server {server}")
+                return
             Logger.Log(LogLevel.Notice, f"Reprocessing bans for server {server} from {interaction.user.id}")
             ScamGuardBot.AddAsyncTask(ScamGuardBot.ReprocessBansForServer(server))
             ServersActivated = [server]
@@ -101,7 +104,7 @@ if __name__ == '__main__':
         ActivatedServers:int = 0
         await interaction.response.defer(thinking=True)
         ResponseHook:Webhook = interaction.followup
-        QueryResults = ScamGuardBot.Database.GetAllServers(False)
+        QueryResults = ScamGuardBot.Database.GetAllServers()
         for BotServers in QueryResults:
             IsActivated:bool = bool(BotServers.activation_state)
             ReplyStr += f"#{RowNum}: Inst {BotServers.bot_instance_id}, Server {BotServers.discord_server_id}, Owner {BotServers.owner_discord_user_id}, Activated {str(IsActivated)}\n"
@@ -126,7 +129,7 @@ if __name__ == '__main__':
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return 
         
-        Sender:Member = interaction.user
+        Sender:User|Member = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam ban message detected from {Sender} for {targetid}")
         # Check to see if the ban already exists
         if (not ScamGuardBot.Database.DoesBanExist(targetid)):
@@ -146,7 +149,7 @@ if __name__ == '__main__':
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return 
 
-        Sender:Member = interaction.user
+        Sender:Member|User = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
         Result:BanLookup = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
         ResponseMsg:str = ""
@@ -165,7 +168,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
     @app_commands.check(has_activation_intents)
     async def ActivateServer(interaction:Interaction):
-        Sender:Member = interaction.user
+        Sender:Member|User = interaction.user
         SendersId:int = Sender.id
 
         # Hold onto these objects, as activate is one of the most expensive commands if
@@ -180,7 +183,7 @@ if __name__ == '__main__':
     @ScamGuardBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
     @app_commands.check(has_activation_intents)
     async def DeactivateServer(interaction:Interaction):
-        Sender:Member = interaction.user
+        Sender:Member|User = interaction.user
         SendersId:int = Sender.id
         
         # Hold onto these objects, as activate is one of the most expensive commands if
@@ -212,11 +215,16 @@ if __name__ == '__main__':
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return
         
+        InteractionLocation:int|None = interaction.channel_id
+        if (InteractionLocation is None):
+            await interaction.response.send_message("This action can only be performed in channels or threads.", ephemeral=True)
+            return
+        
         if (not ScamGuardBot.Database.DoesBanExist(target)):
             await interaction.response.send_message("Cannot set an evidence thread on a non-ban at this time!", ephemeral=True)
             return
         
-        ScamGuardBot.Database.SetEvidenceThread(target, interaction.channel_id)
+        ScamGuardBot.Database.SetEvidenceThread(target, InteractionLocation)
         await interaction.response.send_message(f"Updated the thread for {target} to <#{interaction.channel_id}>")
         Logger.Log(LogLevel.Log, f"Thread set for {target} to {interaction.channel_id}")
     
@@ -238,7 +246,7 @@ if __name__ == '__main__':
         
     @ScamGuardBot.Commands.command(name="toggleserverreport", description="In the control server, sets if the given server should have bans processed on them", guild=CommandControlServer)
     @app_commands.checks.has_role(ConfigData["MaintainerRole"])
-    async def SetBanActionForServer_Control(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], state:bool):
+    async def SetReportActionForServer_Control(interaction:Interaction, server:app_commands.Transform[int, ServerIdTransformer], state:bool):
         if (server <= -1):
             await interaction.response.send_message("Invalid id!", ephemeral=True, delete_after=5.0)
             return

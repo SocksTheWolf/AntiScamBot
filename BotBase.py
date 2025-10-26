@@ -133,7 +133,7 @@ class DiscordBot(discord.Client):
             Message:str = self.LoggingMessageQueue.get_nowait()
             try:
                 if (self.NotificationChannel is not None):
-                    await self.NotificationChannel.send(Message)
+                    await self.NotificationChannel.send(Message) # type: ignore
             except discord.HTTPException as ex:
                 Logger.Log(LogLevel.Log, f"WARN: Unable to send message to notification channel {str(ex)}")
             
@@ -157,7 +157,7 @@ class DiscordBot(discord.Client):
             
         if (ConfigData.IsValid("ReportChannel", int)):
             self.ReportChannel = self.get_channel(ConfigData["ReportChannel"])
-            for tag in self.ReportChannel.available_tags:
+            for tag in self.ReportChannel.available_tags: # type: ignore
                 if (tag.name == ConfigData["ReportChannelTag"]):
                     self.ReportChannelTag = tag
                     break
@@ -181,12 +181,12 @@ class DiscordBot(discord.Client):
         return False
     
     async def ForceLeaveServer(self, ServerId:int):
-        ServerToLeave:discord.Guild = self.get_guild(ServerId)
+        ServerToLeave:discord.Guild|None = self.get_guild(ServerId)
         if (ServerToLeave is not None):
             Logger.Log(LogLevel.Notice, f"We have left the server {self.GetServerInfoStr(ServerToLeave)}")
             await ServerToLeave.leave()
         else:
-            Logger.Log(LogLevel.Warning, f"Could not find server with id {ServerId}, id is invalid")        
+            Logger.Log(LogLevel.Warn, f"Could not find server with id {ServerId}, id is invalid")        
      
     ### Discord Information Gathering ###       
     async def GetServersWithElevatedPermissions(self, UserID:int, SkipActivated:bool):
@@ -200,7 +200,7 @@ class DiscordBot(discord.Client):
             if (Server.owner_id == UserID):
                 ServersWithPermissions.append(ServerId)
             else:
-                GuildMember:discord.Member = await self.LookupUser(UserID, ServerToInspect=Server)
+                GuildMember:discord.Member|None = await self.LookupUser(UserID, ServerToInspect=Server)
                 if (GuildMember is not None):
                     if (self.UserHasElevatedPermissions(GuildMember)):
                         ServersWithPermissions.append(ServerId)
@@ -222,7 +222,7 @@ class DiscordBot(discord.Client):
         
         return False
 
-    async def LookupUser(self, UserID:int, ServerToInspect:discord.Guild=None) -> discord.User|discord.Member|None:
+    async def LookupUser(self, UserID:int, ServerToInspect:discord.Guild|None=None) -> discord.User|discord.Member|None:
         GivenServer:bool = (ServerToInspect is not None)
         try:
             if (GivenServer):
@@ -230,7 +230,7 @@ class DiscordBot(discord.Client):
             else:
                 return await self.fetch_user(UserID)
         except discord.Forbidden:
-            Logger.Log(LogLevel.Error, f"Bot does not have access to {ServerToInspect.name}")
+            Logger.CLog(GivenServer, LogLevel.Error, f"Bot does not have access to {ServerToInspect.name}")
         except discord.NotFound as ex:
             if (GivenServer):
                 Logger.Log(LogLevel.Debug, f"Could not find user {UserID} in {ServerToInspect.name}")
@@ -320,7 +320,10 @@ class DiscordBot(discord.Client):
         self.AddAsyncTask(self.InitializeBotRuntime())
     
     async def on_guild_update(self, PriorUpdate:discord.Guild, NewUpdate:discord.Guild):
-        NewOwnerId:int = NewUpdate.owner_id
+        NewOwnerId:int|None = NewUpdate.owner_id
+        if (NewOwnerId is None):
+            return
+        
         if (PriorUpdate.owner_id != NewOwnerId):
             self.Database.SetNewServerOwner(NewUpdate.id, NewOwnerId, self.BotID)
             Logger.Log(LogLevel.Notice, f"Detected that the server {self.GetServerInfoStr(PriorUpdate)} is now owned by {NewOwnerId}")
@@ -333,6 +336,7 @@ class DiscordBot(discord.Client):
         # Prevent ourselves from being added to a server we are already in.
         if (self.Database.IsInServer(server.id)):
             Logger.Log(LogLevel.Notice, f"Bot #{self.BotID} was attempted to be added to server {self.GetServerInfoStr(server)} but already in there")
+            # TODO: Print a message to the user?
             await server.leave()
             return
 
@@ -405,6 +409,9 @@ Failed Copied Evidence Links:
             if (not HadCopyFailure):
                 ReportContent += "None"
         try:
+            if (self.ReportChannel is None):
+                return
+            
             NewThread:discord.channel.ThreadWithMessage = await self.ReportChannel.create_thread(name=ReportData["ReportedUserGlobalName"],
                                          content=ReportContent,
                                          applied_tags=[self.ReportChannelTag],
@@ -429,14 +436,24 @@ Failed Copied Evidence Links:
             
     ### Webhook Management ###
     async def InstallWebhook(self, ServerId:int):
-        ChannelID:int = self.Database.GetChannelIdForServer(ServerId)
-        MessageChannel:discord.TextChannel = self.get_channel(ChannelID)
+        if (self.AnnouncementChannel is None):
+            Logger.Log(LogLevel.Notice, "Announcement channel is None, cannot manage webhooks!")
+            return
+        
+        ChannelID:int|None = self.Database.GetChannelIdForServer(ServerId)
+        if (ChannelID is None):
+            Logger.Log(LogLevel.Warn, f"Could not install webhook for server {ServerId}, the ChannelID was None")
+            return
+        
+        MessageChannel:discord.TextChannel = self.get_channel(ChannelID) # type: ignore
         
         # Check to see if a webhook is already installed.
         if (MessageChannel is not None):
             try:
                 CurrentWebhooks = await MessageChannel.webhooks()
                 for Webhook in CurrentWebhooks:
+                    if (Webhook.source_channel is None):
+                        continue
                     # The webhook is already installed, do not attempt to install again.
                     if (Webhook.type == discord.WebhookType.channel_follower and Webhook.source_channel.id == self.AnnouncementChannel.id):
                         return
@@ -447,22 +464,31 @@ Failed Copied Evidence Links:
             return
         
         try:
-            await self.AnnouncementChannel.follow(destination=MessageChannel, reason="ScamGuard Ban Notification Setup")
+            await self.AnnouncementChannel.follow(destination=MessageChannel, reason="ScamGuard Ban Notification Setup") # type: ignore
         except discord.Forbidden:
             await MessageChannel.send("ScamGuard was unable to install the ban notification webhook. You can try again later, or manually install from the TAG Server")
         except discord.HTTPException:
             Logger.Log(LogLevel.Warn, f"")
             
     async def DeleteWebhook(self, ServerId:int):
-        ChannelID:int = self.Database.GetChannelIdForServer(ServerId)
+        if (self.AnnouncementChannel is None):
+            Logger.Log(LogLevel.Notice, "Announcement channel is None, cannot manage webhooks!")
+            return
+        
+        ChannelID:int|None = self.Database.GetChannelIdForServer(ServerId)
+        if (ChannelID is None):
+            Logger.Log(LogLevel.Warn, f"Could not uninstall webhook for server {ServerId}, the ChannelID was None")
+            return
         MessageChannel:discord.TextChannel = self.get_channel(ChannelID)
-        FoundWebhook:discord.Webhook = None
+        FoundWebhook:discord.Webhook|None = None
         
         # Check to see if a webhook is already installed.
         if (MessageChannel is not None):
             try:
                 CurrentWebhooks = await MessageChannel.webhooks()
                 for Webhook in CurrentWebhooks:
+                    if (Webhook.source_channel is None):
+                        continue
                     # The webhook is already installed, grab a reference to it.
                     if (Webhook.type == discord.WebhookType.channel_follower and Webhook.source_channel.id == self.AnnouncementChannel.id):
                         FoundWebhook = Webhook
@@ -487,7 +513,7 @@ Failed Copied Evidence Links:
     def GetServerInfoStr(self, Server:discord.Guild) -> str:
         return f"{Server.name}[{Server.id}]"
     
-    def GetControlServerGuild(self) -> discord.Guild:
+    def GetControlServerGuild(self) -> discord.Guild|None:
         return self.get_guild(ConfigData["ControlServer"])
     
     def PostPongMessage(self):
@@ -571,7 +597,11 @@ Failed Copied Evidence Links:
 
     ### Ban Handling ###        
     async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
-        Server:discord.Guild = self.get_guild(ServerId)
+        Server:discord.Guild|None = self.get_guild(ServerId)
+        if (Server is None):
+            Logger.Log(LogLevel.Error, f"Could not look up the server {ServerId} while reprocessing bans")
+            return BanResult.Error
+        
         ServerInfoStr:str = self.GetServerInfoStr(Server)
         BanReturn:BanResult = BanResult.Processed
         Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
@@ -619,7 +649,7 @@ Failed Copied Evidence Links:
     async def ReprocessInstance(self, LastActions:int):
         BanQueryResult = self.Database.GetAllBans(LastActions)
         for Ban in BanQueryResult:
-            UserId:int = Ban.discord_user_id
+            UserId:int = int(Ban.discord_user_id)
             AuthorizerName:str = Ban.assigner_discord_user_name
             await self.ProcessActionOnUser(UserId, AuthorizerName, True)
     
@@ -659,8 +689,8 @@ Failed Copied Evidence Links:
                     ActionsAppliedThisLoop = 0
                 else:
                     ActionsAppliedThisLoop += 1
-                
-            ServerId:int = int(ServerData.discord_server_id)
+
+            ServerId:int = int(ServerData.discord_server_id) # type: ignore
             DiscordServer = self.get_guild(ServerId)
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, IsBan)
@@ -687,7 +717,7 @@ Failed Copied Evidence Links:
     async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member, Reason:str, IsBan:bool) -> tuple[bool, BanResult]:
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id
-        ServerOwnerId:int = Server.owner_id
+        ServerOwnerId:int = Server.owner_id or 0
         ServerInfo:str = self.GetServerInfoStr(Server)
         try:
             BanStr:str = "ban" if IsBan else "unban"            
@@ -751,7 +781,7 @@ Failed Copied Evidence Links:
             return
         
         BanStr:str = "ban" if IsBan else "unban"
-        User:discord.User = await self.LookupUser(UserId, Server)
+        User:discord.User|discord.Member|None = await self.LookupUser(UserId, Server)
         FailureEmbed:discord.Embed = self.CreateBaseEmbed(f"WARNING: Failed to {BanStr} user!")
         FailureEmbed.color = discord.Colour.dark_red()
         if (User is not None):
@@ -763,5 +793,5 @@ Failed Copied Evidence Links:
         FailureEmbed.add_field(inline=False, name="Resolution", value=ResolutionMsg)
         FailureEmbed.add_field(inline=False, name="Help Links", value="[Support Server](https://scamguard.app/discord) | [FAQ](https://scamguard.app/faq)")
         FailureEmbed.set_footer(text="scamguard.app")
-        await DiscordChannel.send(embed=FailureEmbed)
+        await DiscordChannel.send(embed=FailureEmbed) # type: ignore
         Logger.Log(LogLevel.Notice, f"A ban failure message was sent to {ServerIDStr} for the user id {UserId}")

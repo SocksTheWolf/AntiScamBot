@@ -69,7 +69,7 @@ class Config():
     @staticmethod
     def GetToken(ForInstance:int=-1) -> str:
         if (ForInstance <= 0):
-            return os.getenv("DISCORD_TOKEN")
+            return os.getenv("DISCORD_TOKEN") or ""
         else:
             CryptoKeys = Config.GetAllSubTokens()
             InstanceStr:str = str(ForInstance)
@@ -84,19 +84,19 @@ class Config():
 
     @staticmethod    
     def GetDBFile() -> str:
-        return os.getenv("DATABASE_FILE")
+        return os.getenv("DATABASE_FILE") or ""
     
     @staticmethod
     def GetConfigFile() -> str:
-        return os.getenv("CONFIG_FILE")
+        return os.getenv("CONFIG_FILE") or ""
     
     @staticmethod
     def GetAPIKeysFile() -> str:
-        return os.getenv("API_KEYS")
+        return os.getenv("API_KEYS") or ""
     
     @staticmethod
     def GetBackupLocation() -> str:
-        return os.getenv("BACKUP_LOCATION")
+        return os.getenv("BACKUP_LOCATION") or ""
     
     # In this mode, bans do not actually process, nor do they send out to any users.
     @staticmethod

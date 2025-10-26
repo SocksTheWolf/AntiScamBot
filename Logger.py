@@ -44,6 +44,11 @@ class Logger():
     return f"[{NowTime}] "
 
   @staticmethod
+  def CLog(Conditional, Level:LogLevel, Input:str):
+    if (Conditional):
+      Logger.Log(Level, Input)
+
+  @staticmethod
   def Log(Level:LogLevel, Input:str):
     global NotificationCallback
     
