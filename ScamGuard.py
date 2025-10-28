@@ -17,7 +17,7 @@ __all__ = ["ScamGuard"]
 ConfigData:Config=Config()
 
 class ScamGuard(DiscordBot):
-    ServerHandler:RelayServer = None
+    ServerHandler:RelayServer = None # pyright: ignore[reportAssignmentType]
     HasStartedInstances:bool = False
     SubProcess={}
 
@@ -192,7 +192,7 @@ class ScamGuard(DiscordBot):
             if (type(Message) == discord.Embed):
                 NewMessage = await self.AnnouncementChannel.send(embed=Message)
             else:
-                NewMessage = await self.AnnouncementChannel.send(content=Message)
+                NewMessage = await self.AnnouncementChannel.send(str(Message))
             if (NewMessage is not None):
                 await NewMessage.publish()
             elif (type(Message) == str):

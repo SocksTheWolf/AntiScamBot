@@ -1,8 +1,9 @@
 from Logger import Logger, LogLevel
-from multiprocessing.connection import Listener, Client, wait
+from multiprocessing.connection import Listener, Connection, Client, wait
 from BotEnums import RelayMessageType
 from Config import Config
 import selectors, os, traceback
+from typing import cast
 
 __all__ = ["RelayMessage", "RelayServer", "RelayClient"]
 
@@ -50,7 +51,7 @@ class RelayServer:
         self.BotInstance = InBotInstance
         if (UseUnixSockets()):
             self.ListenSocket = Listener(None, "AF_UNIX", backlog=10)
-            self.FileLocation = self.ListenSocket.address
+            self.FileLocation = self.ListenSocket.address # pyright: ignore[reportAttributeAccessIssue]
         else:
             NeedsNTHack:bool = False
             # This is a really dumb hack to get around a bug (allow for address reuse)
@@ -70,7 +71,7 @@ class RelayServer:
         self.AcceptListener = selectors.DefaultSelector()
         # This is probably the silliest thing that doesn't exist in the listener
         # It really should be something accessible in the Listener class (a way to poll)
-        self.AcceptListener.register(self.ListenSocket._listener._socket, selectors.EVENT_READ)
+        self.AcceptListener.register(self.ListenSocket._listener._socket, selectors.EVENT_READ) # pyright: ignore[reportAttributeAccessIssue]
         
     def __del__(self):
         Logger.Log(LogLevel.Debug, "Shutting down listener service")
@@ -87,6 +88,10 @@ class RelayServer:
         return -1
     
     async def RestartAllConnections(self):
+        if (self.BotInstance is None):
+            Logger.Log(LogLevel.Notice, "BotInstance is somehow none while restarting all connections")
+            return
+        
         Logger.Log(LogLevel.Notice, "Restarting all connections and instances.")
         self.Connections = []
         self.InstancesToConnections = {}
@@ -126,15 +131,16 @@ class RelayServer:
         # This will make us only get the sockets that have messages waiting for them
         # And ignore everything else. The blocking operation should be fairly short.
         ConnectionsReady = wait(self.Connections, timeout=0)
-        for Connection in ConnectionsReady:
+        for ConnectionItr in ConnectionsReady:
+            CurrentConnection = cast(Connection, ConnectionItr)
             # Read through all messages that we have for this connection
-            while (Connection.poll(0)):
+            while (CurrentConnection.poll(0)):
                 RawMessage = None
                 # Check to see if we were suddenly disconnected for whatever reason
                 try:
-                    RawMessage = Connection.recv()
+                    RawMessage = CurrentConnection.recv()
                 except EOFError:
-                    self.DeadConnections.append(Connection)
+                    self.DeadConnections.append(CurrentConnection)
                     break
                 
                 # Check to see if the message is valid.                
@@ -144,7 +150,7 @@ class RelayServer:
                 match Message.Type:
                     case RelayMessageType.Hello:
                         if (not Message.Sender in self.InstancesToConnections):  
-                            self.InstancesToConnections[Message.Sender] = Connection
+                            self.InstancesToConnections[Message.Sender] = CurrentConnection
                             Logger.Log(LogLevel.Notice, f"Established connection for {Message.Sender}")
                         else:
                             Logger.Log(LogLevel.Warn, f"Got a hello message from an known sender {Message.Sender}")
@@ -296,19 +302,20 @@ class RelayClient:
             
             # Rework the arguments in a way that we can explode map them programatically
             Arguments = None
-            match RelayedMessage.Type:
-                case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
-                    Arguments = {"TargetId": RelayedMessage.Data["TargetUser"], "AuthName":RelayedMessage.Data["AuthName"]}
-                case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
-                    Arguments = {"UserID": RelayedMessage.Data["TargetUser"]}
-                case RelayMessageType.ProcessServerActivation:
-                    Arguments = {"UserId": RelayedMessage.Data["TargetUser"], "ServerId": RelayedMessage.Data["TargetServer"]}
-                case RelayMessageType.LeaveServer:
-                    Arguments = {"ServerId": RelayedMessage.Data["TargetServer"]}
-                case RelayMessageType.ReprocessBans:
-                    Arguments = {"ServerId": RelayedMessage.Data["TargetServer"], "LastActions": RelayedMessage.Data["NumToRetry"]}
-                case RelayMessageType.ReprocessInstance:
-                    Arguments = {"LastActions": RelayedMessage.Data["NumToRetry"]}
+            if (RelayedMessage.Data is not None):
+                match RelayedMessage.Type:
+                    case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
+                        Arguments = {"TargetId": RelayedMessage.Data["TargetUser"], "AuthName":RelayedMessage.Data["AuthName"]}
+                    case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
+                        Arguments = {"UserID": RelayedMessage.Data["TargetUser"]}
+                    case RelayMessageType.ProcessServerActivation:
+                        Arguments = {"UserId": RelayedMessage.Data["TargetUser"], "ServerId": RelayedMessage.Data["TargetServer"]}
+                    case RelayMessageType.LeaveServer:
+                        Arguments = {"ServerId": RelayedMessage.Data["TargetServer"]}
+                    case RelayMessageType.ReprocessBans:
+                        Arguments = {"ServerId": RelayedMessage.Data["TargetServer"], "LastActions": RelayedMessage.Data["NumToRetry"]}
+                    case RelayMessageType.ReprocessInstance:
+                        Arguments = {"LastActions": RelayedMessage.Data["NumToRetry"]}
 
             try:
                 if (Arguments is None):

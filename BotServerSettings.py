@@ -32,7 +32,7 @@ class BotSettingsPayload:
         return self.MessageChannel is not None
     
     def GetMessageID(self) -> int:
-        if (not self.HasMessageChannel()):
+        if (self.MessageChannel is None):
             return 0
         
         return self.MessageChannel.id
@@ -179,6 +179,10 @@ class ServerSettingsView(SelfDeletingView):
         self.HasInteracted = True
         
         # Push a message to the activation request channel
+        if (self.CallbackFunction is None):
+            Logger.Log(LogLevel.Error, "Somehow the callback function on the server settings is None...")
+            return
+        
         await self.CallbackFunction(self.Payload)
         
         # Respond to the user and kill the interactions
