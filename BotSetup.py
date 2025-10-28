@@ -1,6 +1,6 @@
 from Config import Config
 from Logger import LogLevel, Logger
-from sqlalchemy import create_engine, select, text, URL, desc
+from sqlalchemy import create_engine, Engine, select, text, URL, desc
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -9,7 +9,7 @@ from BotDatabaseSchema import Base, Migration, Ban, Server
 class DatabaseMigrator:
     DATABASE_VERSION=5
     VersionMap={}
-    DatabaseCon=None
+    DatabaseCon:Engine=None # pyright: ignore[reportAssignmentType]
     
     def __init__(self):
         database_url = URL.create(
@@ -156,11 +156,19 @@ def SetupDatabases():
     # otherwise we are on the new schema, and can query the the current database version from migration history
     if (inspect(engine).has_table("banslist") == True):
         query = text('PRAGMA user_version')
-        CurrentVersion = session.execute(query).first()[0]
+        CurrentVersion = session.execute(query).first()
+        if (CurrentVersion is None):
+            CurrentVersion = 0
+        else:
+            CurrentVersion = CurrentVersion[0]
 
     if (inspect(engine).has_table("migrations") == True):
         stmt = select(Migration).order_by(desc(Migration.id))
-        CurrentVersion = session.scalars(stmt).first().database_version
+        CurrentVersion = session.scalars(stmt).first()
+        if (CurrentVersion is not None):
+            CurrentVersion = CurrentVersion.database_version
+        else:
+            CurrentVersion = 0
 
     if (CurrentVersion != 0):
         # Version updating for the database

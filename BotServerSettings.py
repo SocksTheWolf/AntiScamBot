@@ -152,7 +152,7 @@ class ServerSettingsView(SelfDeletingView):
             if (await self.ChannelSelect.IsValid(interaction, True) == False):
                 return
             
-            ChannelToHookInto:TextChannel = self.ChannelSelect.values[0].resolve()
+            ChannelToHookInto:TextChannel|None = cast(TextChannel|None, self.ChannelSelect.values[0].resolve())
             if (self.Payload.WantsWebhooks):
                 # If the channel selection option has changed from the original setting, delete the original webhook
                 if (ChannelSelectChanged):
@@ -167,12 +167,17 @@ class ServerSettingsView(SelfDeletingView):
                 if (BotMember is None):
                     Logger.Log(LogLevel.Error, "Bot was invalid during setup somehow")
                     return
-                PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
-                
-                # Check to see if we can manage webhooks in that channel, if the user wants us to add ban notifications
-                if (not PermissionsObj.manage_webhooks):
-                    await interaction.response.send_message(f"ScamGuard needs permissions to add a webhook into the channel {ChannelToHookInto.mention}, please give it manage webhook permissions", 
-                                                            ephemeral=True, delete_after=80.0)
+                if (ChannelToHookInto is not None):
+                    PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
+                    
+                    # Check to see if we can manage webhooks in that channel, if the user wants us to add ban notifications
+                    if (not PermissionsObj.manage_webhooks):
+                        await interaction.response.send_message(f"ScamGuard needs permissions to add a webhook into the channel {ChannelToHookInto.mention}, please give it 'Manage Webhook' permissions", 
+                                                                ephemeral=True, delete_after=80.0)
+                        return
+                else:
+                    Logger.Log(LogLevel.Warn, "ChannelToHookInto was None, which should not be an accessible area?")
+                    await interaction.response.send_message("You must set a text channel to install the webhook into", ephemeral=True, delete_after=20.0)
                     return
             # The user wanted webhooks but doesn't want them any more, delete the webhook from the channel.
             elif (self.WebhookSelector.HasValueChanged() and self.Payload.HasMessageChannel()):
