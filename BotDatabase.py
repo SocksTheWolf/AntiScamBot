@@ -32,7 +32,7 @@ class ScamBotDatabase():
     def Close(self):
         if (self.IsConnected()):
             self.Database.get_bind().dispose() # type: ignore
-            self.Database = None
+            self.Database = None # type: ignore
             
     def IsConnected(self) -> bool:
         if (self.Database is not None):
@@ -214,7 +214,7 @@ class ScamBotDatabase():
         # Discord Guild IDs that we will later use to remove
         ServersIn:list[int] = []
         # Control server id
-        ControlServerID:int = Config().ControlServer
+        ControlServerID:int = Config().ControlServer # pyright: ignore[reportAttributeAccessIssue]
         # Loop through all the servers we are in and grab their guild ids
         for DiscordServer in Servers:
             # Check to see if we know about this server already.
@@ -304,12 +304,12 @@ class ScamBotDatabase():
         return True
     
     # Returns ban information
-    def GetBanInfo(self, TargetId:int) -> Ban:
+    def GetBanInfo(self, TargetId:int) -> Ban|None:
         stmt = select(Ban).where(Ban.discord_user_id==TargetId)
         return self.Database.scalars(stmt).first()
     
     # Returns server information
-    def GetServerInfo(self, ServerId:int) -> Server:
+    def GetServerInfo(self, ServerId:int) -> Server|None:
         stmt = select(Server).where(Server.discord_server_id==ServerId)
         return self.Database.scalars(stmt).first()
 
@@ -357,6 +357,9 @@ class ScamBotDatabase():
             return
         
         banToChange = self.Database.scalars(stmt).first()
+        if (banToChange is None):
+            return
+        
         banToChange.evidence_thread = ThreadId
         self.Database.add(banToChange)
     

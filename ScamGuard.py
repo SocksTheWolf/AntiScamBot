@@ -2,7 +2,7 @@
 # Such as the host system that shares commands/messages to sub-instances and things like backup.
 # It should not handle any recv instructions from ServerHandler except for requests by sub-instances.
 from Logger import Logger, LogLevel
-from BotEnums import BanResult, BanLookup
+from BotEnums import BanResult, BanLookup, ModerationAction
 from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
@@ -185,14 +185,14 @@ class ScamGuard(DiscordBot):
             Logger.Log(LogLevel.Notice, "Announcement message was dropped because this instance is in development mode")
             return
         try:
-            NewMessage = None
+            NewMessage:discord.Message|None = None
             if (self.AnnouncementChannel is None):
                 return
             
             if (type(Message) == discord.Embed):
                 NewMessage = await self.AnnouncementChannel.send(embed=Message)
             else:
-                NewMessage = await self.AnnouncementChannel.send(Message)
+                NewMessage = await self.AnnouncementChannel.send(content=Message)
             if (NewMessage is not None):
                 await NewMessage.publish()
             elif (type(Message) == str):
@@ -203,30 +203,30 @@ class ScamGuard(DiscordBot):
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
     ### Ban Handling ###
-    async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, PerformBan:bool, ThreadId:int|None=None) -> BanLookup:
-        DatabaseAction:BanLookup|None = None
+    async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction, ThreadId:int|None=None) -> BanLookup:
+        DatabaseAction:BanLookup
         
-        if (PerformBan):
+        if (Action == ModerationAction.Ban):
             DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id, ThreadId)
-        else:
+        elif (Action == ModerationAction.Unban):
             DatabaseAction = self.Database.RemoveBan(TargetId)
+        else:
+            Logger.Log(LogLevel.Error, f"An invalid moderation action was passed to HandleBanAction, {Action}")
+            return BanLookup.DBError
         
         if (DatabaseAction != BanLookup.Good):
             return DatabaseAction
         
-        DatabaseAction = BanLookup.Banned if PerformBan else BanLookup.Unbanned
-        self.AddAsyncTask(self.CreateBanAnnouncement(TargetId, DatabaseAction))
-        self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, PerformBan))
+        self.AddAsyncTask(self.CreateBanAnnouncement(TargetId, Action))
+        self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, Action))
         
         return DatabaseAction
     
-    async def CreateBanAnnouncement(self, TargetId:int, ActionTaken:BanLookup):
-        if ActionTaken is BanLookup.Banned or ActionTaken is BanLookup.Unbanned:       
-            ActionTakenStr:str = "Ban" if ActionTaken is BanLookup.Banned else "Unban"
-            
+    async def CreateBanAnnouncement(self, TargetId:int, ActionTaken:ModerationAction):
+        if ActionTaken is ModerationAction.Ban or ActionTaken is ModerationAction.Unban:
             # Send a message to the announcement channel
             NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
-            NewAnnouncement.title = f"{ActionTakenStr} in Progress"
+            NewAnnouncement.title = f"{str(ActionTaken)} in Progress"
             await self.PublishAnnouncement(NewAnnouncement)
     
     async def ReprocessBansForInstance(self, InstanceID:int, LastActions:int):
@@ -245,12 +245,12 @@ class ScamGuard(DiscordBot):
             self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
             return BanResult.Processed
         
-    async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member, IsBan:bool):
+    async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction):
         SenderName:str = Sender.name
-        if (IsBan):
+        if (Action == ModerationAction.Ban):
             self.ClientHandler.SendBan(TargetId, SenderName)
-        else:
+        elif (Action == ModerationAction.Unban):
             self.ClientHandler.SendUnban(TargetId, SenderName)
             
-        await self.ProcessActionOnUser(TargetId, SenderName, IsBan)
+        await self.ProcessActionOnUser(TargetId, SenderName, Action)
         

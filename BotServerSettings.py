@@ -1,17 +1,18 @@
-from discord import ui, Guild, ButtonStyle, Interaction, Member, TextChannel, Permissions
+from discord import ui, Guild, ButtonStyle, Interaction, User, Member, TextChannel, Permissions
 from ModalHelpers import YesNoSelector, SelfDeletingView, ModChannelSelector
 from BotDatabaseSchema import Server
 from Logger import Logger, LogLevel
 from Config import Config
+from typing import cast
 
 class BotSettingsPayload:
-    User:Member = None
+    InteractiveUser:User|Member|None = None
     WebHookRequired:bool = False
     KickSusRequired:bool = False
     
     # These settings should get pulled from the db
-    Server:Guild = None
-    MessageChannel:TextChannel = None
+    Server:Guild|None = None
+    MessageChannel:TextChannel|None = None
     WantsWebhooks:bool = False
     KickSusUsers:bool = False
     
@@ -22,10 +23,10 @@ class BotSettingsPayload:
         return self.Server.id
     
     def GetUserID(self) -> int:
-        if (self.User is None):
+        if (self.InteractiveUser is None):
             return 0
         
-        return self.User.id
+        return self.InteractiveUser.id
     
     def HasMessageChannel(self) -> bool:
         return self.MessageChannel is not None
@@ -77,11 +78,11 @@ class KickSuspiciousUsersSelector(YesNoSelector):
         return True
 
 class ServerSettingsView(SelfDeletingView):
-    ChannelSelect:ModChannelSelector = None
-    WebhookSelector:InstallWebhookSelector = None
-    SuspiciousUserKicks:KickSuspiciousUsersSelector = None
+    ChannelSelect:ModChannelSelector = None # pyright: ignore[reportAssignmentType]
+    WebhookSelector:InstallWebhookSelector = None # pyright: ignore[reportAssignmentType]
+    SuspiciousUserKicks:KickSuspiciousUsersSelector = None # pyright: ignore[reportAssignmentType]
     CallbackFunction = None
-    Payload:BotSettingsPayload = None
+    Payload:BotSettingsPayload = None # pyright: ignore[reportAssignmentType]
     
     def __init__(self, InCB, interaction: Interaction):
         super().__init__()
@@ -90,7 +91,7 @@ class ServerSettingsView(SelfDeletingView):
         # Pull current data
         self.Payload = BotSettingsPayload()
         self.Payload.Server = interaction.guild
-        self.Payload.User = interaction.user
+        self.Payload.InteractiveUser = interaction.user
         self.Payload.LoadFromDB(interaction.client)
         
         self.ChannelSelect = ModChannelSelector(RowPos=0)
@@ -129,7 +130,7 @@ class ServerSettingsView(SelfDeletingView):
         # Check if we can install webhooks
         if (ConfigData["AllowWebhookInstall"]):
             if (MadeWebhookSelection):
-                self.Payload.WantsWebhooks = self.WebhookSelector.GetValue()
+                self.Payload.WantsWebhooks = self.WebhookSelector.GetValue() or False
             elif self.WebhookSelector.IsRequired():
                 await interaction.response.send_message("Please choose an option for ban notifications!", ephemeral=True, delete_after=10.0)
                 return
@@ -156,9 +157,12 @@ class ServerSettingsView(SelfDeletingView):
                 # If the channel selection option has changed from the original setting, delete the original webhook
                 if (ChannelSelectChanged):
                     Logger.Log(LogLevel.Debug, "Deleting old webhook reference")
-                    await interaction.client.DeleteWebhook(ServerId)
+                    await interaction.client.DeleteWebhook(ServerId) # pyright: ignore[reportAttributeAccessIssue]
 
-                BotMember:Member = interaction.guild.get_member(interaction.client.user.id)
+                BotMember:Member|None = cast(Guild, interaction.guild).get_member(interaction.client.user.id)
+                if (BotMember is None):
+                    Logger.Log(LogLevel.Error, "Bot was invalid during setup somehow")
+                    return
                 PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
                 
                 # Check to see if we can manage webhooks in that channel, if the user wants us to add ban notifications
@@ -168,7 +172,7 @@ class ServerSettingsView(SelfDeletingView):
                     return
             # The user wanted webhooks but doesn't want them any more, delete the webhook from the channel.
             elif (self.WebhookSelector.HasValueChanged() and self.Payload.HasMessageChannel()):
-                await interaction.client.DeleteWebhook(ServerId)
+                await interaction.client.DeleteWebhook(ServerId) # pyright: ignore[reportAttributeAccessIssue]
                 
             self.Payload.MessageChannel = ChannelToHookInto
         
@@ -179,8 +183,8 @@ class ServerSettingsView(SelfDeletingView):
         
         # Respond to the user and kill the interactions
         MessageResponse:str = ""
-        if (not interaction.client.Database.IsActivatedInServer(ServerId)):
-            MessageResponse = "Enqueued your server for activation. This will take a few minutes to import all the bans."
+        if (not interaction.client.Database.IsActivatedInServer(ServerId)): # pyright: ignore[reportAttributeAccessIssue]
+            MessageResponse = "Enqueued your server for activation. This can take up to an hour to import all the bans."
         else:
             MessageResponse = "Settings changes enqueued for application!"
             

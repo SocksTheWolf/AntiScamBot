@@ -3,6 +3,7 @@ from Config import Config
 from Logger import Logger, LogLevel
 from BotServerSettings import ServerSettingsView, BotSettingsPayload
 from ModalHelpers import SelfDeletingView
+from typing import cast
 
 class ScamGuardServerSetup():
     BotInstance = None
@@ -10,15 +11,22 @@ class ScamGuardServerSetup():
     def __init__(self, Bot) -> None:
         self.BotInstance = Bot
         
-    async def CheckForBotConflicts(self, InServer:Guild) -> bool:
+    async def CheckForBotConflicts(self, InServer:None|Guild) -> bool:
+        if (InServer is None):
+            return False
+        
         BotConflicts = Config()["ConflictingBots"]
         for DiscordBotId in BotConflicts:
-            if (await self.BotInstance.LookupUser(DiscordBotId, InServer) is not None):
+            if (await self.BotInstance.LookupMember(DiscordBotId, InServer) is not None): # pyright: ignore[reportOptionalMemberAccess]
                 return True
             
         return False
     
     async def OpenServerSetupModel(self, interaction:Interaction):
+        if (self.BotInstance is None):
+            Logger.Log(LogLevel.Error, "Failed to get the bot instance during ScamGuard setup")
+            return
+        
         await interaction.response.defer(ephemeral=True, thinking=True)
         NumBans:int = self.BotInstance.Database.GetNumBans()
         
@@ -46,6 +54,9 @@ class ScamGuardServerSetup():
     async def PushActivation(self, Payload:BotSettingsPayload):
         ServerID:int = Payload.GetServerID()
         UserID:int = Payload.GetUserID()
+        if (self.BotInstance is None):
+            Logger.Log(LogLevel.Error, "Failed to get the bot instance during ScamGuard setup")
+            return
         ServerInstance:int = self.BotInstance.Database.GetBotIdForServer(ServerID)
         await self.BotInstance.ApplySettings(Payload)
         
@@ -53,6 +64,10 @@ class ScamGuardServerSetup():
         await self.BotInstance.ActivateServerInstance(UserID, ServerID)
         
     async def SendActivationRequest(self, Payload:BotSettingsPayload):
+        if (self.BotInstance is None):
+            Logger.Log(LogLevel.Error, "Somehow we do not know what our bot instance is...")
+            return
+        
         # If the server is already activated then do nothing more.
         if (self.BotInstance.Database.IsActivatedInServer(Payload.GetServerID())):
             Logger.Log(LogLevel.Warn, f"User {Payload.GetUserID()} attempted to activate {self.BotInstance.GetServerInfoStr(Payload.Server)} but it's already activated")
@@ -68,20 +83,22 @@ class ScamGuardServerSetup():
         ActivationActions:ServerActivationApproval = ServerActivationApproval(self, Payload)
         
         # Request Embed for the Activation Server
+        RequestServer:Guild = cast(Guild, Payload.Server)
         RequestEmbed:Embed = Embed(title="Activation Request", color = Colour.orange())
-        RequestEmbed.add_field(name="Server Name", value=Payload.Server.name, inline=False)
-        RequestEmbed.add_field(name="Requestor", value=Payload.User.display_name)
-        RequestEmbed.add_field(name="Requestor Handle", value=Payload.User.mention)
-        RequestEmbed.add_field(name="Num Members", value=Payload.Server.member_count, inline=False)
-        if (Payload.Server.icon is not None):
-            RequestEmbed.set_thumbnail(url=Payload.Server.icon.url)
+        RequestEmbed.add_field(name="Server Name", value=RequestServer.name, inline=False)
+        if (Payload.InteractiveUser is not None):
+            RequestEmbed.add_field(name="Requestor", value=Payload.InteractiveUser.display_name)
+            RequestEmbed.add_field(name="Requestor Handle", value=Payload.InteractiveUser.mention)
+        RequestEmbed.add_field(name="Num Members", value=RequestServer.member_count, inline=False)
+        if (RequestServer.icon is not None):
+            RequestEmbed.set_thumbnail(url=RequestServer.icon.url)
         RequestEmbed.set_footer(text=f"Server ID: {Payload.GetServerID()} | Requestor ID: {Payload.GetUserID()}")
         
         await ActivationActions.SendToChannel(self.BotInstance.ActivationChannel, [RequestEmbed])
     
 class ServerActivationApproval(SelfDeletingView):
     Parent = None
-    Payload:BotSettingsPayload = None
+    Payload:BotSettingsPayload = None # pyright: ignore[reportAssignmentType]
     
     def __init__(self, Parent, InPayload:BotSettingsPayload):
         self.Parent = Parent
@@ -92,9 +109,9 @@ class ServerActivationApproval(SelfDeletingView):
     @ui.button(label="Approve", style=ButtonStyle.success, row=4)
     async def setup(self, interaction: Interaction, button: ui.Button):
         self.HasInteracted = True
-        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server)
+        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server) # pyright: ignore[reportAttributeAccessIssue]
         await interaction.response.send_message(f"Enqueing activation for server {ServerIDStr}")
-        await self.Parent.PushActivation(self.Payload)
+        await self.Parent.PushActivation(self.Payload) # pyright: ignore[reportOptionalMemberAccess]
         await self.StopInteractions()
         
     @ui.button(label="Deny", style=ButtonStyle.danger, row=4)
@@ -102,21 +119,20 @@ class ServerActivationApproval(SelfDeletingView):
         self.HasInteracted = True
         ServerID:int = self.Payload.GetServerID()
         Bot = interaction.client
-        ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server)
+        ServerIDStr:str = Bot.GetServerInfoStr(self.Payload.Server) # pyright: ignore[reportAttributeAccessIssue]
         
         await interaction.response.send_message(f"Activation denied for server {ServerIDStr}.")
         
-        DiscordChannel:TextChannel = self.Payload.MessageChannel
-
+        DiscordChannel:TextChannel|None = self.Payload.MessageChannel
         if (DiscordChannel is None):
             Logger.Log(LogLevel.Error, f"Could not resolve the channel {self.Payload.GetMessageID()} for server {ServerIDStr} to post activation deny message in")
             return
         
         # Do not send a message if the server admins sent the activation command a few times already.
-        if (not Bot.Database.IsActivatedInServer(ServerID)):
+        if (not Bot.Database.IsActivatedInServer(ServerID)): # pyright: ignore[reportAttributeAccessIssue]
             await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support")
             
     async def on_cancel(self, interaction:Interaction):
         self.HasInteracted = True
-        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server)
+        ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server) # pyright: ignore[reportAttributeAccessIssue]
         await interaction.response.send_message(f"Activation skipped for server {ServerIDStr}.")

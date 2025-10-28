@@ -1,5 +1,5 @@
 from Logger import Logger, LogLevel
-from BotEnums import BanLookup
+from BotEnums import BanLookup, ModerationAction
 from Config import Config
 from CommandHelpers import TargetIdTransformer, ServerIdTransformer, CommandErrorHandler
 from discord import app_commands, Interaction, User, Member, Embed, Object, Webhook
@@ -151,7 +151,7 @@ if __name__ == '__main__':
 
         Sender:Member|User = interaction.user
         Logger.Log(LogLevel.Verbose, f"Scam unban message detected from {Sender} for {targetid}")
-        Result:BanLookup = await ScamGuardBot.HandleBanAction(targetid, Sender, False)
+        Result:BanLookup = await ScamGuardBot.HandleBanAction(targetid, Sender, ModerationAction.Unban)
         ResponseMsg:str = ""
         if (Result is not BanLookup.Unbanned):
             if (Result is BanLookup.NotExist):

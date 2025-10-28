@@ -73,7 +73,7 @@ class GlobalScamCommands(app_commands.Group):
             return
         
         # Check if the user is already banned
-        if (interaction.client.Database.DoesBanExist(UserToSend.id)):
+        if (interaction.client.Database.DoesBanExist(UserToSend.id)): # type: ignore
             await interaction.response.send_message(f"The targeted user is already banned by ScamGuard.", ephemeral=True, delete_after=20.0)
         
         await interaction.response.send_modal(SubmitScamReport(UserToSend))
@@ -119,7 +119,7 @@ class GlobalScamCommands(app_commands.Group):
             ResponseEmbed:Embed = BotInstance.CreateBaseEmbed("ScamGuard Settings")
             BotInstance.AddSettingsEmbedInfo(ResponseEmbed)
             
-            SettingsView:ServerSettingsView = ServerSettingsView(interaction.client.ApplySettings, interaction)
+            SettingsView:ServerSettingsView = ServerSettingsView(interaction.client.ApplySettings, interaction) # type: ignore
             await SettingsView.Send(interaction, [ResponseEmbed])
 
     @app_commands.command(name="info", description="Info & Stats about ScamGuard")

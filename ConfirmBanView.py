@@ -1,12 +1,11 @@
 from Logger import Logger, LogLevel
-from BotEnums import BanLookup
-from discord import ui, ButtonStyle, Interaction, Member, WebhookMessage
+from BotEnums import BanLookup, ModerationAction
+from discord import ui, ButtonStyle, Interaction, Member, User, WebhookMessage
 from ModalHelpers import SelfDeletingView
 
 class ConfirmBan(SelfDeletingView):
-    TargetId:int = None
+    TargetId:int = 0
     ScamBot = None
-    Hook:WebhookMessage = None
     
     def __init__(self, target:int, bot):
         super().__init__(ViewTimeout=90.0)
@@ -22,7 +21,7 @@ class ConfirmBan(SelfDeletingView):
         if (self.HasInteracted):
             return
         
-        Sender:Member = interaction.user
+        Sender:Member|User = interaction.user
         ResponseMsg:str = ""
         if (self.ScamBot is None):
             Logger.Log(LogLevel.Error, "ConfirmBan view has an invalid ScamBot reference!!")    
@@ -30,7 +29,7 @@ class ConfirmBan(SelfDeletingView):
         
         await interaction.response.defer(thinking=True)
         self.HasInteracted = True
-        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, True, interaction.channel_id)
+        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, ModerationAction.Ban, interaction.channel_id)
         if (Result is not BanLookup.Banned):
             if (Result == BanLookup.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"

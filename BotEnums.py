@@ -1,6 +1,12 @@
 from EnumWrapper import CompareEnum
 from enum import auto
 
+class ModerationAction(CompareEnum):
+  Nothing=auto()
+  Ban=auto()
+  Unban=auto()
+  Kick=auto()
+
 class BanLookup(CompareEnum):
   Good=auto()
   Banned=auto()

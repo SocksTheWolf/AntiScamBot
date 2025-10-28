@@ -29,7 +29,7 @@ class BaseIdTransformer(app_commands.Transformer):
 # This transformer checks to see if the given id is a real discord User.
 class TargetIdTransformer(BaseIdTransformer):
     async def OnTransform(self, interaction: Interaction, TargetId:int) -> int:
-        if (await interaction.client.UserAccountExists(TargetId)):
+        if (await interaction.client.UserAccountExists(TargetId)): # pyright: ignore[reportAttributeAccessIssue]
             return TargetId
         else:
             return -1

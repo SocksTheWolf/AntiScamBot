@@ -1,6 +1,8 @@
-from discord import ui, Interaction, SelectOption, WebhookMessage, ButtonStyle, Message, TextChannel, ChannelType, Member, Permissions
+from discord import ui, Interaction, SelectOption, Guild, WebhookMessage, ButtonStyle
+from discord import Message, Role, TextChannel, ChannelType, Member, Permissions
 from Logger import Logger, LogLevel
 import traceback
+from typing import cast
 
 class YesNoSelector(ui.Select):
     CurrentSelection:str = ""
@@ -80,9 +82,9 @@ class ModChannelSelector(ui.ChannelSelect):
             await interaction.response.send_message("A value must be selected for the channel selector!!", ephemeral=True, delete_after=60.0)    
             return False
         
-        ChannelToHookInto:TextChannel = self.values[0].resolve()
-        if (ChannelToHookInto == None):
-            await interaction.response.send_message(f"ScamGuard does not have permissions to see the channel {ChannelToHookInto.mention}, please give it permissions", ephemeral=True, delete_after=60.0)
+        ChannelToHookInto:TextChannel|None = cast(TextChannel|None, self.values[0].resolve())
+        if (ChannelToHookInto is None):
+            await interaction.response.send_message(f"ScamGuard does not have permissions to see the channel, please give it permissions", ephemeral=True, delete_after=60.0)
             return False
         
         # Check channel permissions to see if we can post in there.
@@ -92,7 +94,8 @@ class ModChannelSelector(ui.ChannelSelect):
             return False
         PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
         if (not PermissionsObj.send_messages):
-            await interaction.response.send_message(f"ScamGuard is unable to access the channel {ChannelToHookInto.mention}, please give its role `{interaction.guild.self_role.name}` access to `View Channel` & `Send Messages` in {ChannelToHookInto.mention}", ephemeral=True, delete_after=60.0)
+            BotRoleName:str = cast(Role, cast(Guild, interaction.guild).self_role).name
+            await interaction.response.send_message(f"ScamGuard is unable to access the channel {ChannelToHookInto.mention}, please give its role `{BotRoleName}` access to `View Channel` & `Send Messages` in {ChannelToHookInto.mention}", ephemeral=True, delete_after=60.0)
             return False
         
         if (not Silent):

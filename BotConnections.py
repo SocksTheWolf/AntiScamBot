@@ -15,7 +15,7 @@ def UseUnixSockets() -> bool:
     return False
 
 class RelayMessage:
-    Type:RelayMessageType = None
+    Type:RelayMessageType = None # type: ignore
     Sender:int = -1
     Destination:int = -1
     Data = None
@@ -224,49 +224,48 @@ class RelayClient:
     
     # TODO: Make these functions automatically generated.
     def SendBan(self, UserId:int, InAuthName:str):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         
         self.Connection.send(self.GenerateMessage(RelayMessageType.BanUser, TargetUserId=UserId, AuthName=InAuthName))
         
     def SendUnban(self, UserId:int, InAuthName:str):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.UnbanUser, TargetUserId=UserId, AuthName=InAuthName))
     
     def SendLeaveServer(self, ServerToLeave:int, InstanceId):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.LeaveServer, Destination=InstanceId, TargetServer=ServerToLeave))
         
     def SendReprocessBans(self, ServerToRetry:int, InstanceId, InNumToRetry:int=-1):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessBans, Destination=InstanceId, TargetServer=ServerToRetry, NumToRetry=InNumToRetry))
     
     def SendReprocessInstanceBans(self, InstanceId, InNumToRetry:int=-1):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessInstance, Destination=InstanceId, NumToRetry=InNumToRetry))
     
     def SendPing(self, InstanceToTarget):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
-        
         self.Connection.send(self.GenerateMessage(RelayMessageType.Ping, Destination=InstanceToTarget))
     
     def SendActivationForServers(self, UserId):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessActivation, TargetUserId=UserId))
         
     def SendActivationForServerInstance(self, UserId, ServerId, InstanceToTarget):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessServerActivation, TargetUserId=UserId, TargetServer=ServerId, Destination=InstanceToTarget))
     
     def SendDeactivationForServers(self, UserId):
-        if (self.BotID != ConfigData.ControlBotID):
+        if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
             return
         self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessDeactivation, TargetUserId=UserId))
     

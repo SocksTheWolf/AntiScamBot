@@ -20,9 +20,14 @@ class SubmitScamReport(ui.Modal):
         ModalTitle:str=f"Report {TruncatedName}[{InReportUser.id}]"[:45]
         super().__init__(title=ModalTitle)
     
-    async def on_submit(self, interaction: Interaction):                
+    async def on_submit(self, interaction: Interaction):
+        if (self.ReportedUser is None):
+            Logger.Log(LogLevel.Error, "Failed to get reported user on scam submission, somehow none???")
+            await interaction.response.send_message(f"Unable to submit report, please try again in a minute", ephemeral=True)
+            return
+        
         # Check to see if already banned.
-        if (interaction.client.Database.DoesBanExist(self.ReportedUser.id)):
+        if (interaction.client.Database.DoesBanExist(self.ReportedUser.id)): # pyright: ignore[reportAttributeAccessIssue]
             await interaction.response.send_message(f"The reported user has been already banned.", ephemeral=True, delete_after=20.0)
             return
         
@@ -34,7 +39,7 @@ class SubmitScamReport(ui.Modal):
         ScamReportPayload = {
             "ReportingUserName": interaction.user.name,
             "ReportingUserId": interaction.user.id,
-            "ReportedServer": interaction.guild.name,
+            "ReportedServer": interaction.guild.name, # pyright: ignore[reportOptionalMemberAccess]
             "ReportedServerId": interaction.guild_id,
             "ReportedUserGlobalName": self.ReportedUser.display_name,
             "ReportedUserName": self.ReportedUser.name,
@@ -46,8 +51,12 @@ class SubmitScamReport(ui.Modal):
         }
         
         await interaction.response.defer(thinking=True)
-        interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload))
+        interaction.client.AddAsyncTask(interaction.client.PostScamReport(ScamReportPayload)) # pyright: ignore[reportAttributeAccessIssue]
         
     async def on_error(self, interaction: Interaction, exceptionError: Exception):
         Logger.Log(LogLevel.Error, f"Encountered Exception with the scam report modal: {str(exceptionError)}")
-        await interaction.response.send_message(f"Unable to send report about user {self.ReportedUser.id}", ephemeral=True, delete_after=20.0)
+        # I hate pylance so much
+        ReportedUserId = 0
+        if (self.ReportedUser is not None):
+            ReportedUserId = self.ReportedUser.id
+        await interaction.response.send_message(f"Unable to send report about user {ReportedUserId}", ephemeral=True, delete_after=20.0)
