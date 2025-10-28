@@ -39,7 +39,7 @@ class BotSettingsPayload:
     
     def LoadFromDB(self, BotInstance):
         DB = BotInstance.Database
-        ServerInfo:Server = DB.GetServerInfo(self.Server.id)
+        ServerInfo:Server = DB.GetServerInfo(self.GetServerID())
         if (int(ServerInfo.activation_state) == 0):
             self.KickSusRequired = self.WebHookRequired = True
         else:
@@ -118,7 +118,7 @@ class ServerSettingsView(SelfDeletingView):
     @ui.button(label="Confirm Settings", style=ButtonStyle.success, row=4)
     async def setup(self, interaction: Interaction, button: ui.Button):
         # Couple of quick reference settings
-        DB = interaction.client.Database
+        DB = interaction.client.Database # pyright: ignore[reportAttributeAccessIssue]
         ServerId:int = self.Payload.GetServerID()
         ConfigData:Config = Config()
         
@@ -159,6 +159,10 @@ class ServerSettingsView(SelfDeletingView):
                     Logger.Log(LogLevel.Debug, "Deleting old webhook reference")
                     await interaction.client.DeleteWebhook(ServerId) # pyright: ignore[reportAttributeAccessIssue]
 
+                if (interaction.client.user is None):
+                    Logger.Log(LogLevel.Error, "ScamGuard lost login during this interaction")
+                    return
+                
                 BotMember:Member|None = cast(Guild, interaction.guild).get_member(interaction.client.user.id)
                 if (BotMember is None):
                     Logger.Log(LogLevel.Error, "Bot was invalid during setup somehow")

@@ -33,12 +33,12 @@ class DiscordBot(discord.Client):
     BotID:int = -1
 
     def __init__(self, RelayFileLocation, AssignedBotID:int=-1):
-        self.Database:ScamBotDatabase = None
-        self.ClientHandler:RelayClient = None
+        self.Database:ScamBotDatabase = ScamBotDatabase()
+        # This gets set properly down below.
+        self.ClientHandler:RelayClient = None # pyright: ignore[reportAttributeAccessIssue]
         # initialize other values
         self.AsyncTasks = set()
         self.LoggingMessageQueue = SimpleQueue()
-        self.Database = ScamBotDatabase()
         self.ServerSetupHelper = ScamGuardServerSetup(self)
         self.BotID = AssignedBotID
         intents = discord.Intents.none()
@@ -100,7 +100,7 @@ class DiscordBot(discord.Client):
             await self.Commands.sync()
         else:
             # Remove the report and check commands from any control servers
-            self.Commands.remove_command(GlobalCommands, guild=CommandControlServer)
+            self.Commands.remove_command(GlobalCommands, guild=CommandControlServer) # pyright: ignore[reportArgumentType]
             await self.Commands.sync(guild=CommandControlServer)
             await self.Commands.sync()
             

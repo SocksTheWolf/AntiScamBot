@@ -3,12 +3,13 @@ from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
 from BotDatabaseSchema import Ban, Server
-from sqlalchemy import create_engine, select, URL, desc, func
+from sqlalchemy import create_engine, Engine, select, URL, desc, func
 from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
+from typing import cast
 
 class ScamBotDatabase():
-    Database:Session = None # type: ignore
+    Database:Session = None # pyright: ignore[reportAssignmentType]
     
     ### Initialization/Teardown ###
     def __init__(self, *args, **kwargs):
@@ -31,8 +32,8 @@ class ScamBotDatabase():
 
     def Close(self):
         if (self.IsConnected()):
-            self.Database.get_bind().dispose() # type: ignore
-            self.Database = None # type: ignore
+            cast(Engine, self.Database.get_bind()).dispose()
+            self.Database = None # pyright: ignore[reportAttributeAccessIssue]
             
     def IsConnected(self) -> bool:
         if (self.Database is not None):
@@ -52,7 +53,7 @@ class ScamBotDatabase():
             return False
         
         if (self.IsConnected()):
-            self.Database.commit() # type: ignore
+            self.Database.commit()
             self.Close()
         
         # Copy the database file over here
