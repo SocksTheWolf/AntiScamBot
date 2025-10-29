@@ -157,10 +157,10 @@ def SetupDatabases():
     if (inspect(engine).has_table("banslist") == True):
         query = text('PRAGMA user_version')
         CurrentVersion = session.execute(query).first()
-        if (CurrentVersion is None):
-            CurrentVersion = 0
-        else:
+        if (CurrentVersion is not None):
             CurrentVersion = CurrentVersion[0]
+        else:
+            CurrentVersion = 0
 
     if (inspect(engine).has_table("migrations") == True):
         stmt = select(Migration).order_by(desc(Migration.id))
