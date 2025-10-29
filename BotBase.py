@@ -707,18 +707,21 @@ Failed Copied Evidence Links:
             if (DiscordServer is not None):
                 BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, Action)
                 if (BanResultTuple[0]):
+                    # Ban was successful, continue processing
                     NumServersPerformed += 1
                 else:
                     ResultFlag = BanResultTuple[1]         
                     if (Action == ModerationAction.Ban):
                         if (ResultFlag == BanResult.InvalidUser):
-                            # TODO: This might be a potential fluke
+                            Logger.Log(LogLevel.Warn, f"Got a ban result of invalid while trying to process ban for {TargetId}")
                             break
                         elif (ResultFlag == BanResult.ServerOwner):
                             Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {self.GetServerInfoStr(DiscordServer)} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
                             continue
                     elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error or ResultFlag == BanResult.BansExceeded):
                         self.AddAsyncTask(self.PostBanFailureInformation(DiscordServer, TargetId, ResultFlag, Action))
+                    elif (ResultFlag == BanResult.ServiceError):
+                        self.AddAsyncTask(self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, Action, True))
             else:
                 # TODO: Potentially remove the server from the list?
                 Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
@@ -726,16 +729,18 @@ Failed Copied Evidence Links:
         Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} performed in {NumServersPerformed}/{NumServers} servers")
         
     # Handles moderation actions an user in each individual server
-    async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member|discord.User, Reason:str, Action:ModerationAction) -> tuple[bool, BanResult]:
+    async def PerformActionOnServer(self, Server:discord.Guild, User:discord.Member|discord.User, Reason:str, Action:ModerationAction, ShouldWait:bool=False) -> tuple[bool, BanResult]:        
         IsDevelopmentMode:bool = ConfigData.IsDevelopment()
         BanId:int = User.id
         ServerOwnerId:int = Server.owner_id or 0
         ServerInfo:str = self.GetServerInfoStr(Server)
+        if (ShouldWait):
+            await asyncio.sleep(ConfigData["SleepAmount"])
+
         try:
-            BanStr:str = str(Action).lower()
-            Logger.Log(LogLevel.Verbose, f"Performing {BanStr} action on {BanId} in {ServerInfo} owned by {ServerOwnerId}")
+            Logger.Log(LogLevel.Verbose, f"Performing {Action} action on {BanId} in {ServerInfo} owned by {ServerOwnerId}")
             if (BanId == ServerOwnerId):
-                Logger.Log(LogLevel.Warn, f"{BanStr.title()} of {BanId} dropped for {ServerInfo} as it is the owner!")
+                Logger.Log(LogLevel.Warn, f"{Action} of {BanId} dropped for {ServerInfo} as it is the owner!")
                 return (False, BanResult.ServerOwner)
             
             # if we are in development mode, we don't do any actions to any other servers.
@@ -766,6 +771,9 @@ Failed Copied Evidence Links:
             if (ex.code == 30035):
                 Logger.Log(LogLevel.Warn, f"Hit the bans exceeded error while trying to perform actions on server {ServerInfo}")
                 return (False, BanResult.BansExceeded)
+            if (ex.status == 503):
+                Logger.Log(LogLevel.Warn, f"We encountered an 503 error while trying to perform actions on {BanId} for server {ServerInfo}, will retry")
+                return (False, BanResult.ServiceError)
             
             Logger.Log(LogLevel.Warn, f"We encountered an error {(str(ex))} while trying to perform for server {ServerInfo} owned by {ServerOwnerId}!")
         return (False, BanResult.Error)

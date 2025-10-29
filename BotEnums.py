@@ -22,6 +22,7 @@ class BanResult(CompareEnum):
   LostPermissions=auto()
   BansExceeded=auto()
   ServerOwner=auto()
+  ServiceError=auto()
   Error=auto()
   
 class RelayMessageType(CompareEnum):
