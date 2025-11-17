@@ -7,10 +7,11 @@ on:
   workflow_dispatch:
     inputs:
         restart_bot:
-            description: 'Restart Bot'
+            description: 'Restart Bot Instances'
             required: true
             type: boolean
-   
+
+# Prevent multiple instances of this action from running at once
 concurrency:
   group: "botdeploy"
   cancel-in-progress: false
@@ -40,7 +41,7 @@ jobs:
       with:
         ref: ${{ github.ref }}
     
-    - name: Action Check
+    - name: Dependency Update Check
       uses: dorny/paths-filter@v3.0.2
       id: filter
       with:
@@ -60,7 +61,7 @@ jobs:
         log-public-key: false
 
     # If any runtime files updated, then we need to stop all bot instances.
-    - name: Kill Instances
+    - name: Kill Running Instances
       id: kill_bot
       if: steps.filter.outputs.deps_update_needed == 'true' || steps.filter.outputs.core_updated == 'true' || inputs.restart_bot == 'true'
       uses: appleboy/ssh-action@master
@@ -74,7 +75,7 @@ jobs:
           echo "Service Killed."
 
     # We want to update the project regardless.
-    - name: Update Project
+    - name: Sync Project
       uses: appleboy/ssh-action@master
       with:
         host: ${{secrets.SSH_HOST}}
