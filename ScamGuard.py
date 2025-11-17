@@ -2,7 +2,7 @@
 # Such as the host system that shares commands/messages to sub-instances and things like backup.
 # It should not handle any recv instructions from ServerHandler except for requests by sub-instances.
 from Logger import Logger, LogLevel
-from BotEnums import BanResult, BanLookup, ModerationAction
+from BotEnums import BanResult, BanAction, ModerationAction
 from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
@@ -203,8 +203,8 @@ class ScamGuard(DiscordBot):
             Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
     ### Ban Handling ###
-    async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction, ThreadId:int|None=None) -> BanLookup:
-        DatabaseAction:BanLookup
+    async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction, ThreadId:int|None=None) -> BanAction:
+        DatabaseAction:BanAction
         
         if (Action == ModerationAction.Ban):
             DatabaseAction = self.Database.AddBan(TargetId, Sender.name, Sender.id, ThreadId)
@@ -212,11 +212,13 @@ class ScamGuard(DiscordBot):
             DatabaseAction = self.Database.RemoveBan(TargetId)
         else:
             Logger.Log(LogLevel.Error, f"An invalid moderation action was passed to HandleBanAction, {Action}")
-            return BanLookup.DBError
+            return BanAction.DBError
         
-        if (DatabaseAction != BanLookup.Good):
+        # If we encountered an error, return said error, don't do anything else.
+        if (DatabaseAction not in [BanAction.Banned, BanAction.Unbanned]):
             return DatabaseAction
         
+        # Queue up tasks to fire later
         self.AddAsyncTask(self.CreateBanAnnouncement(TargetId, Action))
         self.AddAsyncTask(self.PropagateActionToServers(TargetId, Sender, Action))
         

@@ -1,7 +1,9 @@
 from Logger import Logger, LogLevel
-from BotEnums import BanLookup, ModerationAction
-from discord import ui, ButtonStyle, Interaction, Member, User, WebhookMessage
+from BotEnums import BanAction, ModerationAction
+from discord import ui, ButtonStyle, Interaction, Member, User, ForumTag, Thread
 from ModalHelpers import SelfDeletingView
+from Config import Config
+from typing import cast
 
 class ConfirmBan(SelfDeletingView):
     TargetId:int = 0
@@ -14,6 +16,24 @@ class ConfirmBan(SelfDeletingView):
         
     async def on_cancel(self, interaction:Interaction):
         await interaction.response.send_message("This action was cancelled.", ephemeral=True, delete_after=10.0)
+        
+    async def AddTag(self, thread: Thread, Action: BanAction):
+        # Attempt to set the forum handled/duplicate tag because this is really annoying otherwise
+        try:
+            TagName:str = ""
+            if (Action == BanAction.Banned):
+                TagName = Config()["ReportHandledTag"]
+            elif (Action == BanAction.Duplicate):
+                TagName = Config()["ReportDuplicateTag"]
+            else:
+                return
+            HandledForumTag:ForumTag = ForumTag(name=TagName)
+            if (HandledForumTag not in thread.applied_tags):
+                await thread.add_tags(HandledForumTag)
+            else:
+                return
+        except Exception as ex:
+            Logger.Log(LogLevel.Warn, f"Could not set the handled tag in {thread.id} {str(ex)}")
         
     @ui.button(label="Confirm Ban", style=ButtonStyle.danger, row=4)
     async def confirm(self, interaction: Interaction, button: ui.Button):
@@ -29,9 +49,9 @@ class ConfirmBan(SelfDeletingView):
         
         await interaction.response.defer(thinking=True)
         self.HasInteracted = True
-        Result:BanLookup = await self.ScamBot.HandleBanAction(self.TargetId, Sender, ModerationAction.Ban, interaction.channel_id)
-        if (Result is not BanLookup.Banned):
-            if (Result == BanLookup.Duplicate):
+        Result:BanAction = await self.ScamBot.HandleBanAction(self.TargetId, Sender, ModerationAction.Ban, interaction.channel_id)
+        if (Result is not BanAction.Banned):
+            if (Result == BanAction.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"
                 Logger.Log(LogLevel.Log, f"The given id {self.TargetId} is already banned.")
             else:
@@ -40,6 +60,7 @@ class ConfirmBan(SelfDeletingView):
         else:
             ResponseMsg = f"{interaction.user.mention}, the ban for {self.TargetId} is now in progress..."
 
+        await self.AddTag(cast(Thread, interaction.channel), Result)
         # Make this message silent as we may include an @ mention in here and do not want to bother the user with notifications
         await interaction.followup.send(ResponseMsg, silent=True)
         await self.StopInteractions()

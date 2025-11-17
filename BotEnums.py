@@ -7,14 +7,15 @@ class ModerationAction(CompareEnum):
   Unban=auto()
   Kick=auto()
 
-class BanLookup(CompareEnum):
-  Good=auto()
+# Enum that expresses Bans on a global bot level
+class BanAction(CompareEnum):
   Banned=auto()
   Unbanned=auto()
   Duplicate=auto()
   NotExist=auto()
   DBError=auto()
   
+# Enum that expresses bans on a server level based off discord returns
 class BanResult(CompareEnum):
   Processed=auto()
   NotBanned=auto()

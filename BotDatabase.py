@@ -1,4 +1,4 @@
-from BotEnums import BanLookup
+from BotEnums import BanAction
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
@@ -315,9 +315,9 @@ class ScamBotDatabase():
         return self.Database.scalars(stmt).first()
 
     ### Adding/Removing Bans ###
-    def AddBan(self, TargetId:int, BannerName:str, BannerId:int, ThreadId:int|None) -> BanLookup:
+    def AddBan(self, TargetId:int, BannerName:str, BannerId:int, ThreadId:int|None) -> BanAction:
         if (self.DoesBanExist(TargetId)):
-            return BanLookup.Duplicate
+            return BanAction.Duplicate
 
         ban = Ban(
             discord_user_id = TargetId,
@@ -331,11 +331,11 @@ class ScamBotDatabase():
         self.Database.add(ban)
         self.Database.commit()
 
-        return BanLookup.Good
+        return BanAction.Banned
     
-    def RemoveBan(self, TargetId:int) -> BanLookup:
+    def RemoveBan(self, TargetId:int) -> BanAction:
         if (not self.DoesBanExist(TargetId)):
-            return BanLookup.NotExist
+            return BanAction.NotExist
         
         stmt = select(Ban).where(Ban.discord_user_id==TargetId)
         ban = self.Database.scalars(stmt).first()
@@ -343,7 +343,7 @@ class ScamBotDatabase():
         self.Database.delete(ban)
         self.Database.commit()
 
-        return BanLookup.Good
+        return BanAction.Unbanned
     
     ### Updating Ban Data ###
     def SetEvidenceThread(self, TargetId:int, ThreadId:int):
