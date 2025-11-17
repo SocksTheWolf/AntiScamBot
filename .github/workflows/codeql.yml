@@ -16,6 +16,7 @@ on:
     branches: [ "main" ]
     paths:
       - '**.py'
+      - '.github/workflows/**'
   pull_request:
     branches: [ "main" ]
   schedule:

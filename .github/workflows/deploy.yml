@@ -32,6 +32,10 @@ jobs:
   deploy:
     needs: cleanup
     environment: production
+    permissions:
+      contents: read
+      actions: read
+      statuses: read
     env:
       AUTHKEYNAME: ${{ vars.AUTH_KEY_NAME }}
     runs-on: ubuntu-latest
