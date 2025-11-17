@@ -1,9 +1,11 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanAction, ModerationAction
-from discord import ui, ButtonStyle, Interaction, Member, User, ForumTag, Thread
+from discord import ui, ButtonStyle, Interaction, Member, User, ForumTag, Thread, ForumChannel
 from ModalHelpers import SelfDeletingView
 from Config import Config
 from typing import cast
+
+ConfigData:Config = Config()
 
 class ConfirmBan(SelfDeletingView):
     TargetId:int = 0
@@ -20,16 +22,27 @@ class ConfirmBan(SelfDeletingView):
     async def AddTag(self, thread: Thread, Action: BanAction):
         # Attempt to set the forum handled/duplicate tag because this is really annoying otherwise
         try:
-            TagName:str = ""
+            TagToApply:ForumTag
+            TagToFind:str = ""
+            
+            # What kind of tag are we looking for
             if (Action == BanAction.Banned):
-                TagName = Config()["ReportHandledTag"]
+                TagToFind = ConfigData["ReportHandledTag"]
             elif (Action == BanAction.Duplicate):
-                TagName = Config()["ReportDuplicateTag"]
+                TagToFind = ConfigData["ReportDuplicateTag"]
             else:
                 return
-            HandledForumTag:ForumTag = ForumTag(name=TagName)
-            if (HandledForumTag not in thread.applied_tags):
-                await thread.add_tags(HandledForumTag)
+            
+            # Because ScamGuard runs in both the web report and the standard report channel,
+            # we need to dynamically scan the tags. It would probably be smarter to cache them, maybe later.
+            for tag in cast(ForumChannel, thread.parent).available_tags:
+                if (tag.name == TagToFind):
+                    TagToApply = tag
+                    break
+
+            # Check to see if the tag is not already applied.
+            if (TagToApply not in thread.applied_tags):
+                await thread.add_tags(TagToApply)
             else:
                 return
         except Exception as ex:
