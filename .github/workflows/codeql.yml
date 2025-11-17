@@ -14,9 +14,6 @@ name: "CodeQL"
 on:
   push:
     branches: [ "main" ]
-    paths:
-      - '**.py'
-      - '.github/workflows/**'
   pull_request:
     branches: [ "main" ]
   schedule:
