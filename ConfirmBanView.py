@@ -43,7 +43,7 @@ class ConfirmBan(SelfDeletingView):
 
       # Check to see if the tag is not already applied.
       if (TagToApply not in thread.applied_tags):
-        await thread.add_tags(TagToApply)
+        await thread.add_tags(TagToApply, reason=f"Adding tag '{TagToFind}'")
       else:
         return
     except Exception as ex:
