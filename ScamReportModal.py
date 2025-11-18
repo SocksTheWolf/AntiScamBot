@@ -1,3 +1,4 @@
+# Discord Modal for submitting scam reports from other servers
 from discord import ui, TextStyle, Interaction, Member, User
 from Logger import Logger, LogLevel
 

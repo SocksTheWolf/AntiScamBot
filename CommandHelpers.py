@@ -1,3 +1,4 @@
+# Helper functions for Discord application commands
 from Logger import Logger, LogLevel
 from discord import Interaction, app_commands
 import traceback, re

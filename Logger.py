@@ -1,8 +1,7 @@
 from enum import auto
-from EnumWrapper import CompareEnum
-import datetime, time, asyncio, sys
-from logger_tt import setup_logging, logger
-import coloredlogs
+from BotEnums import CompareEnum
+import datetime, time, asyncio, sys, coloredlogs
+from logger_tt import setup_logging, logger 
 
 __all__ = ["LogLevel", "Logger"]
 

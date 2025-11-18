@@ -1,3 +1,5 @@
+# An ipc messaging hub for communicating between different Discord bot instances
+# via multiprocessing
 from Logger import Logger, LogLevel
 from multiprocessing.connection import Listener, Connection, Client, wait
 from BotEnums import RelayMessageType

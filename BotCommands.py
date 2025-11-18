@@ -1,3 +1,4 @@
+# ScamGuard application commands that are used on every server
 from CommandHelpers import TargetIdTransformer
 from discord import app_commands, Interaction, Member, User, Embed
 from ScamReportModal import SubmitScamReport

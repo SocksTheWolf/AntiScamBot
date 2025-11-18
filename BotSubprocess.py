@@ -1,3 +1,4 @@
+# Subprocess handler for creating sub-bot instances
 from Logger import Logger, LogLevel
 from BotBase import DiscordBot
 from Config import Config

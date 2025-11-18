@@ -1,3 +1,4 @@
+# A discord view for handling server activations
 from discord import ui, ButtonStyle, Interaction, Colour, Embed, Guild, TextChannel
 from Config import Config
 from Logger import Logger, LogLevel

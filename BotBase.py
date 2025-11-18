@@ -10,7 +10,7 @@ from Config import Config
 from BotConnections import RelayClient
 import discord, asyncio, json, aiohttp, io
 from discord.ext import tasks
-from BotDatabase import ScamBotDatabase
+from BotDatabase import DatabaseDriver
 from queue import SimpleQueue
 from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
@@ -33,7 +33,7 @@ class DiscordBot(discord.Client):
     BotID:int = -1
 
     def __init__(self, RelayFileLocation, AssignedBotID:int=-1):
-        self.Database:ScamBotDatabase = ScamBotDatabase()
+        self.Database:DatabaseDriver = DatabaseDriver()
         # This gets set properly down below.
         self.ClientHandler:RelayClient = None # pyright: ignore[reportAttributeAccessIssue]
         # initialize other values

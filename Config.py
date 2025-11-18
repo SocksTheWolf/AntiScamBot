@@ -1,8 +1,7 @@
-import os
+# Config singleton for loading configuration data from a json file
+import os, copy, json
 from dotenv import load_dotenv
 from Logger import LogLevel, Logger
-import json
-import copy
 
 load_dotenv()
 

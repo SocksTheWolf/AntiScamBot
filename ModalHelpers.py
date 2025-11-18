@@ -1,8 +1,8 @@
 from discord import ui, Interaction, SelectOption, Guild, WebhookMessage, ButtonStyle
 from discord import Message, Role, TextChannel, ChannelType, Member, Permissions
 from Logger import Logger, LogLevel
-import traceback
 from typing import cast
+import traceback
 
 class YesNoSelector(ui.Select):
     CurrentSelection:str = ""

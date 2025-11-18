@@ -1,3 +1,4 @@
+# Discord View Modal for Confirming Moderation Actions
 from Logger import Logger, LogLevel
 from BotEnums import BanAction, ModerationAction
 from discord import ui, ButtonStyle, Interaction, Member, User, ForumTag, Thread, ForumChannel
@@ -9,12 +10,12 @@ ConfigData:Config = Config()
 
 class ConfirmBan(SelfDeletingView):
     TargetId:int = 0
-    ScamBot = None
+    BotInstance = None
     
     def __init__(self, target:int, bot):
         super().__init__(ViewTimeout=90.0)
         self.TargetId = target
-        self.ScamBot = bot
+        self.BotInstance = bot
         
     async def on_cancel(self, interaction:Interaction):
         await interaction.response.send_message("This action was cancelled.", ephemeral=True, delete_after=10.0)
@@ -56,13 +57,13 @@ class ConfirmBan(SelfDeletingView):
         
         Sender:Member|User = interaction.user
         ResponseMsg:str = ""
-        if (self.ScamBot is None):
-            Logger.Log(LogLevel.Error, "ConfirmBan view has an invalid ScamBot reference!!")    
+        if (self.BotInstance is None):
+            Logger.Log(LogLevel.Error, "ConfirmBan view has an invalid bot reference!!")    
             return
         
         await interaction.response.defer(thinking=True)
         self.HasInteracted = True
-        Result:BanAction = await self.ScamBot.HandleBanAction(self.TargetId, Sender, ModerationAction.Ban, interaction.channel_id)
+        Result:BanAction = await self.BotInstance.HandleBanAction(self.TargetId, Sender, ModerationAction.Ban, interaction.channel_id)
         if (Result is not BanAction.Banned):
             if (Result == BanAction.Duplicate):
                 ResponseMsg = f"{self.TargetId} already exists in the ban database"

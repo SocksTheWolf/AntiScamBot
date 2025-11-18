@@ -1,3 +1,4 @@
+# Database driver for ScamGuard
 from BotEnums import BanAction
 from Logger import Logger, LogLevel
 from Config import Config
@@ -8,7 +9,7 @@ from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
 from typing import cast
 
-class ScamBotDatabase():
+class DatabaseDriver():
     Database:Session = None # pyright: ignore[reportAssignmentType]
     
     ### Initialization/Teardown ###

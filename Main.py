@@ -1,7 +1,7 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanAction, ModerationAction
 from Config import Config
-from CommandHelpers import TargetIdTransformer, ServerIdTransformer, CommandErrorHandler
+from CommandHelpers import TargetIdTransformer, ServerIdTransformer
 from discord import app_commands, Interaction, User, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases
 from ScamGuard import ScamGuard
@@ -12,10 +12,13 @@ ConfigData:Config=Config()
 if __name__ == '__main__':
     async def has_activation_intents(ctx):
         return ctx.client.intents.members
-        
+    
+    ### MAIN INSTANCE SETUP ###
     CommandControlServer=Object(id=ConfigData["ControlServer"])
     ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
     
+    # These are all the main ScamGuard control commands for usage in the control server, these
+    # do not get used in any other server, thus their very strange location and setup wrapping
     @ScamGuardBot.Commands.command(name="info", description="ScamGuard Info", guild=CommandControlServer)
     @app_commands.checks.cooldown(1, 3.0)
     async def PrintScamInfo(interaction:Interaction):
@@ -265,5 +268,7 @@ if __name__ == '__main__':
         await interaction.response.send_message(f"Attempting to clean up inactive servers now. Dry Run? {dryrun}")
         await ScamGuardBot.RunPeriodicLeave(dryrun) 
     
+    # Setup any database migration
     SetupDatabases()
+    # Run the actual bot until the death of this application
     ScamGuardBot.run(ConfigData.GetToken())
