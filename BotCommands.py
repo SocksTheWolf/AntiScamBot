@@ -40,7 +40,7 @@ class GlobalScamCommands(app_commands.Group):
     @app_commands.checks.cooldown(1, 5.0)
     async def ReportScam_Global(self, interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):        
         if (interaction.guild_id == Config()["ControlServer"]):
-            await interaction.response.send_message("You cannot make remote reports from this server!", ephemeral=True, delete_after=5.0)
+            await interaction.response.send_message("This command cannot be used in the control server", ephemeral=True, delete_after=5.0)
             return
         
         InteractionId:int|None = interaction.guild_id

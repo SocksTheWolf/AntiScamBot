@@ -480,7 +480,7 @@ Failed Copied Evidence Links:
         except discord.Forbidden:
             await MessageChannel.send("ScamGuard was unable to install the ban notification webhook. You can try again later, or manually install from the TAG Server")
         except discord.HTTPException:
-            Logger.Log(LogLevel.Warn, f"")
+            Logger.Log(LogLevel.Log, f"Encountered an HTTP error while trying to install the webhook")
             
     async def DeleteWebhook(self, ServerId:int):
         if (self.AnnouncementChannel is None):
