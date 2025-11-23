@@ -4,7 +4,11 @@ from Config import Config
 from Logger import Logger, LogLevel
 from BotServerSettings import ServerSettingsView, BotSettingsPayload
 from ModalHelpers import SelfDeletingView
+from TextWrapper import TextLibrary
 from typing import cast
+
+Messages:TextLibrary = TextLibrary()
+ConfigData:Config = Config()
 
 class ScamGuardServerSetup():
   BotInstance = None
@@ -16,7 +20,7 @@ class ScamGuardServerSetup():
     if (InServer is None):
       return False
     
-    BotConflicts = Config()["ConflictingBots"]
+    BotConflicts = ConfigData["ConflictingBots"]
     for DiscordBotId in BotConflicts:
       if (await self.BotInstance.LookupMember(DiscordBotId, InServer) is not None): # pyright: ignore[reportOptionalMemberAccess]
         return True
@@ -31,22 +35,22 @@ class ScamGuardServerSetup():
     await interaction.response.defer(ephemeral=True, thinking=True)
     NumBans:int = self.BotInstance.Database.GetNumBans()
     
-    InformationEmbed:Embed = self.BotInstance.CreateBaseEmbed("ScamGuard Setup Welcome")
-    InformationEmbed.add_field(name="Setup Info", inline=False, value="When you click on the 'Confirm Settings' button, ScamGuard will enqueue an activation request to handle your server setup (This may take awhile).\nWhen complete, ScamGuard will start importing bans")
-    InformationEmbed.add_field(name="Number of Bans", inline=False, value=f"ScamGuard will import ~{NumBans} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't always the people already in your server, but instead scammers that could enter, establishing a firewall.")
-    InformationEmbed.add_field(name="Commands", inline=False, value="Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report any scammers that you ban that ScamGuard hasn't taken care of for you.")
+    InformationEmbed:Embed = self.BotInstance.CreateBaseEmbed(Messages["setup"]["title"])
+    InformationEmbed.add_field(name=Messages["setup"]["info"]["title"], inline=False, value=Messages["setup"]["info"]["msg"])
+    InformationEmbed.add_field(name=Messages["setup"]["stats"]["title"], inline=False, value=Messages["setup"]["stats"]["msg"].format(number=NumBans))
+    InformationEmbed.add_field(name=Messages["setup"]["report"]["title"], inline=False, value=Messages["setup"]["report"]["msg"])
     InformationEmbed.add_field(name="", value="", inline=False)
     self.BotInstance.AddSettingsEmbedInfo(InformationEmbed)
     InformationEmbed.add_field(name="", value="", inline=False)
     InformationEmbed.add_field(name="IMPORTANT:", value="", inline=False)
-    InformationEmbed.add_field(name="Roles", inline=False, value="Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, please see [this advanced setup guide](https://scamguard.app/install#advanced).")
+    InformationEmbed.add_field(name=Messages["setup"]["roles"]["title"], inline=False, value=Messages["setup"]["roles"]["msg"])
     
     # Check to see if WizeBot/Carlbot is in the server, and warn about it.
     if (await self.CheckForBotConflicts(interaction.guild)):
-      InformationEmbed.add_field(name="WizeBot & Carlbot", inline=False, value="**WARNING**: Wizebot/Carlbot has been detected in your server, you will need to whitelist ScamGuard in their dashboard, otherwise ScamGuard won't be able to work properly!")
+      InformationEmbed.add_field(name=Messages["setup"]["conflicts"]["title"], inline=False, value=Messages["setup"]["conflicts"]["msg"])
     
     InformationEmbed.add_field(name="", value="", inline=False)
-    InformationEmbed.add_field(name="Important Links", inline=False, value="[Support](https://scamguard.app/discord) | [How To Use](https://scamguard.app/usage) | [Terms Of Service](https://scamguard.app/terms) | [Privacy Policy](https://scamguard.app/privacy)")
+    InformationEmbed.add_field(name=Messages["setup"]["important_links"]["title"], inline=False, value=Messages["setup"]["important_links"]["msg"])
     InformationEmbed.set_footer(text="ScamGuard")
     
     NewSetupView:ServerSettingsView = ServerSettingsView(self.SendActivationRequest, interaction)
@@ -75,7 +79,7 @@ class ScamGuardServerSetup():
       return
     
     # If we don't require moderation for activation approval
-    if (Config()["RequireActivationApproval"] == False):
+    if (ConfigData["RequireActivationApproval"] == False):
       Logger.Log(LogLevel.Notice, f"Attempting to activate a server without approval necessary!")
       await self.PushActivation(Payload)
       return
@@ -111,7 +115,7 @@ class ServerActivationApproval(SelfDeletingView):
   async def setup(self, interaction: Interaction, button: ui.Button):
     self.HasInteracted = True
     ServerIDStr:str = interaction.client.GetServerInfoStr(self.Payload.Server) # pyright: ignore[reportAttributeAccessIssue]
-    await interaction.response.send_message(f"Enqueing activation for server {ServerIDStr}")
+    await interaction.response.send_message(f"Enqueuing activation for server {ServerIDStr}")
     await self.Parent.PushActivation(self.Payload) # pyright: ignore[reportOptionalMemberAccess]
     await self.StopInteractions()
     
@@ -131,7 +135,7 @@ class ServerActivationApproval(SelfDeletingView):
     
     # Do not send a message if the server admins sent the activation command a few times already.
     if (not Bot.Database.IsActivatedInServer(ServerID)): # pyright: ignore[reportAttributeAccessIssue]
-      await DiscordChannel.send("An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support")
+      await DiscordChannel.send(Messages["setup"]["activation_error"])
       
   async def on_cancel(self, interaction:Interaction):
     self.HasInteracted = True

@@ -2,8 +2,11 @@ from discord import ui, Guild, ButtonStyle, Interaction, User, Member, TextChann
 from ModalHelpers import YesNoSelector, SelfDeletingView, ModChannelSelector
 from BotDatabaseSchema import Server
 from Logger import Logger, LogLevel
+from TextWrapper import TextLibrary
 from Config import Config
 from typing import cast
+
+Messages:TextLibrary = TextLibrary()
 
 class BotSettingsPayload:
   InteractiveUser:User|Member|None = None
@@ -53,26 +56,26 @@ class BotSettingsPayload:
 
 class InstallWebhookSelector(YesNoSelector):
   def GetYesDescription(self) -> str:
-    return "Yes, install the ban notification webhook"
+    return Messages["selector"]["webhook"]["yes"]
   
   def GetNoDescription(self) -> str:
-    return "No, do not install the ban notification webhook"
+    return Messages["selector"]["webhook"]["no"]
   
   def GetPlaceholder(self) -> str:
-    return "ScamGuard Ban Notifications"
+    return Messages["selector"]["webhook"]["placeholder"]
   
   def SetNotRequiredIfValueSet(self) -> bool:
     return True
   
 class KickSuspiciousUsersSelector(YesNoSelector):
   def GetYesDescription(self) -> str:
-    return "Yes, kick any suspicious users. These are usually users that have sent numerous friend requests upon joining servers, or mass DMs"
+    return Messages["selector"]["kick"]["yes"]
   
   def GetNoDescription(self) -> str:
-    return "No, do not kick any suspicious users automatically. This may have false positives!"
+    return Messages["selector"]["kick"]["no"]
   
   def GetPlaceholder(self) -> str:
-    return "Kick Suspicious Accounts"
+    return Messages["selector"]["kick"]["placeholder"]
   
   def SetNotRequiredIfValueSet(self) -> bool:
     return True
@@ -132,7 +135,7 @@ class ServerSettingsView(SelfDeletingView):
       if (MadeWebhookSelection):
         self.Payload.WantsWebhooks = self.WebhookSelector.GetValue() or False
       elif self.WebhookSelector.IsRequired():
-        await interaction.response.send_message("Please choose an option for ban notifications!", ephemeral=True, delete_after=10.0)
+        await interaction.response.send_message(Messages["selector"]["choose"], ephemeral=True, delete_after=10.0)
         return
 
     # Check to see if the channel option has changed. This code specifically will allow it for the user to not change the setting and still
@@ -172,12 +175,11 @@ class ServerSettingsView(SelfDeletingView):
           
           # Check to see if we can manage webhooks in that channel, if the user wants us to add ban notifications
           if (not PermissionsObj.manage_webhooks):
-            await interaction.response.send_message(f"ScamGuard needs permissions to add a webhook into the channel {ChannelToHookInto.mention}, please give it 'Manage Webhook' permissions", 
-                                ephemeral=True, delete_after=80.0)
+            await interaction.response.send_message(Messages["selector"]["webhook"]["need_perm"].format(channel=ChannelToHookInto.mention), ephemeral=True, delete_after=100.0)
             return
         else:
           Logger.Log(LogLevel.Warn, "ChannelToHookInto was None, which should not be an accessible area?")
-          await interaction.response.send_message("You must set a text channel to install the webhook into", ephemeral=True, delete_after=20.0)
+          await interaction.response.send_message(Messages["selector"]["webhook"]["text_channel"], ephemeral=True, delete_after=20.0)
           return
       # The user wanted webhooks but doesn't want them any more, delete the webhook from the channel.
       elif (self.WebhookSelector.HasValueChanged() and self.Payload.HasMessageChannel()):
@@ -197,9 +199,9 @@ class ServerSettingsView(SelfDeletingView):
     # Respond to the user and kill the interactions
     MessageResponse:str = ""
     if (not interaction.client.Database.IsActivatedInServer(ServerId)): # pyright: ignore[reportAttributeAccessIssue]
-      MessageResponse = "Enqueued your server for activation. This can take up to an hour to import all the bans."
+      MessageResponse = Messages["settings"]["set_activation"]
     else:
-      MessageResponse = "Settings changes enqueued for application!"
+      MessageResponse = Messages["settings"]["set_settings"]
       
     await interaction.response.send_message(MessageResponse, ephemeral=True, delete_after=30.0)
     await self.StopInteractions()

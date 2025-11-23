@@ -1,8 +1,11 @@
 from discord import ui, Interaction, SelectOption, Guild, WebhookMessage, ButtonStyle
 from discord import Message, Role, TextChannel, ChannelType, Member, Permissions
 from Logger import Logger, LogLevel
+from TextWrapper import TextLibrary
 from typing import cast
 import traceback
+
+Messages:TextLibrary = TextLibrary()
 
 class YesNoSelector(ui.Select):
   CurrentSelection:str = ""
@@ -40,7 +43,7 @@ class YesNoSelector(ui.Select):
       return
     
     self.CurrentSelection = self.values[0]
-    await interaction.response.send_message(f"Set Value to {self.GetValue()}", ephemeral=True, delete_after=0.001, silent=True)
+    await interaction.response.send_message(f"{Messages['selector']['new']} {self.GetValue()}", ephemeral=True, delete_after=0.001, silent=True)
     
   def SetRequired(self, NewState:bool):
     if (NewState):
@@ -55,7 +58,7 @@ class YesNoSelector(ui.Select):
   def SetCurrentValue(self, CurValue:bool):
     self.CurrentSelection = "Yes" if CurValue else "No"
     self.CachedValue = self.CurrentSelection
-    self.placeholder = f"[Current Setting: {self.CurrentSelection}] {self.GetPlaceholder()}"
+    self.placeholder = f"[{Messages['selector']['current']}: {self.CurrentSelection}] {self.GetPlaceholder()}"
     
     if (self.SetNotRequiredIfValueSet()):
       self.SetRequired(False)
@@ -75,32 +78,33 @@ class YesNoSelector(ui.Select):
 # An override for channel selectors so that they do not show "This Interaction Failed" inappropriately
 class ModChannelSelector(ui.ChannelSelect):
   def __init__(self, RowPos:int|None=None):
-    super().__init__(row=RowPos, min_values=0, max_values=1, channel_types=[ChannelType.text], placeholder="ScamGuard Channel for Mod Messages")
+    super().__init__(row=RowPos, min_values=0, max_values=1, channel_types=[ChannelType.text], placeholder=Messages["selector"]["mod"]["placeholder"])
     
   async def IsValid(self, interaction:Interaction, Silent:bool=False) -> bool:
     if (not self.values and self.min_values > 0):
-      await interaction.response.send_message("A value must be selected for the channel selector!!", ephemeral=True, delete_after=60.0)    
+      await interaction.response.send_message(Messages["selector"]["mod"]["needs_value"], ephemeral=True, delete_after=60.0)    
       return False
     
     ChannelToHookInto:TextChannel|None = cast(TextChannel|None, self.values[0].resolve())
     if (ChannelToHookInto is None):
-      await interaction.response.send_message(f"ScamGuard does not have permissions to see the channel, please give it permissions", ephemeral=True, delete_after=60.0)
+      await interaction.response.send_message(Messages["selector"]["mod"]["needs_perms"], ephemeral=True, delete_after=60.0)
       return False
     
     # Check channel permissions to see if we can post in there.
     BotMember:Member|None = interaction.guild.get_member(interaction.client.user.id) # type: ignore
     if (BotMember is None):
-      await interaction.response.send_message(f"ScamGuard is unable to view itself, try again in a few minutes...")
+      await interaction.response.send_message(Messages["selector"]["mod"]["discord_slow"])
       return False
     
     PermissionsObj:Permissions = ChannelToHookInto.permissions_for(BotMember)
+    MentionStr:str = ChannelToHookInto.mention
     if (not PermissionsObj.send_messages):
       BotRoleName:str = cast(Role, cast(Guild, interaction.guild).self_role).name
-      await interaction.response.send_message(f"ScamGuard is unable to access the channel {ChannelToHookInto.mention}, please give its role `{BotRoleName}` access to `View Channel` & `Send Messages` in {ChannelToHookInto.mention}", ephemeral=True, delete_after=60.0)
+      await interaction.response.send_message(Messages["selector"]["mod"]["failure"].format(mention=MentionStr, role=BotRoleName), ephemeral=True, delete_after=60.0)
       return False
     
     if (not Silent):
-      await interaction.response.send_message(f"Message Channel Set to {ChannelToHookInto.mention}!", silent=True, ephemeral=True, delete_after=1.0)
+      await interaction.response.send_message(Messages["selector"]["mod"]["channel_set"].format(mention=MentionStr), silent=True, ephemeral=True, delete_after=1.0)
     
     return True
     

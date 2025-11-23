@@ -1,6 +1,6 @@
 # ScamGuard AntiScam Bot
 
-This is a Discord bot that bans scammers who offer unsolicited commissions to users of a discord server.
+This is a Discord bot that bans scammers who offer unsolicited commissions to users of a Discord server.
 
 These scammers are a scourge on our Discord communities. Unfortunately, unless they are banned in all relative servers, they’ll hop onto the next server and then attempt to scam people from there next.
 
@@ -13,6 +13,8 @@ You can read more on [the website here](https://scamguard.app/)!
 ---
 
 ## Configurations to Run the Bot
+
+This bot requires that you are using (at minimum) Python 3.11
 
 ### Environment Vars
 

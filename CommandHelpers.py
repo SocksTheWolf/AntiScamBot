@@ -2,8 +2,10 @@
 from Logger import Logger, LogLevel
 from discord import Interaction, app_commands
 import traceback, re
+from TextWrapper import TextLibrary
 
 UserIdReg = re.compile("\<\@([0-9]+)\>") # type: ignore
+Messages:TextLibrary = TextLibrary()
 
 # This transformer allows us to take in a discord id (as the default int is too small)
 # and properly convert it to a value that we can use to observe Discord data
@@ -50,18 +52,18 @@ async def CommandErrorHandler(interaction: Interaction, error: app_commands.AppC
   
   InteractionName:str = interaction.command.name
   if (ErrorType == app_commands.CommandOnCooldown):
-    ErrorMsg = f"This command {InteractionName} is currently on cooldown"
+    ErrorMsg = Messages["cmds_error"]["on_cooldown"].format(cmd=InteractionName)
   elif (ErrorType == app_commands.MissingPermissions):
-    ErrorMsg = f"You do not have permissions to use {InteractionName}"
+    ErrorMsg = Messages["cmds_error"]["no_permission"].format(cmd=InteractionName)
   elif (ErrorType == app_commands.MissingRole):
-    ErrorMsg = f"You are missing the roles necessary to run {InteractionName}"
+    ErrorMsg = Messages["cmds_error"]["missing_roles"].format(cmd=InteractionName)
   elif (ErrorType == app_commands.CheckFailure):
     if (InteractionName == "activate"):
-      ErrorMsg = "To activate the bot, type `/scamguard setup` in your server."
+      ErrorMsg = Messages["cmds"]["check"]["need_activate"]
     else:
-      ErrorMsg = "To change settings, run `/scamguard config`. To uninstall the bot, simply kick it from your server."
+      ErrorMsg = Messages["cmds"]["check"]["change_settings"]
   else:
     Logger.Log(LogLevel.Error, f"Encountered error running command /{InteractionName}: {str(error)} {traceback.format_exc()}")
-    ErrorMsg = "An error has occurred while processing your request"
+    ErrorMsg = Messages["cmds_error"]["general"]
   
-  await interaction.response.send_message(ErrorMsg, ephemeral=True, delete_after=5.0)
+  await interaction.response.send_message(ErrorMsg, ephemeral=True, delete_after=10.0)

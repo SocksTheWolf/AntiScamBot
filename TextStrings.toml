@@ -1,0 +1,135 @@
+# Moving almost all displayable strings to a single file (not including log lines)
+# Progress Left:
+# * ConfirmBanview (not really needed)
+
+[activity]
+default = "Destroying Scammers"
+development = "In Development"
+
+# Webhook installation
+[webhook]
+install_error = "ScamGuard was unable to install the ban notification webhook. You can try again later, or manually install from the TAG Server"
+
+# Removing a webhook
+[webhook.remove]
+perm = "ScamGuard does not have the appropriate permissions to delete the Ban Notification Webhook, you will have to do it manually."
+fatal = "Unable to delete the Ban Notification Webhook, you will have to do it manually."
+
+[cmds]
+settings = "ScamGuard Settings"
+
+# General command errors
+# Yeah I know, I screwed this one up but then didn't want to bother to go back and fix it
+[cmds_error]
+needs_activation = "Your server must be activated to use this command, you can run `/scamguard setup` to do so"
+in_control_server = "This command cannot be used in the control server"
+invalid_id = "Invalid Id!"
+remote_reports_banned = "Due to potential abuse, this command is limited in this server, please contact support"
+only_in_server = "This command cannot be ran outside a server"
+server_activated = "This server is already activated with ScamGuard! Use `/scamguard config` to change settings"
+do_manual_report = "Unable to look up the given user for a report, you'll have to make a report manually"
+already_banned = "The targeted user is already banned by ScamGuard"
+on_cooldown = "This command {cmd} is currently on cooldown"
+no_permission = "You do not have permissions to use {cmd}"
+missing_roles = "You are missing the roles necessary to run {cmd}"
+general = "An error has occurred while processing your request"
+
+# Failing the check permission transforms of application commands
+[cmds.check]
+need_activate = "To activate the bot, type `/scamguard setup` in your server"
+change_settings = "To change settings, run `/scamguard config`. To uninstall the bot, simply kick it from your server"
+
+# Settings for the embeds
+[settings]
+mod_msg = "Granting ScamGuard access to a channel for moderators only is highly suggested. Warnings about bot operation conflicts will be posted there. Messages are sent very infrequently."
+ban_notif = "ScamGuard can also post a notification whenever it bans someone from your server, it is highly encouraged to subscribe to this notification, select Yes when prompted about installing a webhook. It is highly recommended, but not necessary."
+set_activation = "Enqueued your server for activation. This can take up to an hour to import all the bans."
+set_settings = "Settings changes enqueued for application!"
+
+[selector]
+choose = "Please choose an option"
+current = "Current Setting"
+new = "New value is: "
+
+[selector.webhook]
+yes = "Yes, install the ban notification webhook"
+no = "No, do not install the ban notification webhook"
+placeholder = "ScamGuard Ban Notifications"
+need_perm = "ScamGuard needs permissions to add a webhook into the channel {channel}, please give it `Manage Webhook` permissions"
+text_channel = "You must set a text channel to install the webhook into"
+
+[selector.kick]
+yes = "Yes, kick any suspicious users. These are usually users that have sent numerous friend requests upon joining servers, or mass DMs"
+no = "No, do not kick any suspicious users automatically. This may have false positives!"
+placeholder = "Kick Suspicious Accounts"
+
+[selector.yesno]
+yes = "Yes"
+no = "No"
+
+[selector.mod]
+placeholder = "ScamGuard Channel for Mod Messages"
+needs_value = "A value must be selected for the channel selector!"
+needs_perms = "ScamGuard does not have permissions to see the channel, please give it permissions"
+discord_slow = "Discord is updating our permission view slowly, usually this takes a minute to resolve. Please try again soon."
+channel_set = "Message channel set to {mention}!"
+failure = "ScamGuard is unable to access the channel {mention}, please give its role `{role}` access to `View Channel` & `Send Messages` in {mention}"
+
+# Ban Failures (embeds sent to servers)
+[ban_failure.lost_perm]
+error = "ScamGuard does not have significant permissions to ban this user"
+reason = "This usually happens if the user in question has grabbed roles that are higher than the bot's.\n\nYou can usually fix this by changing the order as seen in [this video](https://youtu.be/XYaQi3hM9ug), or giving ScamGuard a moderation role."
+
+[ban_failure.bans_exceed]
+error = "ScamGuard encountered a Discord Limit"
+reason = "This happens when your server is not a community server or has a low number of users. This error usually only lasts for a day or two."
+
+[ban_failure.gen_error]
+error = "ScamGuard encountered an unknown error"
+reason = "This can happen when the Discord API has a hiccup, a ban will retry again soon."
+
+
+# Setup screen
+[setup]
+title = "ScamGuard Setup Welcome"
+activation_error = "An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support"
+
+[setup.info]
+title = "Setup Info"
+msg = "When you click on the 'Confirm Settings' button, ScamGuard will enqueue an activation request to handle your server setup (This may take awhile).\nWhen complete, ScamGuard will start importing bans"
+
+[setup.stats]
+title = "Number of Bans"
+msg = "ScamGuard will import ~{number} bans into your ban list. This will usually be more than the amount of people in your server.\n\nThese aren't always the people already in your server, but instead scammers that could enter, establishing a firewall."
+
+[setup.report]
+title = "How to Report"
+msg = "Use `/scamguard` to see the various different commands that the bot has, please use `/scamguard report` to report any scammers that you ban that ScamGuard hasn't taken care of for you. This will help everyone out and is heavily encouraged!"
+
+[setup.roles]
+title = "Roles"
+msg = "Make sure that ScamGuard has a moderator role for your server to ease any issues.\n\nIf you do not want to give a moderator role to ScamGuard, please see [this advanced setup guide](https://scamguard.app/install#advanced)."
+
+[setup.conflicts]
+title = "Bot Conflicts Detected"
+msg = "**WARNING**: Wizebot/Carlbot has been detected in your server, you will need to whitelist ScamGuard in their dashboard, otherwise ScamGuard won't be able to work properly!"
+
+[setup.important_links]
+title = "Important Links"
+msg = "[Support](https://scamguard.app/discord) | [How To Use](https://scamguard.app/usage) | [Terms Of Service](https://scamguard.app/terms) | [Privacy Policy](https://scamguard.app/privacy)"
+
+[report]
+failed_submit="Unable to submit report, please try again in a minute"
+error="Unable to send report about user {user}, please try again"
+
+[report.type]
+label="Type of Scam"
+msg="Please state the type of scam (confidence, commission, crypto)"
+
+[report.details]
+label="Details"
+msg="Provide some extra context towards the ban here"
+
+[report.evidence]
+label="Image Evidence Links"
+msg="Please insert links to images (space separated up to 9). Images speed up the process immensely!"
