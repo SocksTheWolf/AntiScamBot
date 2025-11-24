@@ -27,6 +27,10 @@ jobs:
     environment: github-pages
     runs-on: ubuntu-latest
     steps:
+      # Error out if not web
+      - name: Verify Branch is Web
+        if: github.ref != 'refs/heads/web'
+        run: exit 1
       - name: Safety Test
         run: echo "Testing protection"
     

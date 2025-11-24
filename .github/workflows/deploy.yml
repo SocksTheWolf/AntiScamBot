@@ -21,6 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions: write-all
     steps:
+      # Error out if not prod
+      - name: Verify Branch is Prod
+        if: github.ref != 'refs/heads/prod'
+        run: exit 1
+      # Otherwise clean deployments
       - name: Cleanup Previous Deployments
         uses: strumwolf/delete-deployment-environment@v3
         continue-on-error: true
