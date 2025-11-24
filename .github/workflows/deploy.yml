@@ -56,6 +56,8 @@ jobs:
             - '.runtime/update.sh'
           core_updated:
             - '**.py'
+            - 'config.json'
+            - 'TextStrings.toml'
 
     # Adding the Private key to a Github Actions Workflow
     - name: Install SSH Key
