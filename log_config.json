@@ -1,77 +1,77 @@
 {
-	"version": 1,
-	"disable_existing_loggers": false,
-	"formatters": {
-		"simple": {
-			"format": "[%(asctime)s] %(processName)-24s %(levelname)9s [%(filename)s:%(lineno)d] %(message)s",
-			"datefmt": "%Y-%m-%d %H:%M:%S"
-		},
-		"brief": {
-			"format": "[%(asctime)s] %(processName)-24s %(levelname)9s %(message)s",
-			"datefmt": "%Y-%m-%d %H:%M:%S"
-		}
-	},
+  "version": 1,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "simple": {
+      "format": "[%(asctime)s] %(processName)-24s %(levelname)9s [%(filename)s:%(lineno)d] %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    },
+    "brief": {
+      "format": "[%(asctime)s] %(processName)-24s %(levelname)9s %(message)s",
+      "datefmt": "%Y-%m-%d %H:%M:%S"
+    }
+  },
 
-	"handlers": {
-		"console": {
-			"class": "logging.StreamHandler",
-			"level": "INFO",
-			"formatter": "brief",
-			"stream": "ext://sys.stdout"
-		},
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "level": "INFO",
+      "formatter": "brief",
+      "stream": "ext://sys.stdout"
+    },
 
-		"error_file_handler": {
-			"class": "logging.handlers.TimedRotatingFileHandler",
-			"level": "DEBUG",
-			"formatter": "simple",
-			"filename": "logs/log.txt",
-			"backupCount": 10,
-			"encoding": "utf8",
-			"when": "midnight",
-			"delay": false
-		},
+    "error_file_handler": {
+      "class": "logging.handlers.TimedRotatingFileHandler",
+      "level": "DEBUG",
+      "formatter": "simple",
+      "filename": "logs/log.txt",
+      "backupCount": 10,
+      "encoding": "utf8",
+      "when": "midnight",
+      "delay": false
+    },
 
-		"buffer_stream_handler": {
-			"class": "logger_tt.handlers.StreamHandlerWithBuffer",
-			"level": "INFO",
-			"formatter": "simple",
-			"stream": "ext://sys.stdout",
-			"buffer_time": 0.5,
-			"buffer_lines": 0,
-			"debug": false
-		}
-	},
+    "buffer_stream_handler": {
+      "class": "logger_tt.handlers.StreamHandlerWithBuffer",
+      "level": "INFO",
+      "formatter": "simple",
+      "stream": "ext://sys.stdout",
+      "buffer_time": 0.5,
+      "buffer_lines": 0,
+      "debug": false
+    }
+  },
 
-	"loggers": {
-		"urllib3": {
-			"level": "ERROR",
-			"handlers": ["error_file_handler"],
-			"propagate": false
-		}
-	},
+  "loggers": {
+    "urllib3": {
+      "level": "ERROR",
+      "handlers": ["error_file_handler"],
+      "propagate": false
+    }
+  },
 
-	"root": {
-		"level": "DEBUG",
-		"handlers": ["error_file_handler"]
-	},
+  "root": {
+    "level": "DEBUG",
+    "handlers": ["error_file_handler"]
+  },
 
-	"logger_tt": {
-		"suppress": ["exchangelib"],
-		"suppress_level_below": "WARNING",
-		"capture_print": false,
-		"strict": false,
-		"guess_level": false,
-		"full_context": 1,
-		"use_multiprocessing": true,
-		"limit_line_length": 1000,
-		"analyze_raise_statement": false,
-		"host": "localhost",
+  "logger_tt": {
+    "suppress": ["exchangelib"],
+    "suppress_level_below": "WARNING",
+    "capture_print": false,
+    "strict": false,
+    "guess_level": false,
+    "full_context": 1,
+    "use_multiprocessing": true,
+    "limit_line_length": 1000,
+    "analyze_raise_statement": false,
+    "host": "localhost",
     "port": 0,
-		"default_logger_formats": {
-			"normal": ["%(name)s", "%(filename)s"],
-			"thread": ["%(message)s", "%(threadName)s %(message)s"],
-			"multiprocess": ["%(message)s", "%(message)s"],
-			"both": ["%(message)s", "%(processName)s %(threadName)s %(message)s"]
-		}
-	}
+    "default_logger_formats": {
+      "normal": ["%(name)s", "%(filename)s"],
+      "thread": ["%(message)s", "%(threadName)s %(message)s"],
+      "multiprocess": ["%(message)s", "%(message)s"],
+      "both": ["%(message)s", "%(processName)s %(threadName)s %(message)s"]
+    }
+  }
 }
