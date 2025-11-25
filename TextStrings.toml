@@ -81,8 +81,8 @@ error = "ScamGuard does not have significant permissions to ban this user"
 reason = "This usually happens if the user in question has grabbed roles that are higher than the bot's.\n\nYou can usually fix this by changing the order as seen in [this video](https://youtu.be/XYaQi3hM9ug), or giving ScamGuard a moderation role."
 
 [ban_failure.bans_exceed]
-error = "ScamGuard encountered a Discord Limit"
-reason = "This happens when your server is not a community server or has a low number of users. This error usually only lasts for a day or two."
+error = "ScamGuard encountered a Discord Ban Limit"
+reason = "This can happen if your server is not a community server, has a low number of users, or Discord is being silly. This error usually only lasts for a day before resolving automatically."
 
 [ban_failure.gen_error]
 error = "ScamGuard encountered an unknown error"
