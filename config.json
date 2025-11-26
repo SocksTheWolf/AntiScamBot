@@ -15,7 +15,7 @@
     "UseSleep": false,
     "MaxBanFailures": 5,
     "RelayPort": 9500,
-    "ActionsPerTick": 25,
+    "ActionsPerTick": 20,
     "SleepAmount": 0.5,
     "InactiveServerDayWindow": 7,
     "RunIdleCleanupEveryXHours": 23,
