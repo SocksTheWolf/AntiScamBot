@@ -4,7 +4,7 @@ from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
 from BotDatabaseSchema import Ban, Server
-from sqlalchemy import create_engine, Engine, select, URL, desc, func
+from sqlalchemy import create_engine, Engine, select, URL, desc, asc, func
 from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
 from typing import cast
@@ -410,10 +410,12 @@ class DatabaseDriver():
     return ReturnValue
 
   def GetAllBans(self, NumLastActions:int=0) -> list[Ban]:
-    stmt = select(Ban).order_by(desc(Ban.created_at))
+    stmt = select(Ban)
     
     if (NumLastActions):
-      stmt = stmt.limit(NumLastActions)
+      stmt = stmt.order_by(desc(Ban.created_at)).limit(NumLastActions)
+    else:
+      stmt = stmt.order_by(asc(Ban.created_at))
     
     return list(self.Database.scalars(stmt).all())
   
