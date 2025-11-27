@@ -40,3 +40,11 @@ class Server(Base):
   kick_sus_users = mapped_column(Integer, server_default="0")
   can_report = mapped_column(Integer, server_default="1")
   should_ban_in = mapped_column(Integer, server_default="1")
+
+class ExhaustedServer(Base):
+  __tablename__ = "burntout"
+  
+  discord_server_id = mapped_column(String(32), primary_key=True, unique=True, nullable=False)
+  current_pos = mapped_column(Integer, server_default="0")
+  last_run = mapped_column(DateTime(), server_default=func.now(), onupdate=func.now())
+  

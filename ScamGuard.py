@@ -130,7 +130,11 @@ class ScamGuard(DiscordBot):
   async def BeforeLeaveTask(self):
     # Wait until the bot is all set up before attempting periodic leaves
     await self.wait_until_ready()
-
+    
+  ### Handling Ban Exceeds ###
+  
+  # TODO: This task should be done here, with math.
+  
   ### Config Handling ###
   def ProcessConfig(self, ShouldReload:bool):
     super().ProcessConfig(ShouldReload)

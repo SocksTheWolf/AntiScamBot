@@ -7,7 +7,10 @@ from datetime import datetime
 from BotDatabaseSchema import Base, Migration, Ban, Server
 
 class DatabaseMigrator:
-  DATABASE_VERSION=5
+  # When the BotDatabaseSchema gets updated, update this value here and create a function that updates
+  # from the last database version to this one. The naming scheme should match "upgrade_versionXtoY"
+  # Database migrations apply linearly.
+  DATABASE_VERSION=6
   VersionMap={}
   DatabaseCon:Engine=None # pyright: ignore[reportAssignmentType]
   
@@ -132,6 +135,12 @@ class DatabaseMigrator:
     session.execute(text("ALTER TABLE bans ADD evidence_thread INTEGER default NULL"))
     session.execute(text("ALTER TABLE servers ADD can_report INTEGER default 1"))
     session.execute(text("ALTER TABLE servers ADD should_ban_in INTEGER default 1"))
+    session.commit()
+    return True
+  
+  def upgrade_version5to6(self) -> bool:
+    session = Session(self.DatabaseCon)
+    Base.metadata.create_all(self.DatabaseCon)
     session.commit()
     return True
 

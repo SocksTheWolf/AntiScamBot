@@ -3,7 +3,7 @@ from BotEnums import BanAction
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
-from BotDatabaseSchema import Ban, Server
+from BotDatabaseSchema import Ban, ExhaustedServer, Server
 from sqlalchemy import create_engine, Engine, select, URL, desc, asc, func
 from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
@@ -141,6 +141,9 @@ class DatabaseDriver():
     if (server is None):
       Logger.Log(LogLevel.Warn, f"Bot #{BotId} attempted to remove an non-assigned server: {ServerId}")
       return
+    
+    # Remove any cooldown entries if we exist in there
+    self.RemoveServerCooldown(ServerId)
     
     self.Database.delete(server)
     self.Database.commit()
@@ -444,9 +447,45 @@ class DatabaseDriver():
 
     return list(self.Database.scalars(stmt).all())
   
+  ### Cooldown ###
+  def GetServerCooldown(self, ServerId:int) -> ExhaustedServer|None:
+    stmt = select(ExhaustedServer).where(ExhaustedServer.discord_server_id==ServerId)
+    return self.Database.scalars(stmt).first()
+  
+  def IsServerInCooldown(self, ServerId:int) -> bool:
+    return self.GetServerCooldown(ServerId) is not None
+  
+  def UpdateServerCooldown(self, ServerId:int, NumCompleted:int):
+    exhaustedUpdate = self.GetServerCooldown(ServerId)
+    
+    # Create if it doesn't exist.
+    if (exhaustedUpdate is None):
+      exhaustedUpdate = ExhaustedServer()
+      exhaustedUpdate.discord_server_id = ServerId
+    
+    if (exhaustedUpdate.current_pos > 0):
+      exhaustedUpdate.current_pos = exhaustedUpdate.current_pos + NumCompleted
+    else:
+      exhaustedUpdate.current_pos = NumCompleted
+    
+    self.Database.add(exhaustedUpdate)
+    self.Database.commit()
+  
+  def RemoveServerCooldown(self, ServerId:int):
+    server = self.GetServerCooldown(ServerId)
+    if (server is None):
+      return
+    
+    self.Database.delete(server)
+    self.Database.commit()
+  
   ### Stats ###
   def GetNumBans(self) -> int:
     stmt = select(func.count()).select_from(Ban)
+    return self.Database.scalars(stmt).first() or 0
+  
+  def GetExhaustedServers(self) -> int:
+    stmt = select(func.count()).select_from(ExhaustedServer)
     return self.Database.scalars(stmt).first() or 0
   
   def GetNumActivatedServers(self) -> int:

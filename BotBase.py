@@ -163,7 +163,7 @@ class DiscordBot(discord.Client):
       ReportChannel = self.get_channel(ConfigData["ReportChannel"])
       if (ReportChannel is not None):
         self.ReportChannel = cast(discord.ForumChannel, ReportChannel)
-        for tag in self.ReportChannel.available_tags: # type: ignore
+        for tag in self.ReportChannel.available_tags:
           if (tag.name == ConfigData["ReportChannelTag"]):
             self.ReportChannelTag = tag
             break
@@ -459,8 +459,7 @@ Failed Copied Evidence Links:
       Logger.Log(LogLevel.Warn, f"Could not install webhook for server {ServerId}, the ChannelID was None")
       return
     
-    MessageChannel:discord.TextChannel = self.get_channel(ChannelID) # type: ignore
-    
+    MessageChannel:discord.TextChannel = self.get_channel(ChannelID) # pyright: ignore[reportAssignmentType]
     # Check to see if a webhook is already installed.
     if (MessageChannel is not None):
       try:
@@ -478,7 +477,7 @@ Failed Copied Evidence Links:
       return
     
     try:
-      await self.AnnouncementChannel.follow(destination=MessageChannel, reason="ScamGuard Ban Notification Setup") # type: ignore
+      await self.AnnouncementChannel.follow(destination=MessageChannel, reason="ScamGuard Ban Notification Setup")
     except discord.Forbidden:
       await MessageChannel.send(Messages["webhook"]["install_error"])
     except discord.HTTPException:
@@ -626,6 +625,7 @@ Failed Copied Evidence Links:
     ActionsAppliedThisLoop:int = 0
     DoesSleep:bool = ConfigData["UseSleep"]
     DoesHaltOnFailures:bool = ConfigData["MaxBanFailures"] > 0
+    DoesHaltOnMaxBans:bool = ConfigData["MaxBulkImports"] > 0
     for Ban in BanQueryResult:
       if (DoesSleep):
         # Put in sleep functionality on this loop, as it could be heavy
@@ -637,6 +637,14 @@ Failed Copied Evidence Links:
           
       if (DoesHaltOnFailures and NumFailures > ConfigData["MaxBanFailures"]):
         Logger.Log(LogLevel.Warn, f"Number of ban failures reached {NumFailures} for server {ServerInfoStr}, exiting subprocess.")
+        BanReturn = BanResult.Error
+        break
+      
+      # Check if we have a max and stop before it, log down that the server has to resume from a count
+      if (DoesHaltOnMaxBans and NumBans > ConfigData["MaxBulkImports"]):
+        Logger.Log(LogLevel.Error, f"Number of bans hit max for {ServerInfoStr}, processed {NumBans}. Pushing to task future to handle the rest")
+        # Break out entirely from this loop
+        BanReturn = BanResult.BansExceeded
         break
 
       UserId:int = int(Ban.discord_user_id)
@@ -647,18 +655,31 @@ Failed Copied Evidence Links:
       if (BanResponse[0] == False):
         NumFailures += 1
         BanResponseFlag:BanResult = BanResponse[1]
-        self.AddAsyncTask(self.PostBanFailureInformation(Server, UserId, BanResponseFlag, ModerationAction.Ban))
-        if (BanResponseFlag == BanResult.LostPermissions):
-          Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr}")
-          BanReturn = BanResult.LostPermissions
-          break
-        elif (BanResponseFlag == BanResult.BansExceeded):
+        if (BanResponseFlag == BanResult.BansExceeded):
           Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr} due to exceed")
           BanReturn = BanResult.BansExceeded
           break
+        else:
+          # NOTE: that other errors such as discord outages will automatically retry the ban in the future
+          self.AddAsyncTask(self.PostBanFailureInformation(Server, UserId, BanResponseFlag, ModerationAction.Ban))
+          if (BanResponseFlag == BanResult.LostPermissions):
+            # TODO: Perhaps handle this better, there's no way to really retry
+            Logger.Log(LogLevel.Error, f"Unable to process ban on user {UserId} for server {ServerInfoStr}")
+            BanReturn = BanResult.LostPermissions
+            break
       else:
         NumBans += 1
     Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
+    
+    # Remove the server from the cooldown table ONLY if they have processed all the bans successfully
+    if (BanReturn == BanResult.Processed):
+      self.Database.RemoveServerCooldown(ServerId)
+    # Otherwise if we're already in cooldown (other error occurred), or we have exceeded our bans (i.e. first time exceed)
+    # then we should update our current server cooldown information
+    elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):
+      Logger.Log(LogLevel.Error, f"Pushing {ServerInfoStr} to continue processing in the future at {NumBans}")
+      self.Database.UpdateServerCooldown(ServerId, NumBans)
+
     return BanReturn
   
   async def ReprocessInstance(self, LastActions:int):
@@ -704,7 +725,7 @@ Failed Copied Evidence Links:
         else:
           ActionsAppliedThisLoop += 1
 
-      ServerId:int = int(ServerData.discord_server_id) # type: ignore
+      ServerId:int = int(ServerData.discord_server_id)
       DiscordServer = self.get_guild(ServerId)
       if (DiscordServer is not None):
         BanResultTuple = await self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, Action)
@@ -721,6 +742,11 @@ Failed Copied Evidence Links:
               Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {self.GetServerInfoStr(DiscordServer)} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
               continue
           elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error or ResultFlag == BanResult.BansExceeded):
+            # Check if we should suppress the ban failure message, as the bot will automatically handle it later.
+            if (ResultFlag == BanResult.BansExceeded and self.Database.IsServerInCooldown(ServerId)):
+              # TODO: I haven't decided if I want to potentially add the user into the DB from this call yet, if they're not there currently. 
+              # I feel like adding them is not a good idea.
+              continue
             self.AddAsyncTask(self.PostBanFailureInformation(DiscordServer, TargetId, ResultFlag, Action))
           elif (ResultFlag == BanResult.ServiceError):
             self.AddAsyncTask(self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, Action, True))
