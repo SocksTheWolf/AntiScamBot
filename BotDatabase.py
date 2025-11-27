@@ -7,6 +7,7 @@ from BotDatabaseSchema import Ban, ExhaustedServer, Server
 from sqlalchemy import create_engine, Engine, select, URL, desc, asc, func
 from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
+from datetime import datetime, timedelta
 from typing import cast
 
 class DatabaseDriver():
@@ -478,14 +479,17 @@ class DatabaseDriver():
     
     self.Database.delete(server)
     self.Database.commit()
+
+  def GetExhaustedServers(self):
+    BeginningOfTime:datetime = datetime.fromtimestamp(0)
+    ADayAgo:timedelta = timedelta(days = 1)
+    ADayAgoTime:datetime = datetime.now() - ADayAgo
+    stmt = select(ExhaustedServer).where(ExhaustedServer.last_run.between(BeginningOfTime, ADayAgoTime))
+    return self.Database.scalars(stmt).all()
   
   ### Stats ###
   def GetNumBans(self) -> int:
     stmt = select(func.count()).select_from(Ban)
-    return self.Database.scalars(stmt).first() or 0
-  
-  def GetExhaustedServers(self) -> int:
-    stmt = select(func.count()).select_from(ExhaustedServer)
     return self.Database.scalars(stmt).first() or 0
   
   def GetNumActivatedServers(self) -> int:
