@@ -47,7 +47,7 @@ class Logger():
     ShouldPrint:bool = False
     try:
       if (callable(Conditional)):
-        ShouldPrint = Conditional() # type: ignore
+        ShouldPrint = Conditional() # pyright: ignore[reportAssignmentType]
       else:
         ShouldPrint = bool(Conditional)
     except Exception as ex:

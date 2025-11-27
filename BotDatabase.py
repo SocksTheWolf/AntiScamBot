@@ -238,7 +238,7 @@ class DatabaseDriver():
     Logger.Log(LogLevel.Debug, f"Bot #{BotId} server count: {len(AllServersWithThisBot)} with discord in {len(ServersIn)}")
     # Go through all the servers in the database for this bot
     for InServerId in AllServersWithThisBot:
-      ServerId = int(InServerId.discord_server_id) # type: ignore
+      ServerId = int(InServerId.discord_server_id)
       try:
         # If we are in the server, then we remove the entry from the list of servers
         # we are in. This is because this list will be used later to remove entries that
@@ -277,7 +277,7 @@ class DatabaseDriver():
     if (server is None):
       return False
 
-    if (server.activation_state > 0): # type: ignore
+    if (server.activation_state > 0):
       return True
 
     return False
@@ -291,7 +291,7 @@ class DatabaseDriver():
     if (server is None):
       return False
 
-    if (server.can_report): # type: ignore
+    if (server.can_report):
       return True
 
     return False

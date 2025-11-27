@@ -18,7 +18,7 @@ def UseUnixSockets() -> bool:
   return False
 
 class RelayMessage:
-  Type:RelayMessageType = None # type: ignore
+  Type:RelayMessageType = None # pyright: ignore[reportAssignmentType]
   Sender:int = -1
   Destination:int = -1
   Data = None

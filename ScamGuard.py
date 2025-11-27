@@ -111,7 +111,7 @@ class ScamGuard(DiscordBot):
     Logger.CLog(len(AllDisabledServers) > 0, LogLevel.Notice, f"Attempting to clean up old non-activated servers... Dry run? {DryRun}")
     ServersLeft:int = 0
     for ServerData in AllDisabledServers:
-      if (CurrentTime > ServerData.created_at): # type: ignore
+      if (CurrentTime > ServerData.created_at):
         ServerID:int = int(ServerData.discord_server_id)
         if (DryRun or self.LeaveServer(ServerID)):
           ServersLeft += 1

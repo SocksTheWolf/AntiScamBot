@@ -63,13 +63,13 @@ class YesNoSelector(ui.Select):
     if (self.SetNotRequiredIfValueSet()):
       self.SetRequired(False)
     
-  def GetYesDescription(self) -> str: # type: ignore
+  def GetYesDescription(self) -> str: # pyright: ignore[reportReturnType]
     pass
   
-  def GetNoDescription(self) -> str: # type: ignore
+  def GetNoDescription(self) -> str: # pyright: ignore[reportReturnType]
     pass
   
-  def GetPlaceholder(self) -> str: # type: ignore
+  def GetPlaceholder(self) -> str: # pyright: ignore[reportReturnType]
     pass
   
   def SetNotRequiredIfValueSet(self) -> bool:
@@ -91,7 +91,7 @@ class ModChannelSelector(ui.ChannelSelect):
       return False
     
     # Check channel permissions to see if we can post in there.
-    BotMember:Member|None = interaction.guild.get_member(interaction.client.user.id) # type: ignore
+    BotMember:Member|None = interaction.guild.get_member(interaction.client.user.id) # pyright: ignore[reportOptionalMemberAccess]
     if (BotMember is None):
       await interaction.response.send_message(Messages["selector"]["mod"]["discord_slow"])
       return False

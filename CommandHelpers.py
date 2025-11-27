@@ -4,7 +4,7 @@ from discord import Interaction, app_commands
 import traceback, re
 from TextWrapper import TextLibrary
 
-UserIdReg = re.compile("\<\@([0-9]+)\>") # type: ignore
+UserIdReg = re.compile("\<\@([0-9]+)\>") # pyright: ignore[reportInvalidStringEscapeSequence]
 Messages:TextLibrary = TextLibrary()
 
 # This transformer allows us to take in a discord id (as the default int is too small)
@@ -22,10 +22,10 @@ class BaseIdTransformer(app_commands.Transformer):
     # Check if the value is numeric
     if (not value.isnumeric()):
       return -1
-    
+
     ConvertedValue:int = int(value)
     # Prevent any targets on the bot
-    if (ConvertedValue == interaction.client.user.id): # type: ignore
+    if (interaction.client.user is not None and ConvertedValue == interaction.client.user.id):
       return -1
     return await self.OnTransform(interaction, ConvertedValue)
 
