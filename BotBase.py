@@ -229,8 +229,6 @@ class DiscordBot(discord.Client):
       return False
     except discord.HTTPException:
       return False
-    
-    return False
   
   async def LookupMember(self, UserID:int, ServerToInspect:discord.Guild) -> discord.Member|None:
     User = await self.LookupUser(UserID, ServerToInspect)
@@ -269,8 +267,6 @@ class DiscordBot(discord.Client):
     NumServersWithPermissions:int = len(ServersWithPermissions)
     Logger.Log(LogLevel.Log, f"User [{UserID}] has {NumServersWithPermissions} servers with acceptable permissions...")
     if (NumServersWithPermissions > 0):
-      # TODO: instead of activating and reprocessing on our own, have this be sent by the listener controller
-      #self.ClientHandler.SendElevatedResults(ServersWithPermissions)
       self.Database.SetBotActivationForOwner(ServersWithPermissions, True, self.BotID, ActivatorId=UserID)
       for ServerId in ServersWithPermissions:
         self.AddAsyncTask(self.ReprocessBans(ServerId))
@@ -640,10 +636,8 @@ Failed Copied Evidence Links:
         BanReturn = BanResult.Error
         break
       
-      # Check if we have a max and stop before it, log down that the server has to resume from a count
+      # Check if we have a max and stop processing from here
       if (DoesHaltOnMaxBans and NumBans > ConfigData["MaxBulkImports"]):
-        Logger.Log(LogLevel.Error, f"Number of bans hit max for {ServerInfoStr}, processed {NumBans}. Pushing to task future to handle the rest")
-        # Break out entirely from this loop
         BanReturn = BanResult.BansExceeded
         break
 
@@ -660,7 +654,9 @@ Failed Copied Evidence Links:
           BanReturn = BanResult.BansExceeded
           break
         else:
-          # NOTE: that other errors such as discord outages will automatically retry the ban in the future
+          # NOTE: discord outages will automatically retry this ban in the future,
+          # there may exist a case where the ban might slip through if the given server hits an external global threshold
+          # not just with our bot
           self.AddAsyncTask(self.PostBanFailureInformation(Server, UserId, BanResponseFlag, ModerationAction.Ban))
           if (BanResponseFlag == BanResult.LostPermissions):
             # TODO: Perhaps handle this better, there's no way to really retry
@@ -677,17 +673,21 @@ Failed Copied Evidence Links:
     # Otherwise if we're already in cooldown (other error occurred), or we have exceeded our bans (i.e. first time exceed)
     # then we should update our current server cooldown information
     elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):
-      Logger.Log(LogLevel.Error, f"Pushing {ServerInfoStr} to continue processing in the future at {NumBans}")
-      self.Database.UpdateServerCooldown(ServerId, NumBans)
+      NewBanPos:int = self.Database.UpdateServerCooldown(ServerId, NumBans)
+      Logger.Log(LogLevel.Error, f"Bans Exceeded. Pushing {ServerInfoStr} to continue processing in the future at {NewBanPos}")
 
     return BanReturn
   
   async def ReprocessInstance(self, LastActions:int):
     BanQueryResult = self.Database.GetAllBans(LastActions)
+    NumBans:int = self.Database.GetNumBans() - LastActions
+    Count:int = 0
     for Ban in BanQueryResult:
       UserId:int = int(Ban.discord_user_id)
       AuthorizerName:str = Ban.assigner_discord_user_name
-      await self.ProcessActionOnUser(UserId, AuthorizerName, ModerationAction.Ban)
+      BanNumber:int = NumBans + Count
+      await self.ProcessActionOnUser(UserId, AuthorizerName, ModerationAction.Ban, BanNumber)
+      Count += 1
   
   def ScheduleReprocessInstance(self, LastActions:int):
     self.AddAsyncTask(self.ReprocessInstance(LastActions))
@@ -705,10 +705,12 @@ Failed Copied Evidence Links:
     self.AddAsyncTask(self.ProcessActionOnUser(TargetId, AuthName, ModerationAction.Unban))
     
   # Handles pushing the ban/unban to every server we are in
-  async def ProcessActionOnUser(self, TargetId:int, AuthorizerName:str, Action:ModerationAction):
+  async def ProcessActionOnUser(self, TargetId:int, AuthorizerName:str, Action:ModerationAction, BanNumOverride:int=-1):
     NumServersPerformed:int = 0
     ActionsAppliedThisLoop:int = 0
     DoesSleep:bool = ConfigData["UseSleep"]
+    # Used to get an estimation of what this ban number would be. It is not accurate in heavy ban waves.
+    BanNumber:int = self.Database.GetNumBans() if BanNumOverride == -1 else BanNumOverride
     UserToWorkOn:discord.User = cast(discord.User, discord.Object(TargetId))
     
     BanReason=f"Confirmed {str(Action)} by {AuthorizerName}"
@@ -733,26 +735,29 @@ Failed Copied Evidence Links:
           # Ban was successful, continue processing
           NumServersPerformed += 1
         else:
-          ResultFlag = BanResultTuple[1]         
+          ResultFlag = BanResultTuple[1]
+          ServerStr:str = self.GetServerInfoStr(DiscordServer)
           if (Action == ModerationAction.Ban):
             if (ResultFlag == BanResult.InvalidUser):
               Logger.Log(LogLevel.Warn, f"Got a ban result of invalid while trying to process ban for {TargetId}")
               break
             elif (ResultFlag == BanResult.ServerOwner):
-              Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {self.GetServerInfoStr(DiscordServer)} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
+              Logger.Log(LogLevel.Error, f"Attempted to ban a server owner! {ServerStr} with user to work {UserToWorkOn.id} == {DiscordServer.owner_id}")
               continue
           elif (ResultFlag == BanResult.LostPermissions or ResultFlag == BanResult.Error or ResultFlag == BanResult.BansExceeded):
             # Check if we should suppress the ban failure message, as the bot will automatically handle it later.
-            if (ResultFlag == BanResult.BansExceeded and self.Database.IsServerInCooldown(ServerId)):
-              # TODO: I haven't decided if I want to potentially add the user into the DB from this call yet, if they're not there currently. 
-              # I feel like adding them is not a good idea.
+            if (ResultFlag == BanResult.BansExceeded):
+              if (not self.Database.IsServerInCooldown(ServerId)):
+                Logger.Log(LogLevel.Notice, f"Server {ServerStr} hit ban quota on {BanNumber}, adding them to exhausted servers")
+                # This should be subtracted 1 so that we will retry this action from this ban forward
+                self.Database.UpdateServerCooldown(ServerId, BanNumber - 1)
               continue
             self.AddAsyncTask(self.PostBanFailureInformation(DiscordServer, TargetId, ResultFlag, Action))
           elif (ResultFlag == BanResult.ServiceError):
             self.AddAsyncTask(self.PerformActionOnServer(DiscordServer, UserToWorkOn, BanReason, Action, True))
       else:
         # TODO: Potentially remove the server from the list?
-        Logger.Log(LogLevel.Warn, f"The server {ServerId} did not respond on a look up, does it still exist?")
+        Logger.Log(LogLevel.Error, f"The server {ServerId} did not respond on a look up, does it still exist?")
 
     Logger.Log(LogLevel.Notice, f"Action execution on {TargetId} performed in {NumServersPerformed}/{NumServers} servers")
     

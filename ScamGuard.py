@@ -7,10 +7,11 @@ from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
 from datetime import datetime, timedelta
-import discord, asyncio
+from discord import Embed, User, Member, HTTPException, Message
 from discord.ext import tasks
 from multiprocessing import Process
 from BotSubprocess import CreateBotProcess
+import asyncio
 
 __all__ = ["ScamGuard"]
 
@@ -43,10 +44,6 @@ class ScamGuard(DiscordBot):
   @tasks.loop(seconds=0.5)
   async def HandleListenRelay(self):
     await self.ServerHandler.TickRelay()
-    
-  @HandleListenRelay.before_loop
-  async def BeforeListenRelay(self):
-    await self.wait_until_ready()
   
   ### Task Interval Handling ###
   def ConfigBackupInterval(self):
@@ -76,11 +73,6 @@ class ScamGuard(DiscordBot):
     Logger.Log(LogLevel.Log, "Periodic Bot DB Backup Started...")    
     self.Database.Backup()
     self.Database.CleanupBackups()
-    
-  @PeriodicBackup.before_loop
-  async def BeforeBackup(self):
-    # Wait until the bot is all set up before adding in the backup check
-    await self.wait_until_ready()
     
   ### Instance Cleanup ###
   @tasks.loop(minutes=5)
@@ -126,14 +118,30 @@ class ScamGuard(DiscordBot):
     
     Logger.CLog(ServersLeft > 0, LogLevel.Notice, f"Server Instance Cleanup Completed, left {ServersLeft} out of {len(AllDisabledServers)}")
     
+  ### Handling Ban Exceeds ###
+  @tasks.loop(hours=1)
+  async def HandleBanExceed(self):
+    ExhaustedList = self.Database.GetExhaustedServers()
+    ExhaustedListCount = len(ExhaustedList)
+    if (ExhaustedListCount <= 0):
+      return
+    
+    NumBans:int = self.Database.GetNumBans()
+    Logger.Log(LogLevel.Notice, f"Attempting to process {ExhaustedListCount} cooldown servers now")
+    for Server in ExhaustedList:
+      NumCount:int = NumBans - Server.current_pos
+      ServerId:int = Server.discord_server_id
+      self.AddAsyncTask(self.ReprocessBansForServer(ServerId, NumCount))
+      Logger.Log(LogLevel.Log, f"Enqueueing reprocessing of {NumCount} bans for server {ServerId}")
+  
+  # Handling async tasks step flow
+  @PeriodicBackup.before_loop
+  @HandleBanExceed.before_loop
   @PeriodicLeave.before_loop
-  async def BeforeLeaveTask(self):
+  @HandleListenRelay.before_loop
+  async def BeforeScheduledAsyncTasks(self):
     # Wait until the bot is all set up before attempting periodic leaves
     await self.wait_until_ready()
-    
-  ### Handling Ban Exceeds ###
-  
-  # TODO: This task should be done here, with math.
   
   ### Config Handling ###
   def ProcessConfig(self, ShouldReload:bool):
@@ -184,30 +192,30 @@ class ScamGuard(DiscordBot):
       self.SubProcess[InstanceID] = None
 
   ### Command Processing & Utils ###    
-  async def PublishAnnouncement(self, Message:str|discord.Embed):
+  async def PublishAnnouncement(self, InMessage:str|Embed):
     if (ConfigData.IsDevelopment()):
       Logger.Log(LogLevel.Notice, "Announcement message was dropped because this instance is in development mode")
       return
     try:
-      NewMessage:discord.Message|None = None
+      NewMessage:Message|None = None
       if (self.AnnouncementChannel is None):
         return
       
-      if (type(Message) == discord.Embed):
-        NewMessage = await self.AnnouncementChannel.send(embed=Message)
+      if (type(InMessage) == Embed):
+        NewMessage = await self.AnnouncementChannel.send(embed=InMessage)
       else:
-        NewMessage = await self.AnnouncementChannel.send(str(Message))
+        NewMessage = await self.AnnouncementChannel.send(str(InMessage))
       if (NewMessage is not None):
         await NewMessage.publish()
-      elif (type(Message) == str):
-        Logger.Log(LogLevel.Error, f"Could not publish message {str(Message)}! Did not send!")
+      elif (type(InMessage) == str):
+        Logger.Log(LogLevel.Error, f"Could not publish message {str(InMessage)}! Did not send!")
       else:
         Logger.Log(LogLevel.Error, f"Could not publish message, as it did not send!")
-    except discord.HTTPException as ex:
+    except HTTPException as ex:
       Logger.Log(LogLevel.Log, f"WARN: Unable to publish message to announcement channel {str(ex)}")
 
   ### Ban Handling ###
-  async def HandleBanAction(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction, ThreadId:int|None=None) -> BanAction:
+  async def HandleBanAction(self, TargetId:int, Sender:Member|User, Action:ModerationAction, ThreadId:int|None=None) -> BanAction:
     DatabaseAction:BanAction
     
     if (Action == ModerationAction.Ban):
@@ -231,7 +239,7 @@ class ScamGuard(DiscordBot):
   async def CreateBanAnnouncement(self, TargetId:int, ActionTaken:ModerationAction):
     if ActionTaken is ModerationAction.Ban or ActionTaken is ModerationAction.Unban:
       # Send a message to the announcement channel
-      NewAnnouncement:discord.Embed = await self.CreateBanEmbed(TargetId)
+      NewAnnouncement:Embed = await self.CreateBanEmbed(TargetId)
       NewAnnouncement.title = f"{str(ActionTaken)} in Progress"
       await self.PublishAnnouncement(NewAnnouncement)
   
@@ -251,7 +259,7 @@ class ScamGuard(DiscordBot):
       self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
       return BanResult.Processed
     
-  async def PropagateActionToServers(self, TargetId:int, Sender:discord.Member|discord.User, Action:ModerationAction):
+  async def PropagateActionToServers(self, TargetId:int, Sender:Member|User, Action:ModerationAction):
     SenderName:str = Sender.name
     if (Action == ModerationAction.Ban):
       self.ClientHandler.SendBan(TargetId, SenderName)

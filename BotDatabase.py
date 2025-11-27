@@ -456,7 +456,7 @@ class DatabaseDriver():
   def IsServerInCooldown(self, ServerId:int) -> bool:
     return self.GetServerCooldown(ServerId) is not None
   
-  def UpdateServerCooldown(self, ServerId:int, NumCompleted:int):
+  def UpdateServerCooldown(self, ServerId:int, NumCompleted:int) -> int:
     exhaustedUpdate = self.GetServerCooldown(ServerId)
     
     # Create if it doesn't exist.
@@ -471,6 +471,8 @@ class DatabaseDriver():
     
     self.Database.add(exhaustedUpdate)
     self.Database.commit()
+    
+    return exhaustedUpdate.current_pos
   
   def RemoveServerCooldown(self, ServerId:int):
     server = self.GetServerCooldown(ServerId)
@@ -498,4 +500,8 @@ class DatabaseDriver():
   
   def GetNumServers(self) -> int:
     stmt = select(func.count()).select_from(Server)
+    return self.Database.scalars(stmt).first() or 0
+  
+  def GetNumExhaustedServers(self) -> int:
+    stmt = select(func.count()).select_from(ExhaustedServer)
     return self.Database.scalars(stmt).first() or 0
