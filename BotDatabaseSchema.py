@@ -42,7 +42,7 @@ class Server(Base):
   should_ban_in = mapped_column(Integer, server_default="1")
 
 class ExhaustedServer(Base):
-  __tablename__ = "burntout"
+  __tablename__ = "exhausted_servers"
   
   discord_server_id = mapped_column(String(32), primary_key=True, unique=True, nullable=False)
   current_pos = mapped_column(Integer, server_default="0")
