@@ -10,7 +10,7 @@ Messages:TextLibrary = TextLibrary()
 ConfigData:Config = Config()
 
 @app_commands.guild_only()
-class GlobalScamCommands(app_commands.Group):   
+class GlobalScamCommands(app_commands.Group):
   def GetInstance(self):
     return self.extras["instance"]
   
@@ -42,7 +42,7 @@ class GlobalScamCommands(app_commands.Group):
   @app_commands.command(name="report", description="Report an Discord User")
   @app_commands.checks.has_permissions(ban_members=True)
   @app_commands.checks.cooldown(1, 5.0)
-  async def ReportScam_Global(self, interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):        
+  async def ReportScam_Global(self, interaction:Interaction, target:app_commands.Transform[int, TargetIdTransformer]):
     if (interaction.guild_id == ConfigData["ControlServer"]):
       await interaction.response.send_message(Messages["cmds_error"]["in_control_server"], ephemeral=True, delete_after=5.0)
       return
@@ -129,6 +129,6 @@ class GlobalScamCommands(app_commands.Group):
 
   @app_commands.command(name="info", description="Info & Stats about ScamGuard")
   @app_commands.checks.cooldown(1, 5.0)
-  async def HelpScamGuard_Global(self, interaction:Interaction):        
+  async def HelpScamGuard_Global(self, interaction:Interaction):
     ResponseEmbed:Embed = self.GetInstance().CreateInfoEmbed()
     await interaction.response.send_message(embed=ResponseEmbed, silent=True)

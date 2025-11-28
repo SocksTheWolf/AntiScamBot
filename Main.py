@@ -102,7 +102,7 @@ if __name__ == '__main__':
     
   @ScamGuardBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)
   @app_commands.checks.has_role(ConfigData["MaintainerRole"])
-  async def PrintServers(interaction:Interaction, exhausted_only:bool=False):
+  async def PrintServers(interaction:Interaction, exhausted_only:bool):
     ReplyStr:str = ""
     RowNum:int = 1
     NumBans:int = ScamGuardBot.Database.GetNumBans()
