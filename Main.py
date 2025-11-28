@@ -135,7 +135,7 @@ if __name__ == '__main__':
         RowNum += 1
       
     # Final formatting
-    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNumServers DB: {len(QueryResults)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
+    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNum Activated: {ActivatedServers} | Num Bans: {NumBans}"
     # Split the string so that it fits properly into discord messaging
     MessageChunkLen:int = 2000
     MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
