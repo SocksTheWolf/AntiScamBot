@@ -16,7 +16,7 @@ from BotCommands import GlobalScamCommands
 from CommandHelpers import CommandErrorHandler
 from ServerActivation import ScamGuardServerSetup
 from TextWrapper import TextLibrary
-from typing import cast
+from typing import Sequence, cast
 
 __all__ = ["DiscordBot"]
 
@@ -351,6 +351,8 @@ class DiscordBot(discord.Client):
       return
 
     self.Database.SetBotActivationForOwner([server.id], False, self.BotID, OwnerId=server.owner_id or 0)
+    if (ConfigData["PostWelcomeMessages"]):
+      self.AddAsyncTask(self.PostFirstTimeMessage(server.id))
     Logger.Log(LogLevel.Notice, f"Bot (#{self.BotID}) has joined server {self.GetServerInfoStr(server)} of owner {OwnerName}[{server.owner_id}]")
     
   async def on_guild_remove(self, server:discord.Guild):
@@ -443,7 +445,90 @@ Failed Copied Evidence Links:
       Logger.Log(LogLevel.Error, f"Unable to make report on user {ReportData['ReportedUserId']} as we do not have permissions to do so!")
     except discord.HTTPException as ex:
       Logger.Log(LogLevel.Error, f"Unable to make report on user {json.dumps(ReportData)} with exception {str(ex)}")
-      
+  
+  ### First Time Message Posting ###
+  async def PostFirstTimeMessage(self, ServerId:int):
+    CanCreatePrivateThread:bool = ConfigData["UseThreadsForWelcomeMessage"]
+    Server:discord.Guild|None = self.get_guild(ServerId)
+    if (Server is None):
+      Logger.Log(LogLevel.Warn, f"Server {ServerId} was none")
+      return
+
+    # Find if we can even use threads (determined by if we can mention any of the moderators)
+    MentionStr:str = ""
+    # Need this to actually notify people 
+    MentionPerms:discord.AllowedMentions = discord.AllowedMentions(roles=True, users=True)
+    MentionRoles:Sequence[discord.Role] = []
+    # Find all the roles that can ban members, we're about to mention them directly
+    for RoleCheck in Server.roles:
+      if (RoleCheck.permissions.ban_members and RoleCheck.mentionable):
+        MentionRoles.append(RoleCheck)
+    
+    # If we can mention roles, generate the role mention string
+    if (len(MentionRoles) > 0):
+      # Create a giant mention role string
+      MentionStr = " ".join([Role.mention for Role in MentionRoles])
+    else:
+      # We have no ability to @ mention any of the mods for the private
+      # thread, thus no one will be able to see it, as such, we need to post publicly
+      CanCreatePrivateThread = False 
+    
+    BotMember:discord.Member = Server.me
+    # Try to find the channel that we can potentially post in
+    ChannelSet:discord.TextChannel|None = None
+    CanPost:bool = await self.CanPostInChannel(Server.system_channel, BotMember, CanCreatePrivateThread)
+    # Welcome to the ugliest conditional
+    if (CanPost):
+      ChannelSet = Server.system_channel
+    else:
+      CanPost = await self.CanPostInChannel(Server.public_updates_channel, BotMember, CanCreatePrivateThread)
+      if (CanPost):
+        ChannelSet = Server.public_updates_channel
+      else:
+        CanPost = await self.CanPostInChannel(Server.safety_alerts_channel, BotMember, CanCreatePrivateThread)
+        if (CanPost):
+          ChannelSet = Server.safety_alerts_channel
+
+    # If we can't find an easy channel, then loop through all the channel objects    
+    if (ChannelSet is None):
+      # I'm thinking it's better to go through the older channels first
+      # as the first few channels are probably things like "rules" and "info"
+      # and those are probably not ones we can message in anyways
+      OldestList = sorted(Server.text_channels, key=lambda chan: chan.created_at)
+      for OldChannel in OldestList:
+        if (await self.CanPostInChannel(OldChannel, BotMember, CanCreatePrivateThread)):
+          ChannelSet = OldChannel
+          break
+
+    # If we find a channel to send into
+    if (ChannelSet is not None):
+      PostEmbed:discord.Embed = self.CreateFirstTimeEmbed()
+      PostedInThread:bool = False
+
+      # Attempt to post our welcome as a private thread
+      if (CanCreatePrivateThread):
+        try:
+          PostingThread = await ChannelSet.create_thread(name="ScamGuard Welcome", reason="ScamGuard Message to Moderators")
+          await PostingThread.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
+          PostedInThread = True
+        except:
+          # if it fails, we'll just send the message
+          pass
+
+      if (PostedInThread == False):
+        await ChannelSet.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
+
+      Logger.Log(LogLevel.Notice, f"Found Posting Channel {ChannelSet.name} for server {Server.name}[{ServerId}]. Used Thread? {PostedInThread}")
+    else:
+      Logger.Log(LogLevel.Error, f"Could not find a channel for server {ServerId}")
+  
+  async def CanPostInChannel(self, channel: discord.TextChannel|None, GuildSelf:discord.Member, CheckThreads:bool) -> bool:
+    if (channel is None):
+      return False
+
+    ChannelPerms:discord.Permissions = channel.permissions_for(GuildSelf)
+    return ChannelPerms.send_messages or (CheckThreads and ChannelPerms.create_private_threads)
+  
   ### Webhook Management ###
   async def InstallWebhook(self, ServerId:int):
     if (self.AnnouncementChannel is None):
@@ -568,9 +653,11 @@ Failed Copied Evidence Links:
     NumDays:int = ConfigData["InactiveServerDayWindow"]
     ResponseEmbed:discord.Embed = self.CreateBaseEmbed("ScamGuard Welcome")
     ResponseEmbed.description = Messages["first_time"]["desc"].format(bans=self.Database.GetNumBans())
-    ResponseEmbed.add_field(name=Messages["first_time"]["mod_role_title"], value=Messages["first_time"]["mod_role_desc"])
+    ResponseEmbed.add_field(name=Messages["first_time"]["mod_role_title"], 
+                            value=Messages["first_time"]["mod_role_desc"], inline=False)
+    ResponseEmbed.add_field(name="", value="", inline=False)
     ResponseEmbed.add_field(name=Messages["first_time"]["activate_title"].format(days=NumDays), 
-                            value=Messages["first_time"]["activate_desc"].format(days=NumDays))
+                            value=Messages["first_time"]["activate_desc"].format(days=NumDays), inline=False)
     ResponseEmbed.set_footer(text=Messages["first_time"]["footer"])
     return ResponseEmbed
     

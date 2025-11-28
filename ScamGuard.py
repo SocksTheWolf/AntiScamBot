@@ -100,7 +100,8 @@ class ScamGuard(DiscordBot):
 
     CurrentTime:datetime = datetime.now() - timedelta(days=float(InactiveInstanceWindow))
     AllDisabledServers = self.Database.GetAllDeactivatedServers()
-    Logger.CLog(len(AllDisabledServers) > 0, LogLevel.Notice, f"Attempting to clean up old non-activated servers... Dry run? {DryRun}")
+    OldServerCount:int = len(AllDisabledServers)
+    Logger.CLog(OldServerCount > 0, LogLevel.Notice, f"Non-activated server ({OldServerCount}) purge. Dry run? {DryRun}")
     ServersLeft:int = 0
     for ServerData in AllDisabledServers:
       if (CurrentTime > ServerData.created_at):

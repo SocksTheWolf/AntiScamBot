@@ -29,5 +29,7 @@
     "CanSendServerErrorMessages": true,
     "AllowSuspiciousUserKicks": false,
     "AllowWebhookInstall": true,
+    "PostWelcomeMessages": true,
+    "UseThreadsForWelcomeMessage": true,
     "ConflictingBots": [849084039763591179, 235148962103951360]
 }

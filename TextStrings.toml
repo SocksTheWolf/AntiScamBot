@@ -48,9 +48,9 @@ about="ScamGuard is a free Discord bot that prevent scammers from entering your 
 
 [first_time]
 desc="Thanks for installing ScamGuard, you are well on your way to protecting your server from ~{bans} scammers.\n## Next Steps"
-mod_role_title="Give Moderator Role"
-mod_role_desc="ScamGuard requires a moderator role in order to be able to ban scammers before they join. If you would like to run the bot without giving it a moderator role, please [see the advanced steps here](https://scamguard.app/advanced_install)."
-activate_title="Activate ScamGuard Within {days} Days"
+mod_role_title="1. Give Moderator Role"
+mod_role_desc="ScamGuard **requires a moderator role** in order to be able to ban scammers before they join.\n\nIf you would like to run the bot without giving it a moderator role, please [see the advanced steps here](https://scamguard.app/advanced_install)."
+activate_title="2. Activate ScamGuard Within {days} Days"
 activate_desc="Once proper permissions are set, a moderator or admin with the `Manage Bans` permission needs to run `/scamguard setup`.\n\nIf activation is not completed in {days} days, ScamGuard will automatically leave the server."
 footer="Feel free to remove this message, I won't try to post it again."
 
