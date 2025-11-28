@@ -702,10 +702,12 @@ Failed Copied Evidence Links:
     return UserData
 
   ### Ban Handling ###        
-  async def ReprocessBans(self, ServerId:int, LastActions:int=0) -> BanResult:
+  async def ReprocessBans(self, ServerId:int, LastActions:int=0, HandlingCooldown:bool=False) -> BanResult:
     Server:discord.Guild|None = self.get_guild(ServerId)
     if (Server is None):
       Logger.Log(LogLevel.Error, f"Could not look up the server {ServerId} while reprocessing bans")
+      if (HandlingCooldown):
+        self.Database.SetProcessingServerCooldown(ServerId, False)
       return BanResult.Error
     
     ServerInfoStr:str = self.GetServerInfoStr(Server)
@@ -713,12 +715,18 @@ Failed Copied Evidence Links:
     Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
     NumBans:int = 0
     NumFailures:int = 0
-    BanQueryResult = self.Database.GetAllBans(LastActions)
-    TotalBans:int = len(BanQueryResult)
+    CurrentNumBans:int = self.Database.GetNumBans()
+    RawBanQuery = self.Database.GetAllBans(LastActions)
     ActionsAppliedThisLoop:int = 0
     DoesSleep:bool = ConfigData["UseSleep"]
     DoesHaltOnFailures:bool = ConfigData["MaxBanFailures"] > 0
     DoesHaltOnMaxBans:bool = ConfigData["MaxBulkImports"] > 0
+    
+    # resort the ban query list if we are handling cooldowns
+    BanQueryResult = RawBanQuery
+    if (HandlingCooldown):
+      BanQueryResult = sorted(RawBanQuery, key=lambda ban: ban.created_at)
+    
     for Ban in BanQueryResult:
       if (DoesSleep):
         # Put in sleep functionality on this loop, as it could be heavy
@@ -734,7 +742,7 @@ Failed Copied Evidence Links:
         break
       
       # Check if we have a max and stop processing from here
-      if (DoesHaltOnMaxBans and NumBans > ConfigData["MaxBulkImports"]):
+      if (DoesHaltOnMaxBans and NumBans >= ConfigData["MaxBulkImports"]):
         BanReturn = BanResult.BansExceeded
         break
 
@@ -762,17 +770,29 @@ Failed Copied Evidence Links:
             break
       else:
         NumBans += 1
-    Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{TotalBans} bans for {ServerInfoStr}!")
     
-    # Remove the server from the cooldown table ONLY if they have processed all the bans successfully
-    if (BanReturn == BanResult.Processed):
-      self.Database.RemoveServerCooldown(ServerId)
-    # Otherwise if we're already in cooldown (other error occurred), or we have exceeded our bans (i.e. first time exceed)
-    # then we should update our current server cooldown information
-    elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):
+    # If this is being handled by a server reprocessing, then make sure to update the db properly
+    if (HandlingCooldown):
+      # Remove the server from the cooldown table ONLY if they have processed all the bans successfully
+      if (BanReturn == BanResult.Processed):
+        self.Database.RemoveServerCooldown(ServerId)
+      # Otherwise if we're already in cooldown (other error occurred), or we have exceeded our bans (i.e. first time exceed)
+      # then we should update our current server cooldown information
+      elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):
+        NewBanPos:int = self.Database.UpdateServerCooldown(ServerId, NumBans)
+        Logger.Log(LogLevel.Error, f"{ServerInfoStr} had bans exceeded again, will continue from {NewBanPos}")
+        # Make the debug print look nice
+        NumBans = NewBanPos
+      # Clean up the flag that says we are currently processing server cooldown
+      self.Database.SetProcessingServerCooldown(ServerId, False)
+
+    # If we are not processing server cooldowns and we encounter this error, and we're not in the db for this,
+    # then add us to the db
+    elif (BanReturn == BanResult.BansExceeded and not self.Database.IsServerInCooldown(ServerId)):
       NewBanPos:int = self.Database.UpdateServerCooldown(ServerId, NumBans)
       Logger.Log(LogLevel.Error, f"Bans Exceeded. Pushing {ServerInfoStr} to continue processing in the future at {NewBanPos}")
 
+    Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{CurrentNumBans} bans for {ServerInfoStr}!")
     return BanReturn
   
   async def ReprocessInstance(self, LastActions:int):
@@ -789,8 +809,8 @@ Failed Copied Evidence Links:
   def ScheduleReprocessInstance(self, LastActions:int):
     self.AddAsyncTask(self.ReprocessInstance(LastActions))
   
-  def ScheduleReprocessBans(self, ServerId:int, LastActions:int=0):
-    self.AddAsyncTask(self.ReprocessBans(ServerId, LastActions))
+  def ScheduleReprocessBans(self, ServerId:int, LastActions:int=0, HandlingCooldown:bool=False):
+    self.AddAsyncTask(self.ReprocessBans(ServerId, LastActions, HandlingCooldown))
     
   def KickUser(self, TargetId:int, AuthName:str):
     self.AddAsyncTask(self.ProcessActionOnUser(TargetId, AuthName, ModerationAction.Kick))
@@ -948,7 +968,7 @@ Failed Copied Evidence Links:
     FailureEmbed.add_field(name="Action Taken", value=f"{Action}")
     FailureEmbed.add_field(inline=False, name="Error Code", value=ErrorMsg)
     FailureEmbed.add_field(inline=False, name="Resolution", value=ResolutionMsg)
-    FailureEmbed.add_field(inline=False, name="Help Links", value="[Support Server](https://scamguard.app/discord) | [FAQ](https://scamguard.app/faq)")
+    FailureEmbed.add_field(inline=False, name="Help Links", value=Messages["ban_failure"]["help_links"])
     FailureEmbed.set_footer(text="scamguard.app")
     await DiscordChannel.send(embed=FailureEmbed) # type: ignore
     Logger.Log(LogLevel.Notice, f"A ban failure message was sent to {ServerIDStr} for the user id {UserId}")

@@ -195,7 +195,8 @@ class RelayClient:
       self.Connection.close()
       self.Connection = None
     
-  def GenerateMessage(self, Type:RelayMessageType, Destination:int=-1, TargetServer:int=-1, TargetUserId:int=-1, NumToRetry=-1, AuthName:str="") -> RelayMessage:            
+  def GenerateMessage(self, Type:RelayMessageType, Destination:int=-1, TargetServer:int=-1, 
+                      HandlingCooldown:bool=False, TargetUserId:int=-1, NumToRetry=-1, AuthName:str="") -> RelayMessage:            
     DataPayload={}
     match Type:
       case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
@@ -209,7 +210,8 @@ class RelayClient:
       case RelayMessageType.ReprocessInstance:
         DataPayload={"NumToRetry": NumToRetry}
       case RelayMessageType.ReprocessBans:
-        DataPayload={"TargetServer": TargetServer, "NumToRetry": NumToRetry}
+        DataPayload={"TargetServer": TargetServer, "NumToRetry": NumToRetry, 
+                     "HandlingCooldown": HandlingCooldown}
     
     return RelayMessage(Type, self.BotID, Destination, DataPayload)
   
@@ -247,10 +249,12 @@ class RelayClient:
       return
     self.Connection.send(self.GenerateMessage(RelayMessageType.LeaveServer, Destination=InstanceId, TargetServer=ServerToLeave))
     
-  def SendReprocessBans(self, ServerToRetry:int, InstanceId, InNumToRetry:int=-1):
+  def SendReprocessBans(self, ServerToRetry:int, InstanceId, InNumToRetry:int=-1, InHandlingCooldown:bool=False):
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
       return
-    self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessBans, Destination=InstanceId, TargetServer=ServerToRetry, NumToRetry=InNumToRetry))
+    self.Connection.send(self.GenerateMessage(RelayMessageType.ReprocessBans, Destination=InstanceId, 
+                                              TargetServer=ServerToRetry, NumToRetry=InNumToRetry,
+                                              HandlingCooldown=InHandlingCooldown))
   
   def SendReprocessInstanceBans(self, InstanceId, InNumToRetry:int=-1):
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
@@ -315,7 +319,9 @@ class RelayClient:
           case RelayMessageType.LeaveServer:
             Arguments = {"ServerId": RelayedMessage.Data["TargetServer"]}
           case RelayMessageType.ReprocessBans:
-            Arguments = {"ServerId": RelayedMessage.Data["TargetServer"], "LastActions": RelayedMessage.Data["NumToRetry"]}
+            Arguments = {"ServerId": RelayedMessage.Data["TargetServer"], 
+                         "LastActions": RelayedMessage.Data["NumToRetry"], 
+                         "HandlingCooldown": RelayedMessage.Data["HandlingCooldown"]}
           case RelayMessageType.ReprocessInstance:
             Arguments = {"LastActions": RelayedMessage.Data["NumToRetry"]}
 

@@ -33,6 +33,7 @@ on_cooldown = "This command {cmd} is currently on cooldown"
 no_permission = "You do not have permissions to use {cmd}"
 missing_roles = "You are missing the roles necessary to run {cmd}"
 general = "An error has occurred while processing your request"
+server_already_processing = "This server is already reprocessing a backlog, please wait and try again later"
 
 # Failing the check permission transforms of application commands
 [cmds.check]
@@ -90,6 +91,9 @@ channel_set = "Message channel set to {mention}!"
 failure = "ScamGuard is unable to access the channel {mention}, please give its role `{role}` access to `View Channel` & `Send Messages` in {mention}"
 
 # Ban Failures (embeds sent to servers)
+[ban_failure]
+help_links="[Support Server](https://scamguard.app/discord) | [FAQ](https://scamguard.app/faq)"
+
 [ban_failure.lost_perm]
 error = "ScamGuard does not have significant permissions to ban this user"
 reason = "This usually happens if the user in question has grabbed roles that are higher than the bot's.\n\nYou can usually fix this by changing the order as seen in [this video](https://youtu.be/XYaQi3hM9ug), or giving ScamGuard a moderation role."

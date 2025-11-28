@@ -78,6 +78,10 @@ if __name__ == '__main__':
     if (server <= -1):
       await interaction.response.send_message(Messages["cmds_error"]["invalid_id"], ephemeral=True, delete_after=5.0)
       return
+    
+    if (ScamGuardBot.Database.IsProcessingServerCooldown(server)):
+      await interaction.response.send_message(Messages["cmds_error"]["server_already_processing"])
+      return
       
     ScamGuardBot.AddAsyncTask(ScamGuardBot.ReprocessBansForServer(server, LastActions=numactions))
     ReturnStr:str = f"Reprocessing the last {numactions} actions in {server}..."
@@ -124,10 +128,11 @@ if __name__ == '__main__':
           ActivatedServers += 1
     
     # Exhuasted server information
+    NumExhausted:int = ScamGuardBot.Database.GetNumExhaustedServers()
     ExhaustedServers = ScamGuardBot.Database.GetAllExhaustedServers()
     ExhaustedStr:str = ""
     # Only print if we have servers to print
-    if (len(ExhaustedServers) > 0):
+    if (NumExhausted > 0):
       RowNum = 1
       ExhaustedStr = "\nThe following servers are exhausted:\n"
       for ExhaustedServer in ExhaustedServers:
@@ -135,7 +140,7 @@ if __name__ == '__main__':
         RowNum += 1
       
     # Final formatting
-    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNum Activated: {ActivatedServers} | Num Bans: {NumBans}"
+    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNum Activated: {ActivatedServers} | Num Bans: {NumBans} | Num Exhausted: {NumExhausted}"
     # Split the string so that it fits properly into discord messaging
     MessageChunkLen:int = 2000
     MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]

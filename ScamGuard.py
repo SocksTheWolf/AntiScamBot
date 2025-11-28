@@ -38,6 +38,7 @@ class ScamGuard(DiscordBot):
       self.PeriodicLeave.start()
       
     self.HandleListenRelay.start()
+    self.HandleBanExceed.start()
     await super().setup_hook()
       
   ### Discord Tasks Handling ###
@@ -130,9 +131,10 @@ class ScamGuard(DiscordBot):
     NumBans:int = self.Database.GetNumBans()
     Logger.Log(LogLevel.Notice, f"Attempting to process {ExhaustedListCount} cooldown servers now")
     for Server in ExhaustedList:
-      NumCount:int = NumBans - Server.current_pos
-      ServerId:int = Server.discord_server_id
-      self.AddAsyncTask(self.ReprocessBansForServer(ServerId, NumCount))
+      NumCount:int = NumBans - int(Server.current_pos)
+      ServerId:int = int(Server.discord_server_id)
+      self.Database.SetProcessingServerCooldown(ServerId, True)
+      self.AddAsyncTask(self.ReprocessBansForServer(ServerId, NumCount, True))
       Logger.Log(LogLevel.Log, f"Enqueueing reprocessing of {NumCount} bans for server {ServerId}")
   
   # Handling async tasks step flow
@@ -250,14 +252,15 @@ class ScamGuard(DiscordBot):
     else:
       self.ClientHandler.SendReprocessInstanceBans(InstanceId=InstanceID, InNumToRetry=LastActions)
 
-  async def ReprocessBansForServer(self, ServerId:int, LastActions:int=0) -> BanResult:
+  async def ReprocessBansForServer(self, ServerId:int, LastActions:int=0, HandlingCooldown:bool=False) -> BanResult:
     TargetBotId:int|None = self.Database.GetBotIdForServer(ServerId)
     if (TargetBotId == self.BotID):
-      return await self.ReprocessBans(ServerId, LastActions)
+      return await self.ReprocessBans(ServerId, LastActions, HandlingCooldown)
     elif (TargetBotId is None):
       return BanResult.Error
     else:
-      self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, InNumToRetry=LastActions)
+      self.ClientHandler.SendReprocessBans(ServerId, InstanceId=TargetBotId, 
+                                           InNumToRetry=LastActions, InHandlingCooldown=HandlingCooldown)
       return BanResult.Processed
     
   async def PropagateActionToServers(self, TargetId:int, Sender:Member|User, Action:ModerationAction):

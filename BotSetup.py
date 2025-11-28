@@ -10,7 +10,7 @@ class DatabaseMigrator:
   # When the BotDatabaseSchema gets updated, update this value here and create a function that updates
   # from the last database version to this one. The naming scheme should match "upgrade_versionXtoY"
   # Database migrations apply linearly.
-  DATABASE_VERSION=6
+  DATABASE_VERSION=7
   VersionMap={}
   DatabaseCon:Engine=None # pyright: ignore[reportAssignmentType]
   
@@ -140,6 +140,14 @@ class DatabaseMigrator:
   
   def upgrade_version5to6(self) -> bool:
     session = Session(self.DatabaseCon)
+    Base.metadata.create_all(self.DatabaseCon)
+    session.commit()
+    return True
+  
+  def upgrade_version6to7(self) -> bool:
+    session = Session(self.DatabaseCon)
+    session.execute(text("drop table exhausted_servers"))
+    session.commit()
     Base.metadata.create_all(self.DatabaseCon)
     session.commit()
     return True

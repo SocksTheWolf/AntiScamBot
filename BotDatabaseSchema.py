@@ -45,8 +45,6 @@ class ExhaustedServer(Base):
   __tablename__ = "exhausted_servers"
   
   discord_server_id = mapped_column(String(32), primary_key=True, unique=True, nullable=False)
-  current_pos = mapped_column(Integer, server_default="0")
+  current_pos = mapped_column(Integer, nullable=False, server_default="0")
   last_run = mapped_column(DateTime(), server_default=func.now(), onupdate=func.now())
-  # This isn't implemented anywhere atm but is used as a lock in case a server takes a long time
-  # to potentially process
-  is_processing = mapped_column(Integer, server_default="0")
+  is_processing = mapped_column(Integer, nullable=False, server_default="0")

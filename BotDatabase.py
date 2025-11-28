@@ -7,7 +7,7 @@ from BotDatabaseSchema import Ban, ExhaustedServer, Server
 from sqlalchemy import create_engine, Engine, select, URL, desc, asc, func
 from sqlalchemy.orm import Session
 from BotServerSettings import BotSettingsPayload
-from datetime import datetime, timedelta
+from datetime import timezone, datetime, timedelta
 from typing import cast
 
 ConfigData:Config = Config()
@@ -460,15 +460,31 @@ class DatabaseDriver():
   def IsServerInCooldown(self, ServerId:int) -> bool:
     return self.GetServerCooldown(ServerId) is not None
   
+  def IsProcessingServerCooldown(self, ServerId:int) -> bool:
+    ServerObj:ExhaustedServer|None = self.GetServerCooldown(ServerId)
+    if (ServerObj is None):
+      return False
+    
+    return ServerObj.is_processing > 0
+  
+  def SetProcessingServerCooldown(self, ServerId:int, NewFlag:bool):
+    exUpdate:ExhaustedServer|None = self.GetServerCooldown(ServerId)
+    if (exUpdate is None):
+      return
+    
+    exUpdate.is_processing = NewFlag
+    self.Database.add(exUpdate)
+    self.Database.commit()
+  
   def UpdateServerCooldown(self, ServerId:int, NumCompleted:int) -> int:
-    exhaustedUpdate = self.GetServerCooldown(ServerId)
+    exhaustedUpdate:ExhaustedServer|None = self.GetServerCooldown(ServerId)
     
     # Create if it doesn't exist.
     if (exhaustedUpdate is None):
       exhaustedUpdate = ExhaustedServer()
       exhaustedUpdate.discord_server_id = ServerId
     
-    if (exhaustedUpdate.current_pos > 0):
+    if (exhaustedUpdate.current_pos is not None and exhaustedUpdate.current_pos > 0):
       exhaustedUpdate.current_pos = exhaustedUpdate.current_pos + NumCompleted
     else:
       exhaustedUpdate.current_pos = NumCompleted
@@ -486,11 +502,15 @@ class DatabaseDriver():
     self.Database.delete(server)
     self.Database.commit()
 
-  def GetExhaustedServers(self):
-    BeginningOfTime:datetime = datetime.fromtimestamp(0)
-    ADayAgo:timedelta = timedelta(days = 1)
-    ADayAgoTime:datetime = datetime.now() - ADayAgo
-    stmt = select(ExhaustedServer).where(ExhaustedServer.last_run.between(BeginningOfTime, ADayAgoTime))
+  def GetExhaustedServers(self, OverrideTime:bool=False):
+    stmt = select(ExhaustedServer)
+    
+    if (OverrideTime is False):
+      BeginningOfTime:datetime = datetime.fromtimestamp(0)
+      ADayAgo:timedelta = timedelta(days = 1, minutes=5)
+      ADayAgoTime:datetime = datetime.now(timezone.utc) - ADayAgo
+      print(ADayAgoTime)
+      stmt = stmt.where(ExhaustedServer.last_run.between(BeginningOfTime, ADayAgoTime))
     return self.Database.scalars(stmt).all()
   
   def GetAllExhaustedServers(self):
