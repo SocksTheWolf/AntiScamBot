@@ -489,6 +489,9 @@ class DatabaseDriver():
     stmt = select(ExhaustedServer).where(ExhaustedServer.last_run.between(BeginningOfTime, ADayAgoTime))
     return self.Database.scalars(stmt).all()
   
+  def GetAllExhaustedServers(self):
+    return self.Database.scalars(select(ExhaustedServer)).all()
+  
   ### Stats ###
   def GetNumBans(self) -> int:
     stmt = select(func.count()).select_from(Ban)

@@ -102,24 +102,40 @@ if __name__ == '__main__':
     
   @ScamGuardBot.Commands.command(name="print", description="Print stats and information about all bots in the server", guild=CommandControlServer)
   @app_commands.checks.has_role(ConfigData["MaintainerRole"])
-  async def PrintServers(interaction:Interaction):
-    ReplyStr:str = "I am in the following servers:\n"
+  async def PrintServers(interaction:Interaction, exhausted_only:bool=False):
+    ReplyStr:str = ""
     RowNum:int = 1
     NumBans:int = ScamGuardBot.Database.GetNumBans()
     ActivatedServers:int = 0
     
     await interaction.response.defer(thinking=True)
-    
     ResponseHook:Webhook = interaction.followup
-    QueryResults = ScamGuardBot.Database.GetAllServers()
-    for BotServers in QueryResults:
-      IsActivated:bool = bool(BotServers.activation_state)
-      ReplyStr += f"#{RowNum}: Inst {BotServers.bot_instance_id}, Server {BotServers.discord_server_id}, Owner {BotServers.owner_discord_user_id}, Activated {str(IsActivated)}\n"
-      RowNum += 1
-      if (IsActivated):
-        ActivatedServers += 1
+    
+    if (not exhausted_only):
+      ReplyStr = "I am in the following servers:\n"
+      
+      # Format all servers that we know
+      QueryResults = ScamGuardBot.Database.GetAllServers()
+      for BotServers in QueryResults:
+        IsActivated:bool = bool(BotServers.activation_state)
+        ReplyStr += f"#{RowNum}: Inst {BotServers.bot_instance_id}, Server {BotServers.discord_server_id}, Owner {BotServers.owner_discord_user_id}, Activated {str(IsActivated)}\n"
+        RowNum += 1
+        if (IsActivated):
+          ActivatedServers += 1
+    
+    # Exhuasted server information
+    ExhaustedServers = ScamGuardBot.Database.GetAllExhaustedServers()
+    ExhaustedStr:str = ""
+    # Only print if we have servers to print
+    if (len(ExhaustedServers) > 0):
+      RowNum = 1
+      ExhaustedStr = "\nThe following servers are exhausted:\n"
+      for ExhaustedServer in ExhaustedServers:
+        ExhaustedStr += f"#{RowNum}: Discord ID: {ExhaustedServer.discord_server_id}, Current Pos: {ExhaustedServer.current_pos}, Last Time Ran: {ExhaustedServer.last_run}\n"
+        RowNum += 1
+      
     # Final formatting
-    ReplyStr = f"{ReplyStr}\nNumServers DB: {len(QueryResults)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
+    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNumServers DB: {len(QueryResults)} | Num Activated: {ActivatedServers} | Num Bans: {NumBans}"
     # Split the string so that it fits properly into discord messaging
     MessageChunkLen:int = 2000
     MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
