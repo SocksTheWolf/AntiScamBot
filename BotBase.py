@@ -550,18 +550,28 @@ Failed Copied Evidence Links:
   
   def AddSettingsEmbedInfo(self, AddToEmbed:discord.Embed):
     AddToEmbed.add_field(name="Settings", value="", inline=False)
-    AddToEmbed.add_field(name="Mod Message Channel", inline=False, value=f"{Messages['settings']['mod_msg']}")
-    AddToEmbed.add_field(name="Ban Notifications", inline=False, value=f"{Messages['settings']['ban_notif']}")
+    AddToEmbed.add_field(name="Message Channel for Moderators", inline=False, value=Messages['settings']['mod_msg'])
+    AddToEmbed.add_field(name="Ban Notification Channel", inline=False, value=Messages['settings']['ban_notif'])
   
   def CreateInfoEmbed(self) -> discord.Embed:
     NumServers:int = self.Database.GetNumServers()
     NumActivated:int = self.Database.GetNumActivatedServers()
     ResponseEmbed:discord.Embed = self.CreateBaseEmbed("ScamGuard Info")
-    ResponseEmbed.add_field(name="About", inline=False, value="ScamGuard is a free bot application that helps prevent scammers from entering your servers. It is managed by [SocksTheWolf](https://socksthewolf.com)")
-    ResponseEmbed.add_field(name="Links", value="[Website](https://scamguard.app)\n[GitHub](https://github.com/SocksTheWolf/AntiScamBot)")
-    ResponseEmbed.add_field(name="Help", value="[FAQ](https://scamguard.app/faq)\n[Usage](https://scamguard.app/usage)\n[Support Server](https://scamguard.app/discord)")
-    ResponseEmbed.add_field(name="Terms", value="[TOS](https://scamguard.app/terms)\n[Privacy Policy](https://scamguard.app/privacy)")
+    ResponseEmbed.add_field(name="About", inline=False, value=Messages['info']['about'])
+    ResponseEmbed.add_field(name="Links", value=Messages["info"]["links"])
+    ResponseEmbed.add_field(name="Help", value=Messages["info"]["help_links"])
+    ResponseEmbed.add_field(name="Legal", value=Messages["info"]["legal"])
     ResponseEmbed.set_footer(text=f"Scammers Defeated: {self.Database.GetNumBans()} | Servers: {NumActivated}/{NumServers}")
+    return ResponseEmbed
+  
+  def CreateFirstTimeEmbed(self) -> discord.Embed:
+    NumDays:int = ConfigData["InactiveServerDayWindow"]
+    ResponseEmbed:discord.Embed = self.CreateBaseEmbed("ScamGuard Welcome")
+    ResponseEmbed.description = Messages["first_time"]["desc"].format(bans=self.Database.GetNumBans())
+    ResponseEmbed.add_field(name=Messages["first_time"]["mod_role_title"], value=Messages["first_time"]["mod_role_desc"])
+    ResponseEmbed.add_field(name=Messages["first_time"]["activate_title"].format(days=NumDays), 
+                            value=Messages["first_time"]["activate_desc"].format(days=NumDays))
+    ResponseEmbed.set_footer(text=Messages["first_time"]["footer"])
     return ResponseEmbed
     
   async def CreateBanEmbed(self, TargetId:int) -> discord.Embed:
@@ -572,7 +582,7 @@ Failed Copied Evidence Links:
     UserData = self.CreateBaseEmbed("User Data", False)
     if (HasUserData):
       UserData.add_field(name="Name", value=User.display_name)
-      UserData.add_field(name="Handle", value=User.name, inline=True)
+      UserData.add_field(name="Discord Handle", value=User.name, inline=True)
       UserData.add_field(name="Mention", value=User.mention)
       # This will always be an approximation, plus they may be in servers the bot is not in.
       if (ConfigData["ScamCheckShowsSharedServers"]):
@@ -580,11 +590,11 @@ Failed Copied Evidence Links:
 
       # If currently banned and has an evidence thread, display it.
       if (UserBanned and BanData.evidence_thread is not None):
-        UserData.add_field(name="Evidence Thread (TAG Server)", value=f"<#{BanData.evidence_thread}>", inline=False)
+        UserData.add_field(name="Evidence (TAG Server)", value=f"<#{BanData.evidence_thread}>", inline=False)
       UserData.add_field(name="Account Created", value=f"{discord.utils.format_dt(User.created_at)}", inline=False)
       UserData.set_thumbnail(url=User.display_avatar.url)
     
-    UserData.add_field(name="Banned", value=f"{UserBanned}")
+    UserData.add_field(name="Banned Status", value=f"{UserBanned}")
     
     # Figure out who banned them
     if (UserBanned):
