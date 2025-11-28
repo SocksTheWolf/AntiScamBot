@@ -10,6 +10,8 @@ from BotServerSettings import BotSettingsPayload
 from datetime import datetime, timedelta
 from typing import cast
 
+ConfigData:Config = Config()
+
 class DatabaseDriver():
   Database:Session = None # pyright: ignore[reportAssignmentType]
   
@@ -76,7 +78,7 @@ class DatabaseDriver():
       return
     
     BackupsCleaned:int = 0
-    OlderThan:float = Config()["RemoveDaysOldBackups"]
+    OlderThan:float = ConfigData["RemoveDaysOldBackups"]
     BackupLocation = os.path.abspath(Config.GetBackupLocation())
     FileList = os.listdir(BackupLocation)
     FilesOlderThan:float = time.time() - OlderThan * 86400
@@ -220,7 +222,7 @@ class DatabaseDriver():
     # Discord Guild IDs that we will later use to remove
     ServersIn:list[int] = []
     # Control server id
-    ControlServerID:int = Config().ControlServer # pyright: ignore[reportAttributeAccessIssue]
+    ControlServerID:int = ConfigData["ControlServer"]
     # Loop through all the servers we are in and grab their guild ids
     for DiscordServer in Servers:
       # Check to see if we know about this server already.
@@ -444,7 +446,9 @@ class DatabaseDriver():
     return self.GetAllServers(True, OfInstance, True)
   
   def GetAllDeactivatedServers(self) -> list[Server]:
-    stmt = select(Server).where(Server.activation_state==False)
+    ControlServerID:int = ConfigData["ControlServer"]
+    # Always ignore the control server
+    stmt = select(Server).where(Server.activation_state==False).where(Server.discord_server_id!=ControlServerID)
 
     return list(self.Database.scalars(stmt).all())
   
