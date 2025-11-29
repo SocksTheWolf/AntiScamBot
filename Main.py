@@ -133,14 +133,14 @@ if __name__ == '__main__':
     if (NumExhausted > 0):
       RowNum = 1
       CurrentTime:datetime = datetime.now(tz=timezone.utc)
-      ExhaustedStr = f"\nThe following servers are exhausted as of {CurrentTime}:\n"
+      ExhaustedStr = f"\nThe following servers are exhausted as of `{CurrentTime}`:\n"
       for ExhaustedServer in ExhaustedServers:
         # Construct the correct time
         TimeRan:datetime = datetime.fromisoformat(str(ExhaustedServer.last_run)).replace(tzinfo=timezone.utc)
         # Figure out the difference
-        TimeDiff:timedelta = CurrentTime - TimeRan
+        TimeDiff:int = int(((CurrentTime - TimeRan).seconds / 60) / 60)
         # Print
-        ExhaustedStr += f"#{RowNum}: Server ID: {ExhaustedServer.discord_server_id}, CurPos: {ExhaustedServer.current_pos}, Last Time: {TimeRan}, Next Time in: {TimeDiff.seconds / 60}hrs\n"
+        ExhaustedStr += f"#{RowNum}: Server ID: {ExhaustedServer.discord_server_id}, CurPos: {ExhaustedServer.current_pos}, Last Time: `{TimeRan}`, Next Time in: ~{abs(TimeDiff - 24)}hrs\n"
         RowNum += 1
 
     # Final formatting
