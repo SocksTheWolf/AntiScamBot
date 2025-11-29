@@ -269,7 +269,7 @@ class DiscordBot(discord.Client):
     if (self.Database.GetBotIdForServer(ServerID) != self.BotID):
       return
     
-    Logger.Log(LogLevel.Notice, f"Activing ServerID {ServerID} from user {UserID}")
+    Logger.Log(LogLevel.Notice, f"Activating ServerID {ServerID} from user {UserID}")
     self.Database.SetBotActivationForOwner([ServerID], True, self.BotID, ActivatorId=UserID)
     self.AddAsyncTask(self.ReprocessBans(ServerID))
     

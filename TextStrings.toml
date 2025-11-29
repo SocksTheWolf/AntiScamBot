@@ -110,7 +110,7 @@ reason = "This can happen when the Discord API has a hiccup, a ban will retry ag
 # Setup screen
 [setup]
 title = "ScamGuard Setup Welcome"
-activation_error = "An error has occured when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support"
+activation_error = "An error has occurred when trying to activate ScamGuard, please join the [Discord Support Server](https://scamguard.app/discord) to support"
 
 [setup.info]
 title = "Setup Info"

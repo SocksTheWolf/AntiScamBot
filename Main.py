@@ -106,6 +106,7 @@ if __name__ == '__main__':
   @app_commands.checks.has_role(ConfigData["MaintainerRole"])
   async def PrintServers(interaction:Interaction, exhausted_only:bool):
     ReplyStr:str = ""
+    ActivatedStr:str = ""
     RowNum:int = 1
     NumBans:int = ScamGuardBot.Database.GetNumBans()
     ActivatedServers:int = 0
@@ -124,8 +125,10 @@ if __name__ == '__main__':
         RowNum += 1
         if (IsActivated):
           ActivatedServers += 1
+      
+      ActivatedStr = f"Num Activated: {ActivatedServers} "
     
-    # Exhuasted server information
+    # Exhausted server information
     NumExhausted:int = ScamGuardBot.Database.GetNumExhaustedServers()
     ExhaustedServers = ScamGuardBot.Database.GetAllExhaustedServers()
     ExhaustedStr:str = ""
@@ -145,7 +148,7 @@ if __name__ == '__main__':
         RowNum += 1
 
     # Final formatting
-    ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNum Activated: {ActivatedServers} | Num Bans: {NumBans} | Num Exhausted: {NumExhausted}"
+    ReplyStr = f"{ReplyStr}{ExhaustedStr}\n{ActivatedStr}| Num Bans: {NumBans} | Num Exhausted: {NumExhausted}"
     # Split the string so that it fits properly into discord messaging
     MessageChunkLen:int = 2000
     MessageChunks = [ReplyStr[i:i+MessageChunkLen] for i in range(0, len(ReplyStr), MessageChunkLen)]
