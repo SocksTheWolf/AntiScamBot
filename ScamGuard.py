@@ -48,13 +48,13 @@ class ScamGuard(DiscordBot):
   
   ### Task Interval Handling ###
   def ConfigBackupInterval(self):
-    self.PeriodicBackup.change_interval(minutes=0.0, hours=float(ConfigData["RunBackupEveryXHours"]))
+    self.PeriodicBackup.change_interval(seconds=0.0, minutes=0.0, hours=float(ConfigData["RunBackupEveryXHours"]))
 
   def ConfigIdleInterval(self):
-    self.PeriodicLeave.change_interval(minutes=0.0, hours=float(ConfigData["RunIdleCleanupEveryXHours"]))
+    self.PeriodicLeave.change_interval(seconds=0.0, minutes=0.0, hours=float(ConfigData["RunIdleCleanupEveryXHours"]))
     
   def RetryTaskInterval(self, task):
-    task.change_interval(minutes=5.0, hours=0.0)
+    task.change_interval(seconds=0.0, minutes=5.0, hours=0.0)
   
   ### Backup handling ###
   # By default, this runs every 5 minutes, however upon loading configurations, this will update the
