@@ -12,10 +12,7 @@ from TextWrapper import TextLibrary
 ConfigData:Config=Config()
 Messages:TextLibrary = TextLibrary()
 
-if __name__ == '__main__':
-  async def has_activation_intents(ctx):
-    return ctx.client.intents.members
-  
+if __name__ == '__main__':  
   ### MAIN INSTANCE SETUP ###
   CommandControlServer=Object(id=ConfigData["ControlServer"])
   ScamGuardBot = ScamGuard(ConfigData["ControlBotID"])
@@ -199,38 +196,6 @@ if __name__ == '__main__':
       ResponseMsg = f"The unban for {targetid} is in progress..."
       
     await interaction.response.send_message(ResponseMsg)
-      
-  @ScamGuardBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
-  @app_commands.check(has_activation_intents)
-  async def ActivateServer(interaction:Interaction):
-    # This command is no longer used anymore, it is deprecated
-    Sender:Member|User = interaction.user
-    SendersId:int = Sender.id
-
-    # Hold onto these objects, as activate is one of the most expensive commands if
-    # we are running off a database that is mostly made of up unactivated servers.
-    await interaction.response.defer(thinking=True)
-    ResponseHook:Webhook = interaction.followup
-    
-    ScamGuardBot.ClientHandler.SendActivationForServers(SendersId)
-    await ScamGuardBot.ActivateServersWithPermissions(SendersId)
-    await ResponseHook.send("Enqueued processing for activation for servers you own/moderate in")
-    
-  @ScamGuardBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
-  @app_commands.check(has_activation_intents)
-  async def DeactivateServer(interaction:Interaction):
-    # This command is no longer used anymore, it is deprecated
-    Sender:Member|User = interaction.user
-    SendersId:int = Sender.id
-    
-    # Hold onto these objects, as activate is one of the most expensive commands if
-    # we are running off a database that is mostly made of up unactivated servers.
-    await interaction.response.defer(thinking=True)
-    ResponseHook:Webhook = interaction.followup
-    
-    ScamGuardBot.ClientHandler.SendDeactivationForServers(SendersId)
-    await ScamGuardBot.DeactivateServersWithPermissions(SendersId)
-    await ResponseHook.send("Enqueued processing for deactivation for servers you own/moderate in")
 
   # Control server version of scamcheck
   @ScamGuardBot.Commands.command(name="scamcheck", description="In the control server, check to see if a discord id is banned", guild=CommandControlServer)

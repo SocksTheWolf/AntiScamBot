@@ -156,7 +156,7 @@ class RelayServer:
               Logger.Log(LogLevel.Notice, f"Established connection for {Message.Sender}")
             else:
               Logger.Log(LogLevel.Warn, f"Got a hello message from an known sender {Message.Sender}")
-          case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessActivation | RelayMessageType.ProcessServerActivation | RelayMessageType.ProcessDeactivation:
+          case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessServerActivation:
             Logger.Log(LogLevel.Log, f"Sending command {Message.Type} to {len(self.Connections)} instances...")
             # Resend this message to literally everyone
             for ClientConnection in self.Connections:
@@ -201,8 +201,6 @@ class RelayClient:
     match Type:
       case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
         DataPayload={"TargetUser": TargetUserId, "AuthName": AuthName}
-      case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
-        DataPayload={"TargetUser": TargetUserId}
       case RelayMessageType.ProcessServerActivation:
         DataPayload={"TargetUser": TargetUserId, "TargetServer": TargetServer}
       case RelayMessageType.LeaveServer:
@@ -265,21 +263,11 @@ class RelayClient:
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
       return
     self.Connection.send(self.GenerateMessage(RelayMessageType.Ping, Destination=InstanceToTarget))
-  
-  def SendActivationForServers(self, UserId):
-    if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
-      return
-    self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessActivation, TargetUserId=UserId))
     
   def SendActivationForServerInstance(self, UserId, ServerId, InstanceToTarget):
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
       return
     self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessServerActivation, TargetUserId=UserId, TargetServer=ServerId, Destination=InstanceToTarget))
-  
-  def SendDeactivationForServers(self, UserId):
-    if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
-      return
-    self.Connection.send(self.GenerateMessage(RelayMessageType.ProcessDeactivation, TargetUserId=UserId))
   
   async def RecvMessage(self):
     if (self.Connection is None):
@@ -312,8 +300,6 @@ class RelayClient:
         match RelayedMessage.Type:
           case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
             Arguments = {"TargetId": RelayedMessage.Data["TargetUser"], "AuthName":RelayedMessage.Data["AuthName"]}
-          case RelayMessageType.ProcessActivation | RelayMessageType.ProcessDeactivation:
-            Arguments = {"UserID": RelayedMessage.Data["TargetUser"]}
           case RelayMessageType.ProcessServerActivation:
             Arguments = {"UserId": RelayedMessage.Data["TargetUser"], "ServerId": RelayedMessage.Data["TargetServer"]}
           case RelayMessageType.LeaveServer:

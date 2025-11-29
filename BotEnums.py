@@ -41,11 +41,8 @@ class RelayMessageType(CompareEnum):
   LeaveServer=auto()
   ReprocessBans=auto()
   ReprocessInstance=auto()
-  # This activates all servers that an user is a mod in
-  ProcessActivation=auto()
   # This activates specifically for one server
   ProcessServerActivation=auto()
-  ProcessDeactivation=auto()
   Ping=auto()
   # TODO: In future to remove the number of writers
   AddedToServer=auto()

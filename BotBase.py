@@ -80,9 +80,7 @@ class DiscordBot(discord.Client):
     self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessInstance, self.ScheduleReprocessInstance)
     self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessBans, self.ScheduleReprocessBans)
     self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
-    self.ClientHandler.RegisterFunction(RelayMessageType.ProcessActivation, self.ProcessActivationForInstance)
     self.ClientHandler.RegisterFunction(RelayMessageType.ProcessServerActivation, self.ProcessServerActivationForInstance)
-    self.ClientHandler.RegisterFunction(RelayMessageType.ProcessDeactivation, self.ProcessDeactivationForInstance)
     self.ClientHandler.RegisterFunction(RelayMessageType.Ping, self.PostPongMessage)
       
   async def setup_hook(self):
@@ -266,18 +264,7 @@ class DiscordBot(discord.Client):
       return True
     return False
   
-  ### Activating/Deactivating Servers ###
-  async def ActivateServersWithPermissions(self, UserID:int) -> int:
-    # This is the old method of /activate that's no longer used. It is deprecated.
-    ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, True)
-    NumServersWithPermissions:int = len(ServersWithPermissions)
-    Logger.Log(LogLevel.Log, f"User [{UserID}] has {NumServersWithPermissions} servers with acceptable permissions...")
-    if (NumServersWithPermissions > 0):
-      self.Database.SetBotActivationForOwner(ServersWithPermissions, True, self.BotID, ActivatorId=UserID)
-      for ServerId in ServersWithPermissions:
-        self.AddAsyncTask(self.ReprocessBans(ServerId))
-    return NumServersWithPermissions
-  
+  ### Activating Servers ###
   async def ActivateServerInstance(self, UserID:int, ServerID:int):
     if (self.Database.GetBotIdForServer(ServerID) != self.BotID):
       return
@@ -286,23 +273,9 @@ class DiscordBot(discord.Client):
     self.Database.SetBotActivationForOwner([ServerID], True, self.BotID, ActivatorId=UserID)
     self.AddAsyncTask(self.ReprocessBans(ServerID))
     
-  async def DeactivateServersWithPermissions(self, UserID:int) -> int:
-    # This is the old method of /deactivate that's no longer used. It is deprecated.
-    ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, False)
-    NumServersWithPermissions:int = len(ServersWithPermissions)
-    if (NumServersWithPermissions > 0):
-      self.Database.SetBotActivationForOwner(ServersWithPermissions, False, self.BotID, ActivatorId=UserID)
-    return NumServersWithPermissions
-  
-  def ProcessActivationForInstance(self, UserID:int):
-    self.AddAsyncTask(self.ActivateServersWithPermissions(UserID))
-    
   def ProcessServerActivationForInstance(self, UserId:int, ServerId:int):
     self.AddAsyncTask(self.ActivateServerInstance(UserId, ServerId))
-    
-  def ProcessDeactivationForInstance(self, UserID:int):
-    self.AddAsyncTask(self.DeactivateServersWithPermissions(UserID))
-    
+
   ### Starting execution ###
   async def InitializeBotRuntime(self):
     self.ProcessConfig(False)
