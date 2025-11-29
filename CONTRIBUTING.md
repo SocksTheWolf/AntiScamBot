@@ -1,9 +1,10 @@
-## How to contribute to AntiScamBot
+# How to contribute to the AntiScamBot project
+
 ---
 
-# Did you:
+## Did you...
 
-## Find a bug?
+### Find a bug?
 
 * Check to see if the bug has already been submitted under [the issues page](https://github.com/SocksTheWolf/AntiScamBot/issues)
 * If it has not been submitted, please open a new one. Make sure to do the following:
@@ -13,7 +14,7 @@
     * Add appropriate labels. Do not add the `critical` label
     * Do not assign the bug to anyone
 
-## Write a patch that fixes a bug?
+### Write a patch that fixes a bug?
 
 **DO NOT** submit security fixes via this method. Instead, please follow the methods outlined in the [security document found here](/SECURITY.md).
 
@@ -28,28 +29,28 @@
     * Proper error handling
     * Ususally variables are explicitly typed, unless they are a list.
 
-## Want to implement a feature listed on the issues page?
+### Want to implement a feature listed on the issues page?
 
 Please make sure to communicate that you are interested in working on said feature in the issues ticket. This allows us to maintain proper resources. This way multiple people don't end up working on the same thing at the same time.
 
 If this issue is already assigned, please do not unassign the assignee without talking to the maintainer of the repository first.
 
-## Fix whitespace, formatting, or make purely cosmetic code changes?
+### Fix whitespace, formatting, or make purely cosmetic code changes?
 
 Unless the changes were previously [issue tracked](https://github.com/SocksTheWolf/AntiScamBot/issues), then these changes will be likely not be accepted into the project. [Rails has good rational](https://github.com/rails/rails/pull/13771#issuecomment-32746700) as to why these changes can bog down a project.
 
-## Fix typos, gramatical errors on the website?
+### Fix typos, gramatical errors on the website?
 
-Usually these will be taken, but very not often. 
+Usually these will be taken, but very not often.
 
 You're welcome to propose changes to the website.
 
-## Intended to add a new feature or upgrade an existing one?
+### Intended to add a new feature or upgrade an existing one?
 
 Please suggest your ideas in the `suggestions` forum section of the TAG Server, before writing any code. There may be existing reasoning to why something has not been implemented that may not be immediately clear.
 
 Please also do not open a Github issue unless instructed to do so. The issues page is primarily used for bugs and tasks to move into the full fledged release (we are still early access).
 
-## Have questions about how ScamGuard is used?
+### Have questions about how ScamGuard is used?
 
 Please ask that in the support channel of the TAG discord.

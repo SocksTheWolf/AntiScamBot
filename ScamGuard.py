@@ -59,8 +59,13 @@ class ScamGuard(DiscordBot):
   ### Backup handling ###
   # By default, this runs every 5 minutes, however upon loading configurations, this will update the
   # backup interval to the proper settings
-  @tasks.loop(minutes=5)
+  @tasks.loop(minutes=5, seconds=15.0)
   async def PeriodicBackup(self):
+    # Prevent the first time this task runs from trying to backup at start.
+    if (self.PeriodicBackup.seconds != 0.0):
+      self.ConfigBackupInterval()
+      return
+    
     # If we have active async tasks in progress, then delay this task until we are free.
     if (len(self.AsyncTasks) > 0):
       Logger.Log(LogLevel.Warn, "There are currently async tasks in progress, will try backup again in 5 minutes...")
@@ -76,8 +81,13 @@ class ScamGuard(DiscordBot):
     self.Database.CleanupBackups()
     
   ### Instance Cleanup ###
-  @tasks.loop(minutes=5)
+  @tasks.loop(minutes=5, seconds=15.0)
   async def PeriodicLeave(self):
+    # Prevent the first time this code ever runs from running directly at startup.
+    if (self.PeriodicLeave.seconds != 0.0):
+      self.ConfigIdleInterval()
+      return
+      
     # If we are processing any async tasks, do not clean up the deactivated table
     if (len(self.AsyncTasks) > 0):
       self.RetryTaskInterval(self.PeriodicLeave)
@@ -96,6 +106,7 @@ class ScamGuard(DiscordBot):
     if (InactiveInstanceWindow <= 0):
       return
     
+    # If we were in a retry state, reset the config loop again so that it's in the proper cadance
     if (self.PeriodicLeave.minutes != 0.0):
       self.ConfigIdleInterval()
 
@@ -126,6 +137,10 @@ class ScamGuard(DiscordBot):
     ExhaustedList = self.Database.GetExhaustedServers()
     ExhaustedListCount = len(ExhaustedList)
     if (ExhaustedListCount <= 0):
+      return
+    
+    # If the instances are not started, then we should wait for them to start
+    if (not self.HasStartedInstances):
       return
     
     NumBans:int = self.Database.GetNumBans()
