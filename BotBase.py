@@ -198,13 +198,17 @@ class DiscordBot(discord.Client):
     else:
       Logger.Log(LogLevel.Warn, f"Could not find server with id {ServerId}, id is invalid")        
    
-  ### Discord Information Gathering ###       
+  ### Discord Permission/Data Checking/Lookup ###       
   async def GetServersWithElevatedPermissions(self, UserID:int, SkipActivated:bool):
+    # This was used for the old /activate method before we had the remote activation feature
+    # this path doesn't really get called anymore
     ServersWithPermissions = []
     for Server in self.guilds:
       ServerId:int = Server.id
       if (SkipActivated and self.Database.IsActivatedInServer(ServerId)):
         continue
+      
+      ServerStr:str = self.GetServerInfoStr(Server)
       
       # Owners are an easy add
       if (Server.owner_id == UserID):
@@ -214,11 +218,11 @@ class DiscordBot(discord.Client):
         if (GuildMember is not None):
           if (self.UserHasElevatedPermissions(GuildMember)):
             ServersWithPermissions.append(ServerId)
-            Logger.Log(LogLevel.Log, f"User [{UserID}] is in server {Server.name} with permissions")
+            Logger.Log(LogLevel.Log, f"User [{UserID}] is in server {ServerStr} with permissions")
           else:
-            Logger.Log(LogLevel.Verbose, f"User [{UserID}] does not have elevated permissions in {Server.name}")
+            Logger.Log(LogLevel.Verbose, f"User [{UserID}] does not have elevated permissions in {ServerStr}")
         else:
-          Logger.Log(LogLevel.Verbose, f"User [{UserID}] is not in server {Server.name}")
+          Logger.Log(LogLevel.Verbose, f"User [{UserID}] is not in server {ServerStr}")
     return ServersWithPermissions
   
   async def UserAccountExists(self, UserID:int) -> bool:
@@ -253,6 +257,7 @@ class DiscordBot(discord.Client):
     return None
   
   def UserHasElevatedPermissions(self, User:discord.Member) -> bool:
+    # This is the old method of /activate that's no longer used. It is deprecated.
     if (User is None):
       return False
      
@@ -263,6 +268,7 @@ class DiscordBot(discord.Client):
   
   ### Activating/Deactivating Servers ###
   async def ActivateServersWithPermissions(self, UserID:int) -> int:
+    # This is the old method of /activate that's no longer used. It is deprecated.
     ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, True)
     NumServersWithPermissions:int = len(ServersWithPermissions)
     Logger.Log(LogLevel.Log, f"User [{UserID}] has {NumServersWithPermissions} servers with acceptable permissions...")
@@ -281,6 +287,7 @@ class DiscordBot(discord.Client):
     self.AddAsyncTask(self.ReprocessBans(ServerID))
     
   async def DeactivateServersWithPermissions(self, UserID:int) -> int:
+    # This is the old method of /deactivate that's no longer used. It is deprecated.
     ServersWithPermissions = await self.GetServersWithElevatedPermissions(UserID, False)
     NumServersWithPermissions:int = len(ServersWithPermissions)
     if (NumServersWithPermissions > 0):
@@ -518,7 +525,7 @@ Failed Copied Evidence Links:
       if (PostedInThread == False):
         await ChannelSet.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
 
-      Logger.Log(LogLevel.Notice, f"Found Posting Channel {ChannelSet.name} for server {Server.name}[{ServerId}]. Used Thread? {PostedInThread}")
+      Logger.Log(LogLevel.Log, f"Found Posting Channel `{ChannelSet.name}` for server {Server.name}[{ServerId}]. Used Thread? {PostedInThread}")
     else:
       Logger.Log(LogLevel.Error, f"Could not find a channel for server {ServerId}")
   
@@ -605,7 +612,7 @@ Failed Copied Evidence Links:
 
   ### Utils ###
   def GetServerInfoStr(self, Server:discord.Guild) -> str:
-    return f"{Server.name}[{Server.id}]"
+    return f"`{Server.name}`[{Server.id}]"
   
   def GetControlServerGuild(self) -> discord.Guild|None:
     return self.get_guild(ConfigData["ControlServer"])

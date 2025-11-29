@@ -1,6 +1,7 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanAction, ModerationAction
 from Config import Config
+from datetime import datetime, timezone, timedelta
 from CommandHelpers import TargetIdTransformer, ServerIdTransformer
 from discord import app_commands, Interaction, User, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases
@@ -134,11 +135,17 @@ if __name__ == '__main__':
     # Only print if we have servers to print
     if (NumExhausted > 0):
       RowNum = 1
-      ExhaustedStr = "\nThe following servers are exhausted:\n"
+      CurrentTime:datetime = datetime.now(tz=timezone.utc)
+      ExhaustedStr = f"\nThe following servers are exhausted as of {CurrentTime}:\n"
       for ExhaustedServer in ExhaustedServers:
-        ExhaustedStr += f"#{RowNum}: Discord ID: {ExhaustedServer.discord_server_id}, Current Pos: {ExhaustedServer.current_pos}, Last Time Ran: {ExhaustedServer.last_run}\n"
+        # Construct the correct time
+        TimeRan:datetime = datetime.fromisoformat(str(ExhaustedServer.last_run)).replace(tzinfo=timezone.utc)
+        # Figure out the difference
+        TimeDiff:timedelta = CurrentTime - TimeRan
+        # Print
+        ExhaustedStr += f"#{RowNum}: Server ID: {ExhaustedServer.discord_server_id}, CurPos: {ExhaustedServer.current_pos}, Last Time: {TimeRan}, Next Time in: {TimeDiff.seconds / 60}hrs\n"
         RowNum += 1
-      
+
     # Final formatting
     ReplyStr = f"{ReplyStr}{ExhaustedStr}\nNum Activated: {ActivatedServers} | Num Bans: {NumBans} | Num Exhausted: {NumExhausted}"
     # Split the string so that it fits properly into discord messaging
@@ -196,6 +203,7 @@ if __name__ == '__main__':
   @ScamGuardBot.Commands.command(name="activate", description="Activates a server and brings in previous bans if caller has any known servers owned", guild=CommandControlServer)
   @app_commands.check(has_activation_intents)
   async def ActivateServer(interaction:Interaction):
+    # This command is no longer used anymore, it is deprecated
     Sender:Member|User = interaction.user
     SendersId:int = Sender.id
 
@@ -211,6 +219,7 @@ if __name__ == '__main__':
   @ScamGuardBot.Commands.command(name="deactivate", description="Deactivates a server and prevents any future ban information from being shared", guild=CommandControlServer)
   @app_commands.check(has_activation_intents)
   async def DeactivateServer(interaction:Interaction):
+    # This command is no longer used anymore, it is deprecated
     Sender:Member|User = interaction.user
     SendersId:int = Sender.id
     
