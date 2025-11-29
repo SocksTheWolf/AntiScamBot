@@ -489,6 +489,7 @@ class DatabaseDriver():
     else:
       exhaustedUpdate.current_pos = NumCompleted
     
+    exhaustedUpdate.is_processing = False
     self.Database.add(exhaustedUpdate)
     self.Database.commit()
     

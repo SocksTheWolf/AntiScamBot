@@ -783,8 +783,6 @@ Failed Copied Evidence Links:
         Logger.Log(LogLevel.Error, f"{ServerInfoStr} had bans exceeded again, will continue from {NewBanPos}")
         # Make the debug print look nice
         NumBans = NewBanPos
-      # Clean up the flag that says we are currently processing server cooldown
-      self.Database.SetProcessingServerCooldown(ServerId, False)
 
     # If we are not processing server cooldowns and we encounter this error, and we're not in the db for this,
     # then add us to the db
