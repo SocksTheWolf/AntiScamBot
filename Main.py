@@ -1,7 +1,7 @@
 from Logger import Logger, LogLevel
 from BotEnums import BanAction, ModerationAction
 from Config import Config
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from CommandHelpers import TargetIdTransformer, ServerIdTransformer
 from discord import app_commands, Interaction, User, Member, Embed, Object, Webhook
 from BotSetup import SetupDatabases

@@ -20,7 +20,7 @@ This bot requires that you are using (at minimum) Python 3.11
 
 To start the bot locally, create a .env file in the current directory with the following environment variables:
 
-```
+```txt
 DISCORD_TOKEN="your discord bot token"  
 DATABASE_FILE="a path to your sql file"  
 CONFIG_FILE="a path to your config file"  
@@ -31,7 +31,7 @@ DEVELOPMENT_MODE="true if you want to test without banning, false to ban people"
 
 Here is an example of a .env file.
 
-```
+```txt
 DISCORD_TOKEN="0"  
 DATABASE_FILE="database.db"  
 CONFIG_FILE="config.json"
@@ -42,7 +42,7 @@ DEVELOPMENT_MODE="true"
 
 You can also have these environment variables set directly
 
-### Config.json
+### config.json
 
 By default, the config.json file is preconfigured with IDs specifically for the TAG server.
 
