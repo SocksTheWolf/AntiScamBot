@@ -20,6 +20,7 @@
     "MaxBulkImports": 1900,
     "InactiveServerDayWindow": 7,
     "RunIdleCleanupEveryXHours": 23,
+    "CooldownWaitInHours": 25,
     "RunBackupEveryXHours": 8,
     "RemoveDaysOldBackups": 5.0,
     "ScamCheckShowsSharedServers": false,

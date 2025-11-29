@@ -756,6 +756,8 @@ Failed Copied Evidence Links:
       # Remove the server from the cooldown table ONLY if they have processed all the bans successfully
       if (BanReturn == BanResult.Processed):
         self.Database.RemoveServerCooldown(ServerId)
+        Logger.Log(LogLevel.Notice, f"All delayed bans have been processed for {ServerInfoStr}")
+        NumBans = CurrentNumBans
       # Otherwise if we're already in cooldown (other error occurred), or we have exceeded our bans (i.e. first time exceed)
       # then we should update our current server cooldown information
       elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):

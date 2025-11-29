@@ -34,7 +34,7 @@ class ScamGuard(DiscordBot):
       self.PeriodicBackup.start()
       
     if (ConfigData["RunIdleCleanupEveryXHours"] > 0):
-      self.ConfigIdleInterval()
+      self.ConfigLeaveInterval()
       self.PeriodicLeave.start()
       
     self.HandleListenRelay.start()
@@ -50,7 +50,7 @@ class ScamGuard(DiscordBot):
   def ConfigBackupInterval(self):
     self.PeriodicBackup.change_interval(seconds=0.0, minutes=0.0, hours=float(ConfigData["RunBackupEveryXHours"]))
 
-  def ConfigIdleInterval(self):
+  def ConfigLeaveInterval(self):
     self.PeriodicLeave.change_interval(seconds=0.0, minutes=0.0, hours=float(ConfigData["RunIdleCleanupEveryXHours"]))
     
   def RetryTaskInterval(self, task):
@@ -59,10 +59,10 @@ class ScamGuard(DiscordBot):
   ### Backup handling ###
   # By default, this runs every 5 minutes, however upon loading configurations, this will update the
   # backup interval to the proper settings
-  @tasks.loop(minutes=5, seconds=15.0)
+  @tasks.loop(minutes=2)
   async def PeriodicBackup(self):
     # Prevent the first time this task runs from trying to backup at start.
-    if (self.PeriodicBackup.seconds != 0.0):
+    if (self.PeriodicBackup.minutes == 2.0):
       self.ConfigBackupInterval()
       return
     
@@ -81,11 +81,11 @@ class ScamGuard(DiscordBot):
     self.Database.CleanupBackups()
     
   ### Instance Cleanup ###
-  @tasks.loop(minutes=5, seconds=15.0)
+  @tasks.loop(minutes=2)
   async def PeriodicLeave(self):
     # Prevent the first time this code ever runs from running directly at startup.
-    if (self.PeriodicLeave.seconds != 0.0):
-      self.ConfigIdleInterval()
+    if (self.PeriodicLeave.minutes == 2.0):
+      self.ConfigLeaveInterval()
       return
       
     # If we are processing any async tasks, do not clean up the deactivated table
@@ -108,7 +108,7 @@ class ScamGuard(DiscordBot):
     
     # If we were in a retry state, reset the config loop again so that it's in the proper cadance
     if (self.PeriodicLeave.minutes != 0.0):
-      self.ConfigIdleInterval()
+      self.ConfigLeaveInterval()
 
     CurrentTime:datetime = datetime.now() - timedelta(days=float(InactiveInstanceWindow))
     AllDisabledServers = self.Database.GetAllDeactivatedServers()

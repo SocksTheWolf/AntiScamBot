@@ -507,8 +507,9 @@ class DatabaseDriver():
     stmt = select(ExhaustedServer)
     
     if (OverrideTime is False):
+      CooldownWaitTime:int = ConfigData["CooldownWaitInHours"]
       BeginningOfTime:datetime = datetime.fromtimestamp(0)
-      ADayAgo:timedelta = timedelta(days = 1, minutes=5)
+      ADayAgo:timedelta = timedelta(hours=CooldownWaitTime)
       ADayAgoTime:datetime = datetime.now(timezone.utc) - ADayAgo
       print(ADayAgoTime)
       stmt = stmt.where(ExhaustedServer.last_run.between(BeginningOfTime, ADayAgoTime))
