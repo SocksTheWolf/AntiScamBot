@@ -90,9 +90,9 @@ class ScamGuardServerSetup():
     # Request Embed for the Activation Server
     RequestServer:Guild = cast(Guild, Payload.Server)
     RequestEmbed:Embed = Embed(title="Activation Request", color = Colour.orange())
-    RequestEmbed.add_field(name="Server Name", value=f"`${RequestServer.name}`", inline=False)
+    RequestEmbed.add_field(name="Server Name", value=f"`{RequestServer.name}`", inline=False)
     if (Payload.InteractiveUser is not None):
-      RequestEmbed.add_field(name="Requestor", value=f"`${Payload.InteractiveUser.display_name}`")
+      RequestEmbed.add_field(name="Requestor", value=f"`{Payload.InteractiveUser.display_name}`")
       RequestEmbed.add_field(name="Requestor Handle", value=Payload.InteractiveUser.mention)
     RequestEmbed.add_field(name="Num Members", value=RequestServer.member_count, inline=False)
     if (RequestServer.icon is not None):

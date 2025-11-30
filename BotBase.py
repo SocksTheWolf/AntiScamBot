@@ -648,8 +648,8 @@ Failed Copied Evidence Links:
     HasUserData:bool = (User is not None)
     UserData = self.CreateBaseEmbed("User Data", False)
     if (HasUserData):
-      UserData.add_field(name="Name", value=f"`${User.display_name}`")
-      UserData.add_field(name="Discord Handle", value=f"`${User.name}`", inline=True)
+      UserData.add_field(name="Name", value=f"`{User.display_name}`")
+      UserData.add_field(name="Discord Handle", value=f"`{User.name}`", inline=True)
       UserData.add_field(name="Mention", value=User.mention)
       # This will always be an approximation, plus they may be in servers the bot is not in.
       if (ConfigData["ScamCheckShowsSharedServers"]):
