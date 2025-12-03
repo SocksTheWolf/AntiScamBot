@@ -695,8 +695,8 @@ Failed Copied Evidence Links:
     Logger.Log(LogLevel.Log, f"Attempting to import ban data to {ServerInfoStr}")
     NumBans:int = 0
     NumFailures:int = 0
-    CurrentNumBans:int = self.Database.GetNumBans()
     RawBanQuery = self.Database.GetAllBans(LastActions)
+    CurrentNumBans:int = len(RawBanQuery)
     ActionsAppliedThisLoop:int = 0
     DoesSleep:bool = ConfigData["UseSleep"]
     DoesHaltOnFailures:bool = ConfigData["MaxBanFailures"] > 0
@@ -753,6 +753,7 @@ Failed Copied Evidence Links:
     
     # If this is being handled by a server reprocessing, then make sure to update the db properly
     if (HandlingCooldown):
+      CurrentNumBans = self.Database.GetNumBans()
       # Remove the server from the cooldown table ONLY if they have processed all the bans successfully
       if (BanReturn == BanResult.Processed):
         self.Database.RemoveServerCooldown(ServerId)
