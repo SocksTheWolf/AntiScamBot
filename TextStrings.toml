@@ -42,7 +42,7 @@ change_settings = "To change settings, run `/scamguard config`. To uninstall the
 
 # Settings for the embeds
 [info]
-links="[Website](https://scamguard.app)\n[GitHub](https://github.com/SocksTheWolf/AntiScamBot)"
+links="[Website](https://scamguard.app)\n[GitHub](https://github.com/theantiscamgroup/AntiScamBot)"
 help_links="[FAQ](https://scamguard.app/faq)\n[Usage](https://scamguard.app/usage)\n[Support Server](https://scamguard.app/discord)"
 legal="[TOS](https://scamguard.app/terms)\n[Privacy Policy](https://scamguard.app/privacy)"
 about="ScamGuard is a free Discord bot that prevent scammers from entering your server. It is managed by [SocksTheWolf](https://socksthewolf.com)"
