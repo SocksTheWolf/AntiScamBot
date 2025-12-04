@@ -484,6 +484,7 @@ Failed Copied Evidence Links:
     if (ChannelSet is not None):
       PostEmbed:discord.Embed = self.CreateFirstTimeEmbed()
       PostedInThread:bool = False
+      ServerStr:str = f"{Server.name}[{ServerId}]"
 
       # Attempt to post our welcome as a private thread
       if (CanCreatePrivateThread):
@@ -496,9 +497,12 @@ Failed Copied Evidence Links:
           pass
 
       if (PostedInThread == False):
-        await ChannelSet.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
-
-      Logger.Log(LogLevel.Log, f"Found Posting Channel `{ChannelSet.name}` for server {Server.name}[{ServerId}]. Used Thread? {PostedInThread}")
+        try:
+          await ChannelSet.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
+        except Exception as ex:
+          Logger.Log(LogLevel.Error, f"Could not post message in {ServerStr} both Channel and PrivThread failed, got error {str(ex)}")
+          return
+      Logger.Log(LogLevel.Log, f"Found Posting Channel `{ChannelSet.name}` for server {ServerStr}. Used Thread? {PostedInThread}")
     else:
       Logger.Log(LogLevel.Error, f"Could not find a channel for server {ServerId}")
   
