@@ -5,5 +5,5 @@ if [ "$?" -eq "0" ]; then
 fi
 python3 -m venv .venv
 source .venv/bin/activate
-echo "Updating requirements"
+echo "Updating python requirements"
 python3 -m pip install -r requirements.txt
