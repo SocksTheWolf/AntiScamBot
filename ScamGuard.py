@@ -180,6 +180,10 @@ class ScamGuard(DiscordBot):
     return False
 
   async def on_thread_join(self, thread: Thread):
+    # Only handle in the control server
+    if (thread.guild.id != ConfigData["ControlServer"]):
+      return
+    
     if (thread.parent_id == ConfigData["ExternalReportChannel"]):
       try:
         MentionMessage:Message = await thread.fetch_message(thread.last_message_id)
@@ -197,6 +201,10 @@ class ScamGuard(DiscordBot):
       if (MentionMessage.content != ""):
         IDGrabList = MentionMessage.content.split()
         if (len(IDGrabList) >= 2):
+          try:
+            await MentionMessage.delete()
+          except:
+            Logger.Log(LogLevel.Log, f"Could not delete mention message {MentionMessage.id}")
           ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(IDGrabList[1])
           await thread.send(embed = ResponseEmbed)
       else:
