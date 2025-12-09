@@ -7,7 +7,7 @@ from Config import Config
 from BotBase import DiscordBot
 from BotConnections import RelayServer
 from datetime import datetime, timedelta
-from discord import Embed, User, Member, HTTPException, Message
+from discord import Embed, User, Member, HTTPException, Message, Thread
 from discord.ext import tasks
 from multiprocessing import Process
 from BotSubprocess import CreateBotProcess
@@ -169,6 +169,39 @@ class ScamGuard(DiscordBot):
   async def InitializeBotRuntime(self):
     await super().InitializeBotRuntime()
     await self.StartAllInstances()       
+
+  ### Thread handling (for automated checks) ###
+  async def LeaveThread(self, thread: Thread) -> boolean:
+    try:
+      await thread.leave()
+      return True
+    except:
+      Logger.Log(LogLevel.Warn, f"Unable to leave the thread, encountered exception")
+    return False
+
+  async def on_thread_join(self, thread: Thread):
+    if (thread.parent_id == ConfigData["ExternalReportChannel"]):
+      try:
+        MentionMessage:Message = await thread.fetch_message(thread.last_message_id)
+      except:
+        Logger.Log(LogLevel.Error, f"Unable to fetch the message that brought us to this channel!")
+        await self.LeaveThread(thread)
+        return
+
+      # leave the thread if we were invited by someone else.
+      if (MentionMessage.author.id != ConfigData["ThreadInviteUser"]):
+        await self.LeaveThread(thread)
+        return
+      
+      # Check to see if we have content, which means it's our mentionable
+      if (MentionMessage.content != ""):
+        IDGrabList = MentionMessage.content.split()
+        if (len(IDGrabList) >= 2):
+          ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(IDGrabList[1])
+          await thread.send(embed = ResponseEmbed)
+      else:
+        Logger.Log(LogLevel.Warn, f"Joined thread {thread.id} but could not get content, we were not mentioned...")
+        await self.LeaveThread(thread)
 
   ### Subprocess instances ###
   async def StartAllInstances(self, BypassCheck:bool=False, RestartMainClient:bool=False):

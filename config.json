@@ -8,6 +8,8 @@
     "NotificationChannel": 1156305992829644800,
     "ActivationChannel": 1240158667563601970,
     "ReportChannel": 1156667446472740935,
+    "ExternalReportChannel": 1263585083198275595,
+    "ThreadInviteUser": 1285010284897112154,
     "ReportChannelTag": "scam report",
     "ReportHandledTag": "handled",
     "ReportDuplicateTag": "duplicate",
