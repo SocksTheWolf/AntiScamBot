@@ -181,34 +181,32 @@ class ScamGuard(DiscordBot):
 
   async def on_thread_join(self, thread: Thread):
     # Only handle in the control server
-    if (thread.guild.id != ConfigData["ControlServer"]):
-      return
-    
-    if (thread.parent_id == ConfigData["ExternalReportChannel"]):
-      async for message in thread.history(limit=2, oldest_first=True):
-        # leave the thread if we were invited by someone else.
-        if (message.author.id != ConfigData["ThreadInviteUser"]):
-          continue
-        
-        # Check to see if we have content, which means it's our mentionable
-        if (message.content == ""):
-          continue
-        
-        Logger.Log(LogLevel.Log, f"Got post content of {message.content}")
-        IDGrabList = message.content.split()
-        if (len(IDGrabList) >= 2):
-          userID:int = int(IDGrabList[1])
-          try:
-            await message.delete()
-          except:
-            Logger.Log(LogLevel.Debug, f"Could not delete mention message {message.id}")
-          ResponseEmbed:Embed = await self.CreateBanEmbed(userID)
-          await thread.send(embed = ResponseEmbed)
-          return
-      Logger.Log(LogLevel.Log, f"Could not find any mentionable message, leaving thread.")
-      await self.LeaveThread(thread)
-    else:
-      Logger.Log(LogLevel.Warn, f"The thread we were in does not match parent_id {thread.parent_id} check")
+    if (thread.guild.id == ConfigData["ControlServer"]):   
+      # and in the external reports channel
+      if (thread.parent_id == ConfigData["ExternalReportChannel"]):
+        async for message in thread.history(limit=2, oldest_first=True):
+          # leave the thread if we were invited by someone else.
+          if (message.author.id != ConfigData["ThreadInviteUser"]):
+            continue
+          
+          # Check to see if we have content, which means it's our mentionable
+          if (message.content == ""):
+            continue
+
+          Logger.Log(LogLevel.Debug, f"Got post content of {message.content}")
+          IDGrabList = message.content.split()
+          if (len(IDGrabList) >= 2):
+            userID:int = int(IDGrabList[1])
+            try:
+              await message.delete()
+            except:
+              Logger.Log(LogLevel.Log, f"Could not delete mention message {message.id}")
+            ResponseEmbed:Embed = await self.CreateBanEmbed(userID)
+            await thread.send(embed = ResponseEmbed)
+            return
+
+    Logger.Log(LogLevel.Debug, f"Could not find any mentionable message, leaving thread {thread.id}")
+    await self.LeaveThread(thread)
 
   ### Subprocess instances ###
   async def StartAllInstances(self, BypassCheck:bool=False, RestartMainClient:bool=False):
