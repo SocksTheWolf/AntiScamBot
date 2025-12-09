@@ -493,8 +493,7 @@ Failed Copied Evidence Links:
           await PostingThread.send(MentionStr, embed=PostEmbed, allowed_mentions=MentionPerms)
           PostedInThread = True
         except:
-          # if it fails, we'll just send the message
-          pass
+          Logger.Log(LogLevel.Debug, f"Could not post in private thread in server {ServerStr}")
 
       if (PostedInThread == False):
         try:

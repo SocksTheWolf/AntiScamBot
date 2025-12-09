@@ -180,18 +180,21 @@ class ScamGuard(DiscordBot):
     return False
 
   async def on_thread_join(self, thread: Thread):
+    Logger.Log(LogLevel.Debug, "Got added to thread!")
     # Only handle in the control server
     if (thread.guild.id != ConfigData["ControlServer"]):
       return
     
+    Logger.Log(LogLevel.Notice, f"Added into thread {thread.id} with parent {thread.parent_id} and lastmsg {thread.last_message_id}")
     if (thread.parent_id == ConfigData["ExternalReportChannel"]):
       if thread.last_message_id == None:
+        Logger.Log(LogLevel.Warn, f"Last message in {thread.id} was none")
         return
       
       try:
         MentionMessage:Message = await thread.fetch_message(thread.last_message_id)
       except:
-        Logger.Log(LogLevel.Error, f"Unable to fetch the message that brought us to this channel!")
+        Logger.Log(LogLevel.Debug, f"Unable to fetch the message that brought us to this channel!")
         await self.LeaveThread(thread)
         return
 
@@ -202,18 +205,23 @@ class ScamGuard(DiscordBot):
       
       # Check to see if we have content, which means it's our mentionable
       if (MentionMessage.content != ""):
+        Logger.Log(LogLevel.Log, f"Got post content of {MentionMessage.content}")
         IDGrabList = MentionMessage.content.split()
         if (len(IDGrabList) >= 2):
           userID:int = int(IDGrabList[1])
           try:
             await MentionMessage.delete()
           except:
-            Logger.Log(LogLevel.Log, f"Could not delete mention message {MentionMessage.id}")
+            Logger.Log(LogLevel.Debug, f"Could not delete mention message {MentionMessage.id}")
           ResponseEmbed:Embed = await self.CreateBanEmbed(userID)
           await thread.send(embed = ResponseEmbed)
+        else:
+          Logger.Log(LogLevel.Debug, "")
       else:
-        Logger.Log(LogLevel.Warn, f"Joined thread {thread.id} but could not get content, we were not mentioned...")
+        Logger.Log(LogLevel.Debug, f"Joined thread {thread.id} but could not get content, we were not mentioned...")
         await self.LeaveThread(thread)
+    else:
+      Logger.Log(LogLevel.Warn, f"The thread we were in does not match parent_id {thread.parent_id} check")
 
   ### Subprocess instances ###
   async def StartAllInstances(self, BypassCheck:bool=False, RestartMainClient:bool=False):
