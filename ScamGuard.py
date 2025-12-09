@@ -171,7 +171,7 @@ class ScamGuard(DiscordBot):
     await self.StartAllInstances()       
 
   ### Thread handling (for automated checks) ###
-  async def LeaveThread(self, thread: Thread) -> boolean:
+  async def LeaveThread(self, thread: Thread) -> bool:
     try:
       await thread.leave()
       return True
@@ -185,6 +185,9 @@ class ScamGuard(DiscordBot):
       return
     
     if (thread.parent_id == ConfigData["ExternalReportChannel"]):
+      if thread.last_message_id == None:
+        return
+      
       try:
         MentionMessage:Message = await thread.fetch_message(thread.last_message_id)
       except:
@@ -201,11 +204,12 @@ class ScamGuard(DiscordBot):
       if (MentionMessage.content != ""):
         IDGrabList = MentionMessage.content.split()
         if (len(IDGrabList) >= 2):
+          userID:int = int(IDGrabList[1])
           try:
             await MentionMessage.delete()
           except:
             Logger.Log(LogLevel.Log, f"Could not delete mention message {MentionMessage.id}")
-          ResponseEmbed:Embed = await ScamGuardBot.CreateBanEmbed(IDGrabList[1])
+          ResponseEmbed:Embed = await self.CreateBanEmbed(userID)
           await thread.send(embed = ResponseEmbed)
       else:
         Logger.Log(LogLevel.Warn, f"Joined thread {thread.id} but could not get content, we were not mentioned...")
