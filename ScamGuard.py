@@ -180,46 +180,33 @@ class ScamGuard(DiscordBot):
     return False
 
   async def on_thread_join(self, thread: Thread):
-    Logger.Log(LogLevel.Debug, "Got added to thread!")
     # Only handle in the control server
     if (thread.guild.id != ConfigData["ControlServer"]):
       return
     
-    Logger.Log(LogLevel.Notice, f"Added into thread {thread.id} with parent {thread.parent_id} and lastmsg {thread.last_message_id}")
     if (thread.parent_id == ConfigData["ExternalReportChannel"]):
-      if thread.last_message_id == None:
-        Logger.Log(LogLevel.Warn, f"Last message in {thread.id} was none")
-        return
-      
-      try:
-        MentionMessage:Message = await thread.fetch_message(thread.last_message_id)
-      except:
-        Logger.Log(LogLevel.Debug, f"Unable to fetch the message that brought us to this channel!")
-        await self.LeaveThread(thread)
-        return
-
-      # leave the thread if we were invited by someone else.
-      if (MentionMessage.author.id != ConfigData["ThreadInviteUser"]):
-        await self.LeaveThread(thread)
-        return
-      
-      # Check to see if we have content, which means it's our mentionable
-      if (MentionMessage.content != ""):
-        Logger.Log(LogLevel.Log, f"Got post content of {MentionMessage.content}")
-        IDGrabList = MentionMessage.content.split()
+      async for message in thread.history(limit=2, oldest_first=True):
+        # leave the thread if we were invited by someone else.
+        if (message.author.id != ConfigData["ThreadInviteUser"]):
+          continue
+        
+        # Check to see if we have content, which means it's our mentionable
+        if (message.content == ""):
+          continue
+        
+        Logger.Log(LogLevel.Log, f"Got post content of {message.content}")
+        IDGrabList = message.content.split()
         if (len(IDGrabList) >= 2):
           userID:int = int(IDGrabList[1])
           try:
-            await MentionMessage.delete()
+            await message.delete()
           except:
-            Logger.Log(LogLevel.Debug, f"Could not delete mention message {MentionMessage.id}")
+            Logger.Log(LogLevel.Debug, f"Could not delete mention message {message.id}")
           ResponseEmbed:Embed = await self.CreateBanEmbed(userID)
           await thread.send(embed = ResponseEmbed)
-        else:
-          Logger.Log(LogLevel.Debug, "")
-      else:
-        Logger.Log(LogLevel.Debug, f"Joined thread {thread.id} but could not get content, we were not mentioned...")
-        await self.LeaveThread(thread)
+          return
+      Logger.Log(LogLevel.Log, f"Could not find any mentionable message, leaving thread.")
+      await self.LeaveThread(thread)
     else:
       Logger.Log(LogLevel.Warn, f"The thread we were in does not match parent_id {thread.parent_id} check")
 
