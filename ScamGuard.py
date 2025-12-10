@@ -322,6 +322,8 @@ class ScamGuard(DiscordBot):
       self.ClientHandler.SendBan(TargetId, SenderName)
     elif (Action == ModerationAction.Unban):
       self.ClientHandler.SendUnban(TargetId, SenderName)
+    elif (Action == ModerationAction.Kick):
+      self.ClientHandler.SendKick(TargetId, SenderName)
       
     await self.ProcessActionOnUser(TargetId, SenderName, Action)
     

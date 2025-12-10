@@ -77,6 +77,7 @@ class DiscordBot(discord.Client):
     # Register functions for handling basic client actions
     self.ClientHandler.RegisterFunction(RelayMessageType.BanUser, self.BanUser)
     self.ClientHandler.RegisterFunction(RelayMessageType.UnbanUser, self.UnbanUser)
+    self.ClientHandler.RegisterFunction(RelayMessageType.Kick, self.KickUser)
     self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessInstance, self.ScheduleReprocessInstance)
     self.ClientHandler.RegisterFunction(RelayMessageType.ReprocessBans, self.ScheduleReprocessBans)
     self.ClientHandler.RegisterFunction(RelayMessageType.LeaveServer, self.LeaveServer)
@@ -815,7 +816,7 @@ Failed Copied Evidence Links:
     UserToWorkOn:discord.User = cast(discord.User, discord.Object(TargetId))
     
     BanReason=f"Confirmed {str(Action)} by {AuthorizerName}"
-    AllServers = self.Database.GetAllActivatedServersWithBans(self.BotID)
+    AllServers = self.Database.GetAllActivatedServersForAction(self.BotID, Action)
     NumServers:int = len(AllServers)
     
     # Instead of going through all servers it's added to, choose all servers that are activated.

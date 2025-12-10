@@ -44,8 +44,4 @@ class RelayMessageType(CompareEnum):
   # This activates specifically for one server
   ProcessServerActivation=auto()
   Ping=auto()
-  # TODO: In future to remove the number of writers
-  AddedToServer=auto()
-  RemovedFromServer=auto()
-  ServerOwnerChanged=auto()
-  # TODO: Add enqueue messages to fix issue #64
+  Kick=auto()

@@ -1,5 +1,5 @@
 # Database driver for ScamGuard
-from BotEnums import BanAction
+from BotEnums import BanAction, ModerationAction
 from Logger import Logger, LogLevel
 from Config import Config
 import shutil, time, os
@@ -425,7 +425,7 @@ class DatabaseDriver():
     
     return list(self.Database.scalars(stmt).all())
   
-  def GetAllServers(self, FilterOnlyActivated:bool=False, OfInstance:int=-1, FilterBanability:bool=False) -> list[Server]:
+  def GetAllServers(self, FilterOnlyActivated:bool=False, OfInstance:int=-1, FilterBanability:bool=False, FilterKicking:bool=False) -> list[Server]:
     stmt = select(Server)
 
     if (FilterOnlyActivated):
@@ -436,14 +436,23 @@ class DatabaseDriver():
       
     if (FilterBanability):
       stmt = stmt.where(Server.should_ban_in==1)
+      
+    if (FilterKicking):
+      stmt = stmt.where(Server.kick_sus_users==1)
 
     return list(self.Database.scalars(stmt).all())
   
   def GetAllActivatedServers(self, OfInstance:int=-1) -> list[Server]:
     return self.GetAllServers(True, OfInstance)
   
-  def GetAllActivatedServersWithBans(self, OfInstance:int=-1) -> list[Server]:
-    return self.GetAllServers(True, OfInstance, True)
+  def GetAllActivatedServersForAction(self, OfInstance:int=-1, Action:ModerationAction=ModerationAction.Nothing) -> list[Server]:
+    match Action:
+      case ModerationAction.Ban | ModerationAction.Unban:
+        return self.GetAllServers(True, OfInstance, True)
+      case ModerationAction.Kick:
+        return self.GetAllServers(True, OfInstance, False, True)
+
+    return []
   
   def GetAllDeactivatedServers(self) -> list[Server]:
     ControlServerID:int = ConfigData["ControlServer"]

@@ -156,7 +156,7 @@ class RelayServer:
               Logger.Log(LogLevel.Notice, f"Established connection for {Message.Sender}")
             else:
               Logger.Log(LogLevel.Warn, f"Got a hello message from an known sender {Message.Sender}")
-          case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessServerActivation:
+          case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.ProcessServerActivation | RelayMessageType.Kick:
             Logger.Log(LogLevel.Log, f"Sending command {Message.Type} to {len(self.Connections)} instances...")
             # Resend this message to literally everyone
             for ClientConnection in self.Connections:
@@ -199,7 +199,7 @@ class RelayClient:
                       HandlingCooldown:bool=False, TargetUserId:int=-1, NumToRetry=-1, AuthName:str="") -> RelayMessage:            
     DataPayload={}
     match Type:
-      case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
+      case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.Kick:
         DataPayload={"TargetUser": TargetUserId, "AuthName": AuthName}
       case RelayMessageType.ProcessServerActivation:
         DataPayload={"TargetUser": TargetUserId, "TargetServer": TargetServer}
@@ -234,8 +234,12 @@ class RelayClient:
   def SendBan(self, UserId:int, InAuthName:str):
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
       return
-    
     self.Connection.send(self.GenerateMessage(RelayMessageType.BanUser, TargetUserId=UserId, AuthName=InAuthName))
+    
+  def SendKick(self, UserId:int, InAuthName:str):
+    if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
+      return
+    self.Connection.send(self.GenerateMessage(RelayMessageType.Kick, TargetUserId=UserId, AuthName=InAuthName))
     
   def SendUnban(self, UserId:int, InAuthName:str):
     if (self.Connection is None or self.BotID != ConfigData["ControlBotID"]):
@@ -283,7 +287,7 @@ class RelayClient:
         break
         
       if (not RelayMessage.IsValid(RawMessage)):
-        Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} recieved relay message is not a type of RelayMessage")
+        Logger.Log(LogLevel.Warn, f"Bot #{self.BotID} received relay message is not a type of RelayMessage")
         break
       
       RelayedMessage:RelayMessage = RawMessage            
@@ -294,11 +298,11 @@ class RelayClient:
       else:
         Logger.Log(LogLevel.Log, f"Bot #{self.BotID} just got a message of type {RelayedMessage.Type}")
       
-      # Rework the arguments in a way that we can explode map them programatically
+      # Rework the arguments in a way that we can explode map them programmatically
       Arguments = None
       if (RelayedMessage.Data is not None):
         match RelayedMessage.Type:
-          case RelayMessageType.BanUser | RelayMessageType.UnbanUser:
+          case RelayMessageType.BanUser | RelayMessageType.UnbanUser | RelayMessageType.Kick:
             Arguments = {"TargetId": RelayedMessage.Data["TargetUser"], "AuthName":RelayedMessage.Data["AuthName"]}
           case RelayMessageType.ProcessServerActivation:
             Arguments = {"UserId": RelayedMessage.Data["TargetUser"], "ServerId": RelayedMessage.Data["TargetServer"]}
