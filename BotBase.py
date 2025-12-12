@@ -767,7 +767,7 @@ Failed Copied Evidence Links:
       # then we should update our current server cooldown information
       elif (BanReturn == BanResult.BansExceeded or self.Database.IsServerInCooldown(ServerId)):
         NewBanPos:int = self.Database.UpdateServerCooldown(ServerId, NumBans)
-        Logger.Log(LogLevel.Error, f"{ServerInfoStr} had bans exceeded again, will continue from {NewBanPos}")
+        Logger.Log(LogLevel.Warn, f"{ServerInfoStr} had bans exceeded again, will continue from {NewBanPos}")
         # Make the debug print look nice
         NumBans = NewBanPos
 
@@ -775,7 +775,7 @@ Failed Copied Evidence Links:
     # then add us to the db
     elif (BanReturn == BanResult.BansExceeded and not self.Database.IsServerInCooldown(ServerId)):
       NewBanPos:int = self.Database.UpdateServerCooldown(ServerId, NumBans)
-      Logger.Log(LogLevel.Error, f"Bans Exceeded. Pushing {ServerInfoStr} to continue processing in the future at {NewBanPos}")
+      Logger.Log(LogLevel.Warn, f"Bans Exceeded. Pushing {ServerInfoStr} to continue processing in the future at {NewBanPos}")
 
     Logger.Log(LogLevel.Notice, f"Processed {NumBans}/{CurrentNumBans} bans for {ServerInfoStr}!")
     return BanReturn
